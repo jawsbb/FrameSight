@@ -16,6 +16,15 @@ see the difference.
 
 ### Added
 
+- **A sell listing can be marked sold.** The count sold goes through warframe.market's own close
+  route (`POST /v2/order/{id}/close`), which records the trade: the whole listing closes it, less
+  lowers it. Bounded by the listing, never by the collection, and in whole trades for a bulk one.
+- **Order sync after an inventory read, off by default.** Once turned on, each inventory read
+  under Full access takes down the listings for what the collection no longer holds and lowers the
+  ones listing more than is held, exactly the repairs the Orders page offers, and only where it
+  would flag them; the page reports what the last sync changed.
+- **A collection row's live book.** The orders of the traders online for the very copy a row
+  holds, its rank or relic refinement, from the same one-minute cache as the Market page.
 - **An item sheet lists Overframe's best builds.** Opening a Warframe, weapon or companion (or a
   Prime part or blueprint, which asks for the item it builds) shows its five best builds on
   overframe.gg, best first: title, author, score, Forma count and last update, each opening the
