@@ -38,8 +38,6 @@ type CollectionItem = {
 }
 
 type CollectionTotals = {
-  masteryEligible: number
-  mastered: number
   owned: number
   missing: number
   priced: number
@@ -53,19 +51,16 @@ const MASTERY_ELIGIBLE_CATEGORIES = new Set(['frame', 'weapon', 'companion', 've
 
 /**
  * Where a card sits when the collection is read as a to-do: unmastered equipment first, mastered
- * equipment next, and last everything that earns no mastery, whatever its flag says. The same
- * category rule the mastery band counts by, so the sort and the percentage agree on what counts.
+ * equipment next, and last everything that earns no mastery, whatever its flag says.
  */
 export function masteryOrder(item: { category: string; mastered: boolean }): 0 | 1 | 2 {
   if (!MASTERY_ELIGIBLE_CATEGORIES.has(item.category)) return 2
   return item.mastered ? 1 : 0
 }
 
-/** The collection's ownership, mastery and exchange-value bands. */
+/** The collection's ownership and exchange-value figures. */
 export function collectionTotals(items: readonly CollectionItem[], priceFloor: number): CollectionTotals {
   const totals: CollectionTotals = {
-    masteryEligible: 0,
-    mastered: 0,
     owned: 0,
     missing: 0,
     priced: 0,
@@ -76,10 +71,6 @@ export function collectionTotals(items: readonly CollectionItem[], priceFloor: n
   }
 
   for (const item of items) {
-    if (MASTERY_ELIGIBLE_CATEGORIES.has(item.category)) {
-      totals.masteryEligible += 1
-      if (item.mastered) totals.mastered += 1
-    }
     if (item.quantity > 0) totals.owned += 1
     if (item.quantity === 0) totals.missing += 1
     if (item.platinum !== undefined) totals.priced += 1
