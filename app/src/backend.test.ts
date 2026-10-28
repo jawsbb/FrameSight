@@ -5,6 +5,7 @@ vi.mock('@tauri-apps/api/core', () => ({ invoke }))
 
 import {
   authorizeScreenCapture,
+  closeOrder,
   getSetupStatus,
   marketLinkToken,
   marketSignIn,
@@ -119,6 +120,10 @@ describe('typed Tauri command bridge', () => {
       platinum: 19,
       quantity: 3,
     })
+
+    invoke.mockResolvedValueOnce({})
+    await closeOrder('order-one', 2)
+    expect(invoke).toHaveBeenCalledWith('close_order', { orderId: 'order-one', quantity: 2 })
   })
   it('pins the offered version on the install call', async () => {
     invoke.mockResolvedValueOnce({ version: '0.12.0' })

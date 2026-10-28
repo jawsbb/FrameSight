@@ -47,8 +47,8 @@ fn valid_slug(slug: &str) -> bool {
 
 mod orders;
 pub use orders::{
-    MAX_ORDERS_BYTES, MarketOrder, NewSellOrder, OrderKind, create_order, delete_order, list_mine,
-    set_order_quantity, update_order,
+    MAX_ORDERS_BYTES, MarketOrder, NewSellOrder, OrderKind, close_order, create_order,
+    delete_order, list_mine, set_order_quantity, update_order,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

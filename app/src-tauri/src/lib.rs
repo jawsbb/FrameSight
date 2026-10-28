@@ -1640,6 +1640,34 @@ async fn remove_order(
     .map_err(|_| "order removal task failed".to_owned())?
 }
 
+/// Record that some or all of a sell listing was sold, then refresh.
+///
+/// Not gated on Full access, like `remove_order` and unlike the writes that read the collection:
+/// the count is the player's own statement of a trade, bounded by `authorize_close` against the
+/// order alone, so nothing here depends on inventory evidence a Companion or Overlay mode lacks.
+#[tauri::command]
+async fn close_order(
+    order_id: String,
+    quantity: u32,
+    state: State<'_, SharedRuntime>,
+) -> Result<AppView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        {
+            let runtime = shared
+                .lock()
+                .map_err(|_| "application state is unavailable".to_owned())?;
+            market_account::authorize_close(runtime.core.market_account(), &order_id, quantity)
+                .map_err(str::to_owned)?;
+        }
+        write_then_refresh(&shared, "close", |transport, token| {
+            warframe_market::close_order(transport, token, &order_id, quantity)
+        })
+    })
+    .await
+    .map_err(|_| "order close task failed".to_owned())?
+}
+
 /// Publish a sell listing for one row of the collection.
 ///
 /// The item is named by its collection row id: the whole key, rank suffix or relic tier
@@ -2414,6 +2442,7 @@ pub fn run() {
             create_order,
             set_order_quantity,
             update_order,
+            close_order,
             get_item_detail,
             builds::get_item_builds,
             market_lookup::market_search,

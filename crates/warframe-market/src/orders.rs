@@ -215,6 +215,33 @@ pub fn update_order(
     write_outcome(response, token)
 }
 
+/// Record that `quantity` units of a sell listing were traded away, which is how warframe.market
+/// counts a sale.
+///
+/// Not a delete with extra steps: a close is the site's own record of the trade, and the remainder
+/// is the site's to settle. A quantity at or above what the order still holds closes the whole of
+/// it and the order disappears; anything less lowers the order by that much. The API also requires
+/// the quantity to be a multiple of the order's per-trade size, which only the caller knows, so
+/// that is checked where the order is in view, not here. The bounds are the API's own.
+pub fn close_order(
+    transport: &dyn MarketTransport,
+    token: &MarketToken,
+    order_id: &str,
+    quantity: u32,
+) -> Result<MarketToken, MarketError> {
+    validate_order_id(order_id)?;
+    if !(1..=9_999).contains(&quantity) {
+        return Err(MarketError::Rejected);
+    }
+    let response = transport.send(MarketRequest {
+        method: Method::Post,
+        url: format!("{API_V2}/order/{order_id}/close"),
+        token: Some(token.expose().to_owned()),
+        body: Some(format!("{{\"quantity\":{quantity}}}")),
+    })?;
+    write_outcome(response, token)
+}
+
 /// A listing to publish: what the sell form collects, joined to what the item's shape demands.
 ///
 /// Built from a [`crate::Listing`], which is where the rule lives: the API's create body carries

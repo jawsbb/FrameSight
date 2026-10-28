@@ -202,6 +202,13 @@ pub const ORDER_NOT_A_SELL: &str = "Only sell listings can be edited from here";
 /// the holding would be the overshoot flag's own condition, created by hand.
 pub const ORDER_EXCEEDS_HOLDING: &str = "That is more than this device's collection holds";
 
+/// A sale was recorded for more copies than the listing holds, or for none.
+pub const SALE_OUTSIDE_ORDER: &str = "A sale counts from one copy up to what the listing holds";
+
+/// A sale was recorded for a count the listing's trade size does not divide. warframe.market
+/// refuses it; a bulk listing sells whole trades only.
+pub const SALE_NOT_WHOLE_TRADES: &str = "A bulk listing sells in whole trades only";
+
 /// Find one order by id in the account view currently held, so a write can be checked against
 /// what the player is actually looking at rather than against whatever a frontend call supplies.
 pub fn find_order<'a>(view: &'a MarketAccountView, order_id: &str) -> Option<&'a ReconciledOrder> {
@@ -257,6 +264,31 @@ pub fn authorize_sell<'a>(
 /// transport is built, since a stale or fabricated id must never reach a delete call.
 pub fn authorize_removal(view: &MarketAccountView, order_id: &str) -> Result<(), &'static str> {
     find_order(view, order_id).map(|_| ()).ok_or(ORDER_NOT_HELD)
+}
+
+/// Whether a sale may be recorded against this order.
+///
+/// The count is the player's statement of what changed hands, so it is bounded by the order and
+/// not by the collection: the inventory may not have caught up with a trade made a minute ago, and
+/// the order is what the close acts on. The checks are the ones this device can make before
+/// warframe.market makes them after the request: the order is on the held view, it is a sell
+/// listing, the count is at least one and no more than the order lists, and it is whole trades.
+pub fn authorize_close(
+    view: &MarketAccountView,
+    order_id: &str,
+    quantity: u32,
+) -> Result<(), &'static str> {
+    let entry = find_order(view, order_id).ok_or(ORDER_NOT_HELD)?;
+    if entry.order.kind != OrderKind::Sell {
+        return Err(ORDER_NOT_A_SELL);
+    }
+    if !(1..=entry.order.quantity).contains(&quantity) {
+        return Err(SALE_OUTSIDE_ORDER);
+    }
+    if quantity % entry.order.per_trade.max(1) != 0 {
+        return Err(SALE_NOT_WHOLE_TRADES);
+    }
+    Ok(())
 }
 
 /// Whether an edit may proceed, bounded by the holding of the row the order names.

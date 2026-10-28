@@ -180,6 +180,8 @@ export const createOrder = (collectionId: string, platinum: number, quantity: nu
   invoke<AppView>('create_order', { collectionId, platinum, quantity, visible })
 export const updateOrder = (orderId: string, platinum: number, quantity: number) =>
   invoke<AppView>('update_order', { orderId, platinum, quantity })
+/** Mark `quantity` of a sell listing sold: the whole listing closes it, less lowers it. Whole trades only. */
+export const closeOrder = (orderId: string, quantity: number) => invoke<AppView>('close_order', { orderId, quantity })
 
 /** The item sheet: what the catalogue already loaded says about one row, and what the collection
  * holds of its recipe. Optional fields are absent where the catalogue gives nothing. */
