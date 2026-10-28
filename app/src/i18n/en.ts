@@ -193,7 +193,7 @@ export const en = {
     titleSnapshot: 'Relics, saved snapshot',
     loading: 'Loading relics…',
     failed: 'Relics could not be loaded.',
-    held: (count: number) => count === 1 ? 'relic held' : 'relics held',
+    held: (count: number): string => count === 1 ? 'relic held' : 'relics held',
     openingTotal: 'average opening value, all held',
     marketTotal: 'market value',
     snapshotNote: "Read from the saved snapshot. Current holdings can't be verified without Full access.",
