@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const backend = vi.hoisted(() => ({
+  // The dashboard the app opens on asks for both once.
+  getRelics: vi.fn(() => Promise.resolve({ catalog: true, prices_date: null, ducats: false, relics: [] })), getFoundry: vi.fn(() => Promise.resolve({ status: 'ready', items: [] })),
   getSetupStatus: vi.fn(), setAccessMode: vi.fn(), authorizeScreenCapture: vi.fn(), getView: vi.fn(), refreshInventory: vi.fn(), refreshPrices: vi.fn(),
   marketStatus: vi.fn(), marketSignIn: vi.fn(), marketLinkToken: vi.fn(), marketSignOut: vi.fn(),
   refreshOrders: vi.fn(), removeOrder: vi.fn(), setOrderQuantity: vi.fn(),
@@ -96,9 +98,16 @@ describe('French interface', () => {
   it('names the navigation and the collection in French, with French figures', async () => {
     render(<App/>)
     const nav = await screen.findByRole('navigation', { name: 'Navigation principale' })
-    for (const page of ['Collection', 'Maîtrise', 'Récompenses', 'Ordres', 'Diagnostic', 'Paramètres']) {
+    for (const page of ['Tableau de bord', 'Collection', 'Récompenses', 'Ordres', 'Diagnostic', 'Paramètres']) {
       expect(within(nav).getByRole('button', { name: page })).toBeInTheDocument()
     }
+    expect(within(nav).queryByRole('button', { name: 'Maîtrise' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Tableau de bord', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Maîtrise' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Voir ce qui reste à maîtriser' })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Collection' })).getByText('Valeur marché')).toBeInTheDocument()
+    await userEvent.click(within(nav).getByRole('button', { name: 'Collection' }))
+    expect(screen.getByRole('button', { name: 'À maîtriser' })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Votre collection' })).toBeInTheDocument()
     // Text matching folds every space, so the grouping character itself is checked in `formats`.
     expect(screen.getByTestId('stat-worth')).toHaveTextContent(/^13 000valeur marché2 000 vendable/)
@@ -170,7 +179,7 @@ describe('French interface', () => {
     setSystemLanguage('fr-FR')
     backend.getPreferences.mockResolvedValue({ mastery_marks: true })
     render(<App/>)
-    expect(await screen.findByRole('heading', { name: 'Votre collection' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Tableau de bord', level: 1 })).toBeInTheDocument()
   })
 
   it('draws the reward overlay in the language the backend holds', async () => {

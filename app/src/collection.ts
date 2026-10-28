@@ -60,6 +60,13 @@ export function masteryOrder(item: { category: string; mastered: boolean }): 0 |
   return item.mastered ? 1 : 0
 }
 
+/** Mastered over total across the equipment categories, and the share in whole percent (null with nothing to master). */
+export function masteryProgress(totals: readonly { mastered: number; total: number }[]) {
+  const mastered = totals.reduce((sum, entry) => sum + entry.mastered, 0)
+  const total = totals.reduce((sum, entry) => sum + entry.total, 0)
+  return { mastered, total, percent: total ? Math.round(mastered / total * 100) : null }
+}
+
 /** The collection's ownership and exchange-value figures. */
 export function collectionTotals(items: readonly CollectionItem[], priceFloor: number): CollectionTotals {
   const totals: CollectionTotals = {

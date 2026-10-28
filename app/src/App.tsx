@@ -39,7 +39,7 @@ import { TitleBar } from './components/TitleBar'
 import { Tip } from './components/Tip'
 import { MarketStatus } from './components/MarketStatus'
 import { CollectionPage, type CollectionFilters } from './pages/CollectionPage'
-import { MasteryPage, type MasteryFilters } from './pages/MasteryPage'
+import { DashboardPage } from './pages/DashboardPage'
 import { RelicsPage } from './pages/RelicsPage'
 import { MarketPage } from './pages/MarketPage'
 import { FoundryPage } from './pages/FoundryPage'
@@ -50,16 +50,15 @@ import { DiagnosticsPage } from './pages/DiagnosticsPage'
 import { SettingsPage, type CaptureNote } from './pages/SettingsPage'
 import { MessagesContext, backendReason, catalogs, resolveLanguage, useDocumentLanguage, useMessages, type Messages } from './i18n'
 
-/** The filters of each grid page. Held here so they survive a change of page. */
-const initialCollectionFilters: CollectionFilters = { search: '', category: 'all', ownership: 'all', sort: 'name-asc', page: 1 }
-const initialMasteryFilters: MasteryFilters = { search: '', category: 'all', sort: 'arsenal-first', page: 1 }
+/** Collection's filters. Held here, not by the page, so they survive a change of page. */
+const initialCollectionFilters: CollectionFilters = { search: '', category: 'all', ownership: 'all', sort: 'name-asc', masterySort: 'arsenal-first', page: 1 }
 
 /**
  * The rail, top to bottom, then the pair that stays at its foot. A page joins by adding its id
  * here; `tsc` then asks for its icon (`components/Icon.tsx`) and its name (`nav.pages` in each
  * catalog), and the page switch in `App` renders it.
  */
-const railPages = ['collection', 'mastery', 'relics', 'foundry', 'market', 'farm', 'rewards', 'orders'] as const
+const railPages = ['dashboard', 'collection', 'relics', 'foundry', 'market', 'farm', 'rewards', 'orders'] as const
 const railEndPages = ['diagnostics', 'settings'] as const
 type Page = typeof railPages[number] | typeof railEndPages[number]
 
@@ -92,7 +91,7 @@ function App() {
   const [modeBusy, setModeBusy] = useState(false)
   const [modeError, setModeError] = useState<string | null>(null)
   const [view, setView] = useState<AppView | null>(null)
-  const [page, setPage] = useState<Page>('collection')
+  const [page, setPage] = useState<Page>('dashboard')
   const [busy, setBusy] = useState(false)
   const [pricing, setPricing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -104,7 +103,6 @@ function App() {
   const [ordersNote, setOrdersNote] = useState<string | null>(null)
   const [captureNote, setCaptureNote] = useState<CaptureNote | null>(null)
   const [collectionFilters, setCollectionFilters] = useState(initialCollectionFilters)
-  const [masteryFilters, setMasteryFilters] = useState(initialMasteryFilters)
   const viewGeneration = useRef(0)
   const foregroundInFlight = useRef(0)
   const setupGeneration = useRef(0)
@@ -442,11 +440,14 @@ function App() {
           appears and disappears with its content is not announced by every reader. */}
       <p className="sr-only" role="status">{ordersNote}</p>
       {!view ? <LoadingView/> : <>
+        {page === 'dashboard' && <DashboardPage view={view} effectiveMode={effectiveMode} priceFloor={priceFloor} now={clock} onOpen={openPage} onToMaster={() => {
+          setCollectionFilters(filters => ({ ...filters, ownership: 'toMaster', page: 1 }))
+          openPage('collection')
+        }}/>}
         {page === 'collection' && <CollectionPage view={view} effectiveMode={effectiveMode} filters={collectionFilters} onFilters={setCollectionFilters} pricing={pricing} onPriceLive={priceLive} priceFloor={priceFloor} showDucats={showDucats} onToggleDucats={() => {
           writeShowDucats(!showDucats)
           setShowDucats(!showDucats)
-        }} onOpenMastery={() => openPage('mastery')} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
-        {page === 'mastery' && <MasteryPage view={view} filters={masteryFilters} onFilters={setMasteryFilters} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
+        }} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
         {page === 'relics' && <RelicsPage view={view} effectiveMode={effectiveMode}/>}
         {page === 'market' && <MarketPage view={view} effectiveMode={effectiveMode} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
         {page === 'foundry' && <FoundryPage view={view} effectiveMode={effectiveMode}/>}

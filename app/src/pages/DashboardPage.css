@@ -1,0 +1,25 @@
+/* Two columns of unequal weight: what is held on the left, what is moving on the right. */
+.dash-columns { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--step); align-items: start; }
+.dash-column { display: grid; gap: var(--step); }
+.dash-block { display: grid; gap: 6px; }
+.dash-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--tight); }
+.dash-head .link-button { margin-left: auto; font-size: .75rem; }
+
+.dash-row { display: flex; align-items: center; justify-content: space-between; gap: var(--step); min-width: 0; padding: 10px 14px; }
+.dash-label { display: grid; gap: 2px; min-width: 0; font-weight: 500; }
+.dash-relic { display: inline-flex; align-items: center; gap: 6px; }
+.dash-note { color: var(--text-faint); font-size: .75rem; font-weight: 400; }
+.dash-figure { display: inline-flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 10px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.dash-figure progress { width: 7rem; }
+.dash-caption { margin: 0; padding: 8px 14px 4px; color: var(--text-dim); font-size: .75rem; font-weight: 600; }
+.dash-caption + .dash-row { border-top: 0; }
+
+/* A flagged order is said in a sentence and a tint, as on the Orders page; a refused link in warn. */
+.dash-row[data-tone="danger"] { background: var(--danger-ground); }
+.dash-row[data-tone="danger"] .dash-figure, .dash-row[data-tone="danger"] .dash-note { color: var(--danger); }
+.dash-row[data-tone="warn"] { background: color-mix(in srgb, var(--warn) 6%, var(--bg-2)); }
+.dash-row[data-tone="warn"] .dash-note { color: var(--warn); }
+
+@media (max-width: 760px) {
+  .dash-columns { grid-template-columns: minmax(0, 1fr); }
+}
