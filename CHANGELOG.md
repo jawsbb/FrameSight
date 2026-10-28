@@ -29,6 +29,15 @@ see the difference.
   masterable; a modular item built but never ranked (a Zaw, Kitgun, K-Drive, MOA or Hound) is
   listed until it earns affinity; Founders items are listed like any other. Suggested and
   implemented by [@NekoRem](https://github.com/NekoRem).
+- **The interface speaks French as well as English.** Settings gains a **Language** choice
+  (System, English, Français, each named in itself) that applies at once; System follows the
+  operating system's language, French when it starts with `fr` and English otherwise. The
+  choice is kept by the backend beside the mastery marks, so the reward overlay and the Ducat
+  Kiosk overlay follow it too, picking it up on their next refresh. Figures and dates are
+  formatted for the chosen language (`12 345`, `27 juil.`) the same way on every machine. The
+  fixed warframe.market errors are translated. Item names stay as the English catalog gives
+  them, since that is also what screen reading matches, and the Diagnostics health messages
+  stay in English, because the backend composes them from live values.
 
 ### Fixed
 
