@@ -1,4 +1,4 @@
-export type IconName = 'collection' | 'mastery' | 'relics' | 'foundry' | 'market' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'close'
+export type IconName = 'collection' | 'mastery' | 'relics' | 'foundry' | 'market' | 'farm' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'close'
 
 /** Line icons on a 24px grid, one round stroke throughout. */
 export function Icon({ name }: { name: IconName }) {
@@ -17,6 +17,8 @@ export function Icon({ name }: { name: IconName }) {
     next: <path d="m9.5 6 6 6-6 6"/>,
     // An anvil: the horn on the left, the face, the waist and a flared foot.
     foundry: <path d="M5.5 6h15v4h-6v3c0 1.4 1.3 2.6 3.5 3.1V19H6v-2.9c2.2-.5 3.5-1.7 3.5-3.1v-3H9C6.4 10 4.3 9 2.5 7.2 3.6 6.4 4.6 6 5.5 6z"/>,
+    // A sprout: what is planted to be picked up again.
+    farm: <><path d="M12 20.5V11"/><path d="M12 13.5c0-4.4 2.9-7.5 7.5-7.5 0 4.4-2.9 7.5-7.5 7.5z"/><path d="M12 15.5c0-3.6-2.4-6-6-6 0 3.6 2.4 6 6 6z"/></>,
     close: <path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>,
   }
   return <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>

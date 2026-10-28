@@ -18,8 +18,9 @@ use local_store::{SnapshotInstant, SnapshotMeta, StoreError};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 use warframe_acquisition::{
-    CatalogCache, CollectionPriceCache, InventoryAcquirer, InventoryHttpTransport,
-    MarketPriceCache, RelicsRunHttp, WarmOutcome, WfcdCatalogHttp, dump_is_current, latest_dump,
+    CatalogCache, CollectionPriceCache, DUMP_LOOKBACK_DAYS, InventoryAcquirer,
+    InventoryHttpTransport, MarketPriceCache, RelicsRunHttp, WarmOutcome, WfcdCatalogHttp,
+    days_between, dump_is_current, latest_dump, unix_days_before,
 };
 
 /// The platform's process-memory backend. Both sides implement `MemoryReader` and
@@ -600,38 +601,62 @@ async fn get_item_detail(
     .map_err(|_| "item details task failed".to_owned())?
 }
 
-/// The Relics page. WFCD's relic tables come from the disk cache the game monitor keeps, read on
-/// first use, so the page answers in Companion too and never asks the network.
+/// WFCD's relic tables, from the disk cache the game monitor keeps, read on first use so the pages
+/// that value relics answer in Companion too and never ask the network.
+fn ensure_relic_index(shared: &SharedRuntime) -> Result<(), String> {
+    let unavailable = |_| "application state is unavailable".to_owned();
+    let app_data = {
+        let runtime = shared.lock().map_err(unavailable)?;
+        (!runtime.core.has_relic_index()).then(|| runtime.app_data.clone())
+    };
+    // Parsed outside the lock: the cache is megabytes, and the 2.5s view poll needs the lock.
+    if let Some(app_data) = app_data
+        && let Ok(load) =
+            warframe_acquisition::RelicCatalogCache::new(app_data.join("catalog")).load_cached()
+    {
+        let index = Arc::new(load.index().clone());
+        shared
+            .lock()
+            .map_err(unavailable)?
+            .core
+            .set_relic_index(index);
+    }
+    Ok(())
+}
+
+/// The Relics page.
 #[tauri::command]
 async fn get_relics(state: State<'_, SharedRuntime>) -> Result<app_core::RelicsView, String> {
     let shared = Arc::clone(state.inner());
     tauri::async_runtime::spawn_blocking(move || {
-        let unavailable = |_| "application state is unavailable".to_owned();
-        let app_data = {
-            let runtime = shared.lock().map_err(unavailable)?;
-            (!runtime.core.has_relic_index()).then(|| runtime.app_data.clone())
-        };
-        // Parsed outside the lock: the cache is megabytes, and the 2.5s view poll needs the lock.
-        if let Some(app_data) = app_data
-            && let Ok(load) =
-                warframe_acquisition::RelicCatalogCache::new(app_data.join("catalog")).load_cached()
-        {
-            let index = Arc::new(load.index().clone());
-            shared
-                .lock()
-                .map_err(unavailable)?
-                .core
-                .set_relic_index(index);
-        }
+        ensure_relic_index(&shared)?;
         shared
             .lock()
-            .map_err(unavailable)?
+            .map_err(|_| "application state is unavailable".to_owned())?
             .core
             .relics_view()
             .map_err(|_| "relics view is unavailable".to_owned())
     })
     .await
     .map_err(|_| "relics view task failed".to_owned())?
+}
+
+/// The Farm & sales page: built from the collection, the two price dumps, the catalogue's drop
+/// lists and the relic tables already in hand.
+#[tauri::command]
+async fn get_farm(state: State<'_, SharedRuntime>) -> Result<app_core::FarmView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        ensure_relic_index(&shared)?;
+        shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?
+            .core
+            .farm_view()
+            .map_err(|_| "farm view is unavailable".to_owned())
+    })
+    .await
+    .map_err(|_| "farm view task failed".to_owned())?
 }
 
 /// The Foundry page: built from the collection, catalogue and prices already in memory.
@@ -2019,7 +2044,53 @@ fn start_collection_prices(shared: SharedRuntime) {
                 ),
             };
         }
+        start_earlier_prices(&shared, &app_data);
     });
+}
+
+/// How far back the Farm page's change looks.
+const EARLIER_DAYS: i64 = 7;
+
+/// The dump a week before the one in use, for the Farm page's 7-day change: one more file of the
+/// same 3.9 MB, downloaded at most once per dump in use and kept on disk, never a series. The
+/// publisher lags, so whatever `latest_dump` finds walking back from a week before is the
+/// comparison, and the page names its date.
+fn start_earlier_prices(shared: &SharedRuntime, app_data: &Path) {
+    let Some(current) = shared
+        .lock()
+        .ok()
+        .and_then(|runtime| runtime.core.collection_prices())
+        .map(|table| table.dump_date().to_owned())
+    else {
+        return;
+    };
+    let cache = CollectionPriceCache::earlier(app_data);
+    let reach = EARLIER_DAYS..=EARLIER_DAYS + DUMP_LOOKBACK_DAYS as i64;
+    let earlier = match cache.load_cached() {
+        Some(table)
+            if days_between(table.dump_date(), &current)
+                .is_some_and(|days| reach.contains(&days)) =>
+        {
+            table
+        }
+        _ => {
+            let (Some(source), Some(start)) = (
+                RelicsRunHttp::new(),
+                unix_days_before(&current, EARLIER_DAYS),
+            ) else {
+                return;
+            };
+            let Ok(table) = latest_dump(&source, start) else {
+                return;
+            };
+            // Unsaved, it is downloaded again next start; the page works either way.
+            let _ = cache.store_table(&table);
+            table
+        }
+    };
+    if let Ok(mut runtime) = shared.lock() {
+        runtime.core.set_earlier_prices(Arc::new(earlier));
+    }
 }
 
 /// What the collection price row says when a checked price reached memory but not disk.
@@ -2316,6 +2387,7 @@ pub fn run() {
             get_view,
             get_relics,
             get_foundry,
+            get_farm,
             get_setup_status,
             get_preferences,
             set_mastery_marks,
@@ -2343,6 +2415,7 @@ pub fn run() {
             get_item_detail,
             market_lookup::market_search,
             market_lookup::market_item_orders,
+            market_lookup::market_item_history,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             update::get_version_info,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]

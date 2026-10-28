@@ -4,6 +4,9 @@
 //! (downloaded once, 1.6 MB, only if nothing has fetched it yet this session), and the daily price
 //! table already in memory. Only the choice of an item spends a request, one, through the pacer
 //! every other warframe.market caller shares, and its answer is kept a minute.
+//!
+//! The Farm page's curve is the same bargain: one request for the item the player picked, through
+//! the same pacer, kept for hours because it describes whole days.
 
 use std::{
     collections::HashMap,
@@ -13,8 +16,8 @@ use std::{
 
 use serde::Serialize;
 use tauri::State;
-use warframe_acquisition::PriceTable;
-use warframe_market::{ItemOrders, ItemSummary, MarketHttp, MarketItems};
+use warframe_acquisition::{PriceTable, slug_and_subtype};
+use warframe_market::{DayTrades, ItemOrders, ItemSummary, MarketHttp, MarketItems};
 
 use crate::{SharedRuntime, market_account::failure_message};
 
@@ -22,12 +25,18 @@ const SEARCH_LIMIT: usize = 10;
 /// How long one item's live orders are reused. Long enough that going back and forth between two
 /// items costs nothing, short enough that "live" still means this minute.
 const ORDERS_TTL: Duration = Duration::from_secs(60);
+/// How long one item's daily curve is reused: its newest point is a whole day.
+const HISTORY_TTL: Duration = Duration::from_secs(6 * 60 * 60);
 const NOT_AN_ITEM: &str = "That is not an item warframe.market lists";
 const STATE_UNAVAILABLE: &str = "application state is unavailable";
 
+/// Answers by key, each with when it was asked.
+type Answers<T> = Arc<Mutex<HashMap<String, (Instant, T)>>>;
+
 #[derive(Clone, Default)]
 pub struct MarketLookup {
-    orders: Arc<Mutex<HashMap<String, (Instant, MarketItemOrders)>>>,
+    orders: Answers<MarketItemOrders>,
+    history: Answers<Vec<DayTrades>>,
     /// Held while the item table downloads, so two quick searches do not fetch it twice.
     table: Arc<Mutex<()>>,
 }
@@ -147,21 +156,22 @@ fn search_blocking(
     })
 }
 
-fn orders_blocking(
+/// A remembered answer while it is younger than `ttl`; otherwise `fetch` over a paced transport,
+/// for a slug the item table publishes and nothing else, remembered.
+fn cached<T: Clone>(
     shared: &SharedRuntime,
     lookup: &MarketLookup,
+    answers: &Answers<T>,
+    key: &str,
     slug: &str,
-) -> Result<MarketItemOrders, String> {
-    if let Some((asked, orders)) = lookup
-        .orders
-        .lock()
-        .map_err(|_| STATE_UNAVAILABLE)?
-        .get(slug)
-        && asked.elapsed() < ORDERS_TTL
+    ttl: Duration,
+    fetch: impl FnOnce(&MarketHttp) -> Result<T, warframe_market::MarketError>,
+) -> Result<T, String> {
+    if let Some((asked, answer)) = answers.lock().map_err(|_| STATE_UNAVAILABLE)?.get(key)
+        && asked.elapsed() < ttl
     {
-        return Ok(orders.clone());
+        return Ok(answer.clone());
     }
-    // Only a slug the table publishes reaches the network.
     if item_table(shared, lookup)?.by_slug(slug).is_none() {
         return Err(NOT_AN_ITEM.to_owned());
     }
@@ -171,17 +181,64 @@ fn orders_blocking(
         .live_prices
         .pacer();
     let transport = MarketHttp::new(pacer).map_err(|error| failure_message(error).to_owned())?;
-    let fresh = MarketItemOrders {
-        orders: warframe_market::item_orders(&transport, slug)
-            .map_err(|error| failure_message(error).to_owned())?,
-        fetched_at: SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |since| since.as_secs()),
-    };
-    let mut cache = lookup.orders.lock().map_err(|_| STATE_UNAVAILABLE)?;
-    cache.retain(|_, (asked, _)| asked.elapsed() < ORDERS_TTL);
-    cache.insert(slug.to_owned(), (Instant::now(), fresh.clone()));
+    let fresh = fetch(&transport).map_err(|error| failure_message(error).to_owned())?;
+    let mut cache = answers.lock().map_err(|_| STATE_UNAVAILABLE)?;
+    cache.retain(|_, (asked, _)| asked.elapsed() < ttl);
+    cache.insert(key.to_owned(), (Instant::now(), fresh.clone()));
     Ok(fresh)
+}
+
+fn orders_blocking(
+    shared: &SharedRuntime,
+    lookup: &MarketLookup,
+    slug: &str,
+) -> Result<MarketItemOrders, String> {
+    cached(
+        shared,
+        lookup,
+        &lookup.orders,
+        slug,
+        slug,
+        ORDERS_TTL,
+        |transport| {
+            Ok(MarketItemOrders {
+                orders: warframe_market::item_orders(transport, slug)?,
+                fetched_at: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map_or(0, |since| since.as_secs()),
+            })
+        },
+    )
+}
+
+/// The daily curve of an item the price table names, resolved to a slug here.
+fn history_blocking(
+    shared: &SharedRuntime,
+    lookup: &MarketLookup,
+    name: &str,
+) -> Result<Vec<DayTrades>, String> {
+    let (slug, subtype) = slug_and_subtype(name);
+    cached(
+        shared,
+        lookup,
+        &lookup.history,
+        name,
+        &slug,
+        HISTORY_TTL,
+        |transport| warframe_market::item_statistics(transport, &slug, subtype.as_deref()),
+    )
+}
+
+#[tauri::command]
+pub async fn market_item_history(
+    name: String,
+    state: State<'_, SharedRuntime>,
+    lookup: State<'_, MarketLookup>,
+) -> Result<Vec<DayTrades>, String> {
+    let (shared, lookup) = (Arc::clone(state.inner()), lookup.inner().clone());
+    tauri::async_runtime::spawn_blocking(move || history_blocking(&shared, &lookup, &name))
+        .await
+        .map_err(|_| "market history task failed".to_owned())?
 }
 
 #[tauri::command]

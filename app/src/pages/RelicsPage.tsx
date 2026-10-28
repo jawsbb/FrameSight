@@ -6,7 +6,8 @@ import { EmptyState } from '../components/EmptyState'
 import { Platinum } from '../components/Platinum'
 import { SearchField } from '../components/SearchField'
 import { Stat } from '../components/Stat'
-import { shortDate, useMessages, type Messages } from '../i18n'
+import { shortDate, useMessages } from '../i18n'
+import { relicLabel } from '../relics'
 import './RelicsPage.css'
 
 type Sort = 'opening-desc' | 'quantity-desc' | 'name-asc'
@@ -16,8 +17,6 @@ const eraOrder = ['Lith', 'Meso', 'Neo', 'Axi', 'Requiem']
 const eraRank = (era: string) => { const index = eraOrder.indexOf(era); return index === -1 ? eraOrder.length : index }
 const refinementOrder = ['intact', 'exceptional', 'flawless', 'radiant']
 const refinementRank = (relic: Relic) => refinementOrder.indexOf(relic.refinement ?? '')
-
-const label = (relic: Relic, t: Messages) => relic.refinement ? `${relic.name} ${t.relics.refinements[relic.refinement]}` : relic.name
 
 /**
  * What the held relics are worth, and which to open. The view is the backend's, computed from
@@ -50,7 +49,7 @@ export function RelicsPage({ view, effectiveMode }: { view: AppView; effectiveMo
     const query = search.trim().toLocaleLowerCase()
     return held
       .filter(relic => era === 'all' || relic.era === era)
-      .filter(relic => !query || label(relic, t).toLocaleLowerCase().includes(query)
+      .filter(relic => !query || relicLabel(relic, t).toLocaleLowerCase().includes(query)
         || relic.rewards.some(reward => reward.name.toLocaleLowerCase().includes(query)))
       .toSorted((left, right) => sort === 'quantity-desc'
         ? right.quantity - left.quantity || left.name.localeCompare(right.name)
@@ -152,7 +151,7 @@ function RelicEntry({ relic, priced, ducats, expanded, onToggle }: { relic: Reli
       <span className="relic-trades">{relic.monthly_trades ? t.relics.perMonth(relic.monthly_trades) : t.relics.noTrades}</span>
       <svg className="relic-chevron" viewBox="0 0 10 10" aria-hidden="true"><path d="m2.5 3.75 2.5 2.5 2.5-2.5"/></svg>
     </button>
-    {expanded && <div className="relic-detail" id={detailId} role="region" aria-label={t.relics.rewards(label(relic, t))}>
+    {expanded && <div className="relic-detail" id={detailId} role="region" aria-label={t.relics.rewards(relicLabel(relic, t))}>
       {relic.rewards.length === 0
         ? <p className="band-note">{t.relics.noRewards}</p>
         : <>

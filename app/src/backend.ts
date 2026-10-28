@@ -217,3 +217,20 @@ export interface FoundryResource { name: string; uses: number; held: number }
 export interface FoundryItem { id: string; name: string; category?: ItemCategory; image_url?: string; masterable: boolean; mastered: boolean; stage: FoundryStage; missing: number; pieces: FoundryPiece[]; resources: FoundryResource[]; set_platinum?: number; pieces_platinum?: number }
 export interface FoundryView { status: 'no_catalog' | 'no_inventory' | 'ready'; items: FoundryItem[] }
 export const getFoundry = () => invoke<FoundryView>('get_foundry')
+/** How fast an item sells: `fast` from 30 sales a month, `fair` from 10. */
+export type Pace = 'fast' | 'fair' | 'slow'
+/** A held stack: `value` is what a month's sales take of it (the Collection's sellable value). `change` is the 7-day move, 0.22 for +22%. `market` is warframe.market's name. */
+export interface FarmSell { id: string; name: string; quantity: number; platinum: number; monthly_trades: number | null; value: number; pace: Pace; change: number | null; market: string | null }
+/** A held relic: `value` is one solo opening on average, each reward weighed by its sales. */
+export interface FarmOpen { id: string; name: string; refinement: Refinement | null; quantity: number; vaulted: boolean | null; value: number; pace: Pace; change: number | null; market: string | null }
+/** One thing that falls at a place: `chance` in percent per run, `unit` one copy at its price (a relic: the better of opening and selling it), `value` its share of the run. */
+export interface FarmDrop { name: string; chance: number; unit: number; value: number; relic: boolean; monthly_trades: number | null; change: number | null }
+/** One run of a place: `value` is the platinum expected, sales counted. */
+export interface FarmPlace { location: string; value: number; pace: Pace; drops: FarmDrop[] }
+export interface FarmTrend { name: string; change: number; platinum: number; monthly_trades: number; held: number }
+/** `prices_date`/`earlier_date` null: that dump has not loaded. `drops`/`relic_tables` false: the catalogue or relic tables are missing. */
+export interface FarmView { prices_date: string | null; earlier_date: string | null; drops: boolean; relic_tables: boolean; sell: FarmSell[]; open: FarmOpen[]; farm: FarmPlace[]; trends: FarmTrend[] }
+export const getFarm = () => invoke<FarmView>('get_farm')
+/** One day of completed trades at rank 0, oldest first. */
+export interface DayTrades { date: string; median: number; volume: number }
+export const marketItemHistory = (name: string) => invoke<DayTrades[]>('market_item_history', { name })
