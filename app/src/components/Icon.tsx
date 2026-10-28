@@ -1,4 +1,4 @@
-export type IconName = 'dashboard' | 'collection' | 'mastery' | 'relics' | 'foundry' | 'market' | 'farm' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'close' | 'sun' | 'moon' | 'warm' | 'cold' | 'bell' | 'plus'
+export type IconName = 'dashboard' | 'collection' | 'mastery' | 'relics' | 'foundry' | 'market' | 'farm' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'close' | 'sun' | 'moon' | 'warm' | 'cold' | 'bell' | 'plus' | 'minus'
 
 /** Line icons on a 24px grid, one round stroke throughout. */
 export function Icon({ name }: { name: IconName }) {
@@ -29,6 +29,7 @@ export function Icon({ name }: { name: IconName }) {
     cold: <path d="M12 3.5v17M4.6 7.75l14.8 8.5M4.6 16.25l14.8-8.5M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5"/>,
     bell: <><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></>,
     plus: <path d="M12 5.5v13M5.5 12h13"/>,
+    minus: <path d="M5.5 12h13"/>,
   }
   return <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>
 }

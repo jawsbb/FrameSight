@@ -1,6 +1,7 @@
-import { useId, useState } from 'react'
-import type { CollectionItem, MarketOrder } from './backend'
+import { useEffect, useId, useState } from 'react'
+import { marketRowOrders, type CollectionItem, type MarketItemOrders, type MarketOrder } from './backend'
 import { useMessages } from './i18n'
+import { MetalMark } from './MetalMark'
 
 /**
  * Publishing or editing one sell listing, from wherever the player is standing.
@@ -86,6 +87,7 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
       <input type="number" min={1} max={Math.max(item.quantity, 1)} aria-label={t.sell.quantity} value={quantity} onChange={event => setQuantity(event.target.value)} disabled={busy} aria-invalid={countProblem !== null} aria-describedby={countProblem !== null ? countProblemId : undefined} />
       {countProblem !== null && <span className="band-note" id={countProblemId}>{countProblem}</span>}
     </label>
+    <MarketGlance itemId={item.id} onMatch={price => setPlatinum(String(price))} busy={busy}/>
     {/* Hidden is offered rather than assumed either way: a hidden listing is a real way to hold a
         price ready without showing it, and warframe.market's own default of hidden is not what
         someone pressing "sell" means. Edit mode sends no visibility at all. */}
@@ -100,4 +102,39 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
       <button type="button" className="stamp" disabled={busy} onClick={onDone}><span>{t.sell.cancel}</span></button>
     </div>
   </form>
+}
+
+/**
+ * What the item is going for right now, beside the price being typed: the cheapest sellers a buyer
+ * would see first, and one press to match the cheapest.
+ *
+ * Sellers in game are the ones buyers whisper, so their prices are the market; online-only sellers
+ * stand in only when nobody is in game. The book is the backend's, already narrowed to this row's
+ * rank and refinement, so a maxed copy is never priced against unranked ones. It can include the
+ * player's own listing: warframe.market's top of book does not say whose order is whose.
+ */
+function MarketGlance({ itemId, onMatch, busy }: { itemId: string; onMatch: (platinum: number) => void; busy: boolean }) {
+  const t = useMessages()
+  const [book, setBook] = useState<MarketItemOrders | 'loading' | 'failed'>('loading')
+  useEffect(() => {
+    let current = true
+    setBook('loading')
+    marketRowOrders(itemId).then(
+      next => { if (current) setBook(next) },
+      () => { if (current) setBook('failed') },
+    )
+    return () => { current = false }
+  }, [itemId])
+
+  if (book === 'loading') return <p className="glance">{t.sell.glanceLoading}</p>
+  if (book === 'failed') return <p className="glance">{t.sell.glanceFailed}</p>
+  const ingame = book.sell.filter(order => order.status === 'ingame')
+  const shown = (ingame.length ? ingame : book.sell).slice(0, 5)
+  if (!shown.length) return <p className="glance">{t.sell.glanceNone}</p>
+  const cheapest = Math.min(...shown.map(order => order.platinum))
+  return <p className="glance">
+    <span>{ingame.length ? t.sell.ingameNow : t.sell.onlineNow}</span>
+    <b className="glance-prices">{shown.map(order => order.platinum).join(' · ')}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></b>
+    <button type="button" className="link-button" disabled={busy} onClick={() => onMatch(cheapest)}>{t.sell.match(cheapest)}</button>
+  </p>
 }

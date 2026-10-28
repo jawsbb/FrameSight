@@ -9,6 +9,7 @@ const backend = vi.hoisted(() => ({
   setMarketPresence: vi.fn(), createOrder: vi.fn(), updateOrder: vi.fn(),
   getVersionInfo: vi.fn(), updateCheck: vi.fn(), updateDownloadAndInstall: vi.fn(),
   getPreferences: vi.fn(), setMasteryMarks: vi.fn(), getWorldState: vi.fn(),
+  closeOrder: vi.fn(), setSyncOrders: vi.fn(), marketRowOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }),
 }))
 const overlay = vi.hoisted(() => ({ showRewardOverlay: vi.fn(), hideRewardOverlay: vi.fn() }))
 const windowApi = vi.hoisted(() => ({
@@ -97,6 +98,7 @@ const view: AppView = {
   market_account: {
     link: 'unlinked',
     orders: [],
+    synced: [],
     listed_platinum: 0,
     listable: [],
     presence: { status: null, wanted: null, auto: false },

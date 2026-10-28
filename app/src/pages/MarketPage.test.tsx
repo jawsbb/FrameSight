@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const backend = vi.hoisted(() => ({ marketSearch: vi.fn(), marketItemOrders: vi.fn(), marketBoard: vi.fn() }))
+const backend = vi.hoisted(() => ({ marketSearch: vi.fn(), marketItemOrders: vi.fn(), marketBoard: vi.fn(), marketRowOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }) }))
 const clipboard = vi.hoisted(() => ({ writeText: vi.fn(() => Promise.resolve()) }))
 vi.mock('../backend', () => backend)
 vi.mock('@tauri-apps/plugin-clipboard-manager', () => clipboard)
@@ -67,7 +67,7 @@ function view(overrides: Partial<AppView['market_account']> = {}): AppView {
     mastery: { available: false, items: [], totals: [] },
     reward: { cards: [], best_value_index: null, best_ducat_index: null },
     market_account: {
-      link: 'unlinked', orders: [], listed_platinum: 0, flagged: 0, listable: [],
+      link: 'unlinked', orders: [], synced: [], listed_platinum: 0, flagged: 0, listable: [],
       presence: { status: null, wanted: null, auto: false }, ...overrides,
     },
     health: { collection_prices: { state: 'ready', message: 'Priced', last_success: '2026-10-27' } } as AppView['health'],

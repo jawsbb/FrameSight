@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import {
   authorizeScreenCapture,
+  closeOrder,
   getPreferences,
   getSetupStatus,
   getView,
@@ -18,6 +19,7 @@ import {
   setMarketPresence,
   setAccessMode,
   setOrderQuantity,
+  setSyncOrders,
   type AppView,
   type AccessMode,
   type CollectionItem,
@@ -101,6 +103,7 @@ function App() {
   const [ordersBusy, setOrdersBusy] = useState(false)
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [ordersNote, setOrdersNote] = useState<string | null>(null)
+  const [syncOrders, setSyncOrdersState] = useState<boolean | null>(null)
   const [captureNote, setCaptureNote] = useState<CaptureNote | null>(null)
   const [collectionFilters, setCollectionFilters] = useState(initialCollectionFilters)
   const viewGeneration = useRef(0)
@@ -149,7 +152,10 @@ function App() {
   useEffect(() => {
     // A failed read is not worth a banner: the system language is the fallback either way.
     getPreferences()
-      .then(preferences => setLanguagePreference(preferences.language ?? null))
+      .then(preferences => {
+        setLanguagePreference(preferences.language ?? null)
+        setSyncOrdersState(preferences.sync_orders ?? false)
+      })
       .catch(() => setLanguagePreference(null))
     getSetupStatus()
       .then(async status => {
@@ -316,6 +322,21 @@ function App() {
     ordersOperation(() => removeOrder(orderId), failures.remove)
   const ordersLowerTo = (orderId: string, _quantity: number) =>
     ordersOperation(() => setOrderQuantity(orderId), failures.lower)
+  const ordersClose = (orderId: string, quantity: number) => {
+    const name = view?.market_account.orders.find(entry => entry.order.id === orderId)?.name
+    return ordersOperation(() => closeOrder(orderId, quantity), failures.close, () => t.market.sold(name ?? t.market.theItem, quantity))
+  }
+  async function ordersSync(enabled: boolean) {
+    setOrdersBusy(true)
+    setOrdersError(null)
+    try {
+      setSyncOrdersState((await setSyncOrders(enabled)).sync_orders ?? false)
+    } catch (reason) {
+      setOrdersError(failureWithReason(failures.sync, reason, t))
+    } finally {
+      setOrdersBusy(false)
+    }
+  }
   const ordersPresence = (status: Presence | null, auto: boolean) =>
     ordersOperation(() => setMarketPresence(status, auto), failures.presence)
   /** The card's own accessible name: the rank belongs in it because a mod held at two ranks is two
@@ -458,8 +479,11 @@ function App() {
           onRefresh={ordersRefresh}
           onRemove={ordersRemove}
           onLowerTo={ordersLowerTo}
+          onClose={ordersClose}
           onSell={ordersSell}
           onUpdate={ordersUpdate}
+          syncOrders={syncOrders}
+          onSyncOrders={ordersSync}
           items={view.collection.items}
           busy={ordersBusy}
           error={ordersError}

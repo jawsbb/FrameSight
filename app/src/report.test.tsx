@@ -38,7 +38,7 @@ function makeView(health: AppView['health']): AppView {
     mastery: { available: false, items: [], totals: [] },
     reward: { cards: [], best_value_index: null, best_ducat_index: null },
     market_account: {
-      link: 'unlinked', orders: [], listed_platinum: 0, flagged: 0, listable: [],
+      link: 'unlinked', orders: [], synced: [], listed_platinum: 0, flagged: 0, listable: [],
       presence: { status: null, wanted: null, auto: false },
     },
     health,

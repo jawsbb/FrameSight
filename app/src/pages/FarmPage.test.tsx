@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppView, FarmView } from '../backend'
 
-const backend = vi.hoisted(() => ({ getFarm: vi.fn(), marketItemHistory: vi.fn() }))
+const backend = vi.hoisted(() => ({ getFarm: vi.fn(), marketItemHistory: vi.fn(), marketRowOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }) }))
 vi.mock('../backend', () => backend)
 
 import { FarmPage } from './FarmPage'

@@ -1,14 +1,24 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CollectionItem, MarketOrder } from './backend'
 import { SellForm } from './SellForm'
+
+const backend = vi.hoisted(() => ({ marketRowOrders: vi.fn() }))
+vi.mock('./backend', () => backend)
+
+function seller(status: 'ingame' | 'online', platinum: number) {
+  return { user: `${status}-${platinum}`, status, platinum, quantity: 1, per_trade: 1, rank: null, subtype: null }
+}
 
 // The handlers are shared across every test in this file; without clearing, a call one test made
 // reads as made by the next.
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+})
+beforeEach(() => {
+  backend.marketRowOrders.mockResolvedValue({ sell: [], buy: [], fetched_at: 0 })
 })
 
 const braton: CollectionItem = {
@@ -152,5 +162,36 @@ describe('publishing a new listing', () => {
 
     expect(handlers.onSell).toHaveBeenCalledWith(braton.id, 14, 2, true)
     expect(handlers.onUpdate).not.toHaveBeenCalled()
+  })
+})
+
+describe('the market beside the price', () => {
+  /** In-game sellers are the ones a buyer whispers, so an online seller's lower price is not the market. */
+  it('shows the cheapest sellers in game and matches the cheapest on one press', async () => {
+    backend.marketRowOrders.mockResolvedValue({
+      sell: [seller('ingame', 17), seller('ingame', 18), seller('online', 9)], buy: [], fetched_at: 0,
+    })
+    render(<SellForm item={braton} busy={false} {...handlers} onDone={vi.fn()}/>)
+
+    expect(await screen.findByText('In game now:')).toBeInTheDocument()
+    expect(screen.getByText(/17 · 18/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Match 17' }))
+    expect(screen.getByLabelText('Platinum')).toHaveValue(17)
+    expect(backend.marketRowOrders).toHaveBeenCalledWith(braton.id)
+  })
+
+  it('falls back to online sellers when nobody is in game', async () => {
+    backend.marketRowOrders.mockResolvedValue({ sell: [seller('online', 9)], buy: [], fetched_at: 0 })
+    render(<SellForm item={braton} busy={false} {...handlers} onDone={vi.fn()}/>)
+
+    expect(await screen.findByText('Online now:')).toBeInTheDocument()
+  })
+
+  it('leaves the form usable when the market cannot be read', async () => {
+    backend.marketRowOrders.mockRejectedValue('warframe.market could not be reached')
+    render(<SellForm item={braton} busy={false} {...handlers} onDone={vi.fn()}/>)
+
+    expect(await screen.findByText('The market could not be read.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /list for sale/i })).toBeEnabled()
   })
 })

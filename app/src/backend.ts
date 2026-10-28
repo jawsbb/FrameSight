@@ -33,8 +33,10 @@ export type OrderStatus =
   | { state: 'overshoot'; owned: number }
   | { state: 'unverifiable' }
 export interface MarketOrder { id: string; item_id: string; kind: 'sell' | 'buy'; platinum: number; quantity: number; per_trade: number; rank?: number; subtype?: string; visible: boolean; updated_at?: number }
-export interface ReconciledOrder { order: MarketOrder; name?: string; row_id?: string; status: OrderStatus }
-export interface MarketAccount { link: LinkState; backing?: CredentialBacking; orders: ReconciledOrder[]; fetched_at?: string; listed_platinum: number; flagged: number; listable: string[]; presence: PresenceView }
+export interface ReconciledOrder { order: MarketOrder; name?: string; row_id?: string; status: OrderStatus; thumb_url?: string; slug?: string }
+/** One change the last automatic sync made; `to` 0 means the listing was taken down. */
+export interface SyncedOrder { name?: string; thumb_url?: string; from: number; to: number; at: string }
+export interface MarketAccount { link: LinkState; backing?: CredentialBacking; orders: ReconciledOrder[]; fetched_at?: string; listed_platinum: number; flagged: number; listable: string[]; presence: PresenceView; synced: SyncedOrder[] }
 
 export interface AppView {
   collection: {
@@ -158,10 +160,11 @@ export const authorizeScreenCapture = () => invoke<SetupStatus>('authorize_scree
 /** Preferences the backend owns; the overlays never read browser storage for them. */
 export type Language = 'en' | 'fr'
 /** `language` absent or null follows the system language. */
-export interface Preferences { mastery_marks: boolean; language?: Language | null }
+export interface Preferences { mastery_marks: boolean; language?: Language | null; sync_orders?: boolean }
 export const getPreferences = () => invoke<Preferences>('get_preferences')
 export const setMasteryMarks = (enabled: boolean) => invoke<Preferences>('set_mastery_marks', { enabled })
 export const setLanguage = (language: Language | null) => invoke<Preferences>('set_language', { language })
+export const setSyncOrders = (enabled: boolean) => invoke<Preferences>('set_sync_orders', { enabled })
 
 export const marketStatus = () => invoke<AppView>('market_status')
 export const marketSignIn = (email: string, password: string) => invoke<AppView>('market_sign_in', { email, password })
@@ -170,6 +173,7 @@ export const marketSignOut = () => invoke<AppView>('market_sign_out')
 export const refreshOrders = () => invoke<AppView>('refresh_orders')
 export const removeOrder = (orderId: string) => invoke<AppView>('remove_order', { orderId })
 export const setOrderQuantity = (orderId: string) => invoke<AppView>('set_order_quantity', { orderId })
+export const closeOrder = (orderId: string, quantity: number) => invoke<AppView>('close_order', { orderId, quantity })
 export const setMarketPresence = (status: Presence | null, auto: boolean) =>
   invoke<AppView>('set_market_presence', { status, auto })
 export const createOrder = (collectionId: string, platinum: number, quantity: number, visible: boolean) =>
@@ -240,6 +244,7 @@ export interface LiveOrder { user: string; status: TraderStatus; platinum: numbe
 export interface MarketItemOrders { sell: LiveOrder[]; buy: LiveOrder[]; fetched_at: number }
 export const marketSearch = (query: string) => invoke<MarketSearch>('market_search', { query })
 export const marketItemOrders = (slug: string) => invoke<MarketItemOrders>('market_item_orders', { slug })
+export const marketRowOrders = (collectionId: string) => invoke<MarketItemOrders>('market_row_orders', { collectionId })
 /** One variant's day on warframe.market (a change row: one item). `median` is what it traded at, or on a
  * change row the price the change is measured on; `traded` the platinum that changed hands; `change` the
  * 7-day move, 0.22 for +22%. */

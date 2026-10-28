@@ -54,7 +54,7 @@ const view: AppView = {
   collection: { items, total_entries: items.length },
   mastery: { available: false, items: [], totals: [] },
   reward: { cards: [], best_value_index: null, best_ducat_index: null },
-  market_account: { link: 'unlinked', orders: [], listed_platinum: 0, listable: [], presence: { status: null, wanted: null, auto: false }, flagged: 0 },
+  market_account: { link: 'unlinked', orders: [], synced: [], listed_platinum: 0, listable: [], presence: { status: null, wanted: null, auto: false }, flagged: 0 },
   health: {
     game_reader: ready, log_monitor: ready, capture: ready, catalog: ready, market: ready,
     collection_prices: ready, database: ready, market_account: ready, acquisition_stages: [],

@@ -19,6 +19,7 @@ function account(overrides: Partial<MarketAccount> = {}): MarketAccount {
     listable: [],
     presence: { status: null, wanted: null, auto: false },
     flagged: 0,
+    synced: [],
     ...overrides,
   }
 }

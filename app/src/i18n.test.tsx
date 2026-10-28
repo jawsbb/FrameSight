@@ -42,7 +42,7 @@ const view: AppView = {
   },
   mastery: { available: true, items: [], totals: [] },
   reward: { cards: [], best_value_index: null, best_ducat_index: null },
-  market_account: { link: 'unlinked', orders: [], listed_platinum: 0, listable: [], presence: { status: null, wanted: null, auto: false }, flagged: 0 },
+  market_account: { link: 'unlinked', orders: [], synced: [], listed_platinum: 0, listable: [], presence: { status: null, wanted: null, auto: false }, flagged: 0 },
   health: {
     game_reader: { state: 'ready', message: 'Warframe is running', last_success: null },
     log_monitor: { state: 'ready', message: 'EE.log monitor ready', last_success: null },

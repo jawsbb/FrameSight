@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import type { CollectionItem, MarketAccount, ReconciledOrder } from '../backend'
+import type { CollectionItem, MarketAccount, MarketOrder, SyncedOrder } from '../backend'
 import { SellForm, type SellHandler, type UpdateHandler } from '../SellForm'
 import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderValue, sortOrders, statusLabel, uncountedReason } from '../orders'
 import { stampReading } from '../freshness'
+import { rankLabel } from '../collection'
 import { MetalMark } from '../MetalMark'
 import { Stat } from '../components/Stat'
+import { Thumb } from '../components/Thumb'
+import { Icon } from '../components/Icon'
+import { SearchField } from '../components/SearchField'
 import { useMessages } from '../i18n'
 import { EmptyState } from '../components/EmptyState'
 
@@ -16,14 +20,17 @@ type OrdersViewProps = {
   onRefresh: () => Promise<void>
   onRemove: (orderId: string) => Promise<void>
   onLowerTo: (orderId: string, quantity: number) => Promise<void>
+  onClose: (orderId: string, quantity: number) => Promise<void>
   onSell: SellHandler
   onUpdate: UpdateHandler
+  syncOrders: boolean | null
+  onSyncOrders: (enabled: boolean) => Promise<void>
   items: CollectionItem[]
   busy: boolean
   error: string | null
 }
 
-export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onLowerTo, onSell, onUpdate, items, busy, error }: OrdersViewProps) {
+export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onLowerTo, onClose, onSell, onUpdate, syncOrders, onSyncOrders, items, busy, error }: OrdersViewProps) {
   const t = useMessages()
   if (account.link === 'unlinked') {
     return <UnlinkedPanel onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} error={error} />
@@ -84,97 +91,161 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
       <LinkForms onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} />
     </div>}
 
-    {!needsRelink && <NewListing items={items} orders={account.orders} listable={account.listable} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
+    {!needsRelink && <SyncSwitch enabled={syncOrders} busy={busy} onChange={onSyncOrders}/>}
+    {account.synced.length > 0 && <SyncReport synced={account.synced}/>}
 
+    <h2 className="section-title">{t.orders.mine}</h2>
     {account.orders.length
       ? <ul className="group docket" aria-label={t.orders.list}>
         {sortOrders(account.orders).map(entry => <li key={entry.order.id}>
-          <OrderRow entry={entry} items={items} busy={busy} onRemove={onRemove} onLowerTo={onLowerTo} onSell={onSell} onUpdate={onUpdate} />
+          <OrderRow entry={entry} items={items} busy={busy} onRemove={onRemove} onLowerTo={onLowerTo} onClose={onClose} onSell={onSell} onUpdate={onUpdate} />
         </li>)}
       </ul>
       : <EmptyState icon="orders" title={t.orders.none} detail={t.orders.noneDetail}/>}
+
+    {!needsRelink && <ToSell items={items} account={account} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
   </section>
 }
 
 /**
- * One order, as a ledger line rather than a collection card. An order has no art to show and its
- * figures are read down a column (price against price, quantity against quantity), so the
- * columns are fixed and the fix button sits in a reserved slot that stays empty on the rows that
- * need nothing. A row whose button appeared and vanished would shift the rows beneath it.
+ * One order, as a ledger line: the item's picture and name, then figures read down a column
+ * (price against price, quantity against quantity), then what can be done to it.
  *
- * The edit form opens in place, spanning the row's full width beneath its figures: the change is
- * being made to this row, and moving it somewhere else would take the numbers it edits out of the
- * line they are read against.
+ * Whatever the reconciliation claims sits under the name rather than in a column of its own, with
+ * the repair it calls for beside it: a claim read a screen-width away from the row it accuses, and
+ * a fix button in a third place, is how the two used to overlap.
+ *
+ * The quantity steps by one trade, within what the row holds, as an edit of the listing at its
+ * own price. "Sold" closes one trade on warframe.market, which records the sale there; a step
+ * down only says the listing is smaller. Both need a held row to bound them, so a set, a
+ * sculpture or a buy order shows its count plain.
  */
-function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }: {
+function OrderRow({ entry, items, busy, onRemove, onLowerTo, onClose, onSell, onUpdate }: {
   entry: ReturnType<typeof sortOrders>[number]
   items: CollectionItem[]
   busy: boolean
   onRemove: (orderId: string) => Promise<void>
   onLowerTo: (orderId: string, quantity: number) => Promise<void>
+  onClose: (orderId: string, quantity: number) => Promise<void>
   onSell: SellHandler
   onUpdate: UpdateHandler
 }) {
   const t = useMessages()
   const [editing, setEditing] = useState(false)
+  const { order } = entry
+  const name = entry.name ?? order.item_id
   const flagged = isFlagged(entry.status)
-  const label = statusLabel(entry, t)
+  // A buy order is never judged against the holding, so its line says what it is instead.
+  const sub = order.kind === 'buy' ? t.orders.buyOrder : statusLabel(entry, t) ?? uncountedReason(order, t)
   const fix = fixLabel(entry.status, t)
-  const value = orderValue(entry.order)
+  const value = orderValue(order)
   const overshoot = entry.status.state === 'overshoot' ? entry.status.owned : null
-  // The edit is bounded by a holding, so it is offered only where the order names one held row.
-  // A set, a sculpture, a buy order: real rows, no edit, same honesty as everywhere else.
-  const held = entry.order.kind === 'sell' && entry.row_id
+  const held = order.kind === 'sell' && entry.row_id
     ? items.find(item => item.id === entry.row_id && item.quantity > 0)
     : undefined
-  return <article className={`docket-line${flagged ? ' doubt' : ''}`} aria-label={entry.name ?? entry.order.item_id}>
-    {/* A flagged row carries a dot as well as a colour, so it reads as flagged without the hue.
-        Ordinary rows keep the empty slot so the names still line up. */}
-    <span className={`line-mark${flagged ? ' flagged' : ''}`} aria-hidden="true" />
-    <h2 className="line-name" title={entry.name ?? entry.order.item_id}>{entry.name ?? entry.order.item_id}</h2>
-    <span className="line-figure">
-      {entry.order.platinum}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/>
-      <i>× {entry.order.quantity}</i>
-    </span>
-    {/* Every row states its own share of the headline figure, or why it has none. The total is a
-        sum of these and nothing else, so it can be checked by reading down the column. */}
+  const trade = Math.max(order.per_trade, 1)
+  return <article className={`docket-line${flagged ? ' doubt' : ''}`} aria-label={name}>
+    <Thumb src={entry.thumb_url ?? held?.image_url} name={name}/>
+    <div className="line-main">
+      <h2 className="line-name" title={name}>{name}</h2>
+      {sub && <p className={`line-sub${flagged ? ' flagged' : ''}`}>
+        <span>{sub}</span>
+        {/* The count is read out here rather than inside the handler: a narrowing on a property
+            does not survive into a closure, so `entry.status.owned` there is not the overshoot's. */}
+        {overshoot !== null && <button type="button" className="link-button" disabled={busy} onClick={() => onLowerTo(order.id, overshoot)}>{fix}</button>}
+      </p>}
+    </div>
+    <span className="line-figure">{order.platinum}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></span>
+    <Quantity order={order} name={name} held={held?.quantity ?? null} busy={busy} onSet={quantity => onUpdate(order.id, order.platinum, quantity)}/>
+    {/* Every row states its own share of the headline figure. The total is a sum of these and
+        nothing else, so it can be checked by reading down the column. */}
     <span className="line-value">{value === null
-      ? <em>{uncountedReason(entry.order, t)}</em>
+      ? <em>—</em>
       : <>{value}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></>}</span>
-    <span className="line-claim" title={label ?? undefined}>{label}</span>
     <span className="line-fix">
-      {/* The count is read out here rather than inside the handler: a narrowing on a property
-          does not survive into a closure, so `entry.status.owned` there is not the overshoot's. */}
-      {overshoot !== null && <button
+      {order.kind === 'sell' && <button
         type="button"
-        className="stamp"
+        className="stamp sold"
         disabled={busy}
-        onClick={() => onLowerTo(entry.order.id, overshoot)}
-      ><span>{fix}</span></button>}
-      {held && <button
-        type="button"
-        className="stamp"
-        disabled={busy}
-        onClick={() => setEditing(true)}
-      ><span>{t.orders.editListing}</span></button>}
+        title={t.orders.soldHint(trade)}
+        onClick={() => onClose(order.id, trade)}
+      ><span>{t.orders.sold}</span></button>}
+      {held && <button type="button" className="stamp" disabled={busy} onClick={() => setEditing(true)}><span>{t.orders.editListing}</span></button>}
       {/* A flagged row's removal is the repair it asks for and goes on one press. */}
       <ConfirmButton
         label={t.orders.removeListing}
         confirmLabel={t.orders.confirmRemove}
         skip={entry.status.state === 'missing'}
         busy={busy}
-        onConfirm={() => onRemove(entry.order.id)}
+        onConfirm={() => onRemove(order.id)}
       />
     </span>
     {held && editing && <SellForm
       item={held}
-      listing={entry.order}
+      listing={order}
       busy={busy}
       onSell={onSell}
       onUpdate={onUpdate}
       onDone={() => setEditing(false)}
     />}
   </article>
+}
+
+/** The listed count, with a step either way when a held row bounds it. */
+function Quantity({ order, name, held, busy, onSet }: {
+  order: MarketOrder
+  name: string
+  held: number | null
+  busy: boolean
+  onSet: (quantity: number) => Promise<void>
+}) {
+  const t = useMessages()
+  const step = Math.max(order.per_trade, 1)
+  if (held === null) return <span className="line-count">× {order.quantity}</span>
+  return <span className="stepper" role="group" aria-label={t.orders.quantityOf(name)}>
+    <button type="button" aria-label={t.orders.fewer} disabled={busy || order.quantity - step < 1} onClick={() => onSet(order.quantity - step)}><Icon name="minus"/></button>
+    <output>{order.quantity}</output>
+    <button type="button" aria-label={t.orders.more} disabled={busy || order.quantity + step > held} onClick={() => onSet(order.quantity + step)}><Icon name="plus"/></button>
+  </span>
+}
+
+/**
+ * The automatic sync, off until the player turns it on. With it on, every inventory read takes
+ * down what the game no longer holds and lowers what it holds less of: the same two repairs the
+ * rows offer, made without the press, and only where the reconciliation makes a claim at all.
+ */
+function SyncSwitch({ enabled, busy, onChange }: { enabled: boolean | null; busy: boolean; onChange: (enabled: boolean) => Promise<void> }) {
+  const t = useMessages()
+  return <div className="sync-switch">
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled === true}
+      className="display-switch"
+      disabled={enabled === null || busy}
+      onClick={() => { void onChange(!enabled) }}
+    >
+      <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
+      <span>{t.orders.sync}</span>
+    </button>
+    <p className="band-note">{t.orders.syncNote}</p>
+  </div>
+}
+
+/** What the last automatic sync changed, so a listing that vanished is never a mystery. */
+function SyncReport({ synced }: { synced: SyncedOrder[] }) {
+  const t = useMessages()
+  const when = stampReading(synced[0].at, new Date(), t)
+  return <section className="sync-report" aria-label={t.orders.syncedTitle}>
+    <h2>{t.orders.synced(when?.relative ?? '')}</h2>
+    <ul>
+      {synced.map((change, index) => <li key={index}>
+        <Thumb src={change.thumb_url} name={change.name ?? '?'}/>
+        <span className="sync-name">{change.name ?? t.market.theItem}</span>
+        <span className="sync-change">{change.to === 0 ? t.orders.syncRemoved : t.orders.syncLowered(change.from, change.to)}</span>
+      </li>)}
+    </ul>
+  </section>
 }
 
 /**
@@ -207,97 +278,62 @@ function ConfirmButton({ label, confirmLabel, skip = false, busy, onConfirm }: {
 }
 
 /**
- * Publishing from the orders screen, where the player is looking at listings rather than at items.
+ * Selling straight from the inventory: what the collection holds, can be listed from here, and
+ * is not listed yet, richest first. The picker is over the same listable set the backend
+ * authorises against, so nothing is offered that the backend would refuse.
  *
- * The picker is over the same collection the cards are drawn from and the same listable set the
- * backend authorises against, so an item that cannot be sold from a card cannot be sold from here
- * either. The refusal lives in one place, on the backend, and neither surface offers what it
- * would refuse.
+ * The field narrows the list rather than replacing it: with nothing typed, the most valuable
+ * holdings are the useful answer, and a collection runs to a couple of thousand rows, so only the
+ * first few are drawn and the count says how many more the field can reach.
  *
- * A row that is already listed opens the form as an edit of that listing, for the same reason the
- * card offers "Sell more": warframe.market allows one sell order per item, and a create against an
- * existing one would be refused by the market after the request.
- *
- * Typed rather than picked from a list. A collection runs to a couple of thousand items, and no
- * one scrolls a list that long to find the one they already have a name for, so the field takes
- * the name and the list answers with the few that match.
+ * A row opens the sell form in place, with the market beside the price: one row at a time, so the
+ * form being filled is always the one under the pointer.
  */
-function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
+function ToSell({ items, account, busy, onSell, onUpdate }: {
   items: CollectionItem[]
-  orders: ReconciledOrder[]
-  listable: string[]
+  account: MarketAccount
   busy: boolean
   onSell: SellHandler
   onUpdate: UpdateHandler
 }) {
   const t = useMessages()
-  const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [chosen, setChosen] = useState('')
-  const sellable = items.filter(item => isListable(item, listable))
+  const [chosen, setChosen] = useState<string | null>(null)
+  const sellable = items
+    .filter(item => isListable(item, account.listable) && !listedOrderFor(account.orders, item.id))
+    .sort((left, right) => (right.platinum ?? 0) * right.quantity - (left.platinum ?? 0) * left.quantity)
   if (!sellable.length) return null
-  const item = sellable.find(entry => entry.id === chosen)
-  const listing = item ? listedOrderFor(orders, item.id) : null
-
-  function close() {
-    setOpen(false)
-    setQuery('')
-    setChosen('')
-  }
-
-  if (!open) {
-    return <div className="toolbar">
-      <button type="button" className="stamp" disabled={busy} onClick={() => setOpen(true)}><span>{t.orders.newListing}</span></button>
-    </div>
-  }
-
   const needle = query.trim().toLowerCase()
-  // Shown only once the query narrows things: the whole collection listed under an empty field is
-  // the wall of names this control exists to avoid. The cap is on what is drawn, and the count
-  // below says how many were left out, so a too-broad query reads as too broad rather than as all
-  // there is.
-  const matches = needle ? sellable.filter(entry => entry.name.toLowerCase().includes(needle)) : []
+  const matches = needle ? sellable.filter(item => item.name.toLowerCase().includes(needle)) : sellable
   const shown = matches.slice(0, 8)
 
-  return <div className="new-listing">
-    <div className="new-listing-head">
-      <h2>{t.orders.newListing}</h2>
-      <button type="button" className="stamp" disabled={busy} onClick={close}><span>{t.orders.cancel}</span></button>
+  return <section className="to-sell" aria-labelledby="to-sell-title">
+    <div className="to-sell-head">
+      <h2 id="to-sell-title" className="section-title">{t.orders.toSell}</h2>
+      <SearchField label={t.orders.item} value={query} onChange={setQuery}/>
     </div>
-    {item
-      ? <>
-        <p className="new-listing-chosen">
-          <b>{item.name}</b> <i>· {t.orders.held(item.quantity)}</i>
-          <button type="button" className="link-button" disabled={busy} onClick={() => setChosen('')}>{t.orders.chooseAnother}</button>
-        </p>
-        <SellForm item={item} listing={listing ?? undefined} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={close}/>
-      </>
-      : <>
-        <label className="dial-slot">
-          <span>{t.orders.item}</span>
-          <input
-            type="search"
-            aria-label={t.orders.item}
-            placeholder={t.orders.itemPlaceholder}
-            value={query}
-            autoFocus
-            onChange={event => setQuery(event.target.value)}
-            disabled={busy}
-          />
-        </label>
-        {needle && (shown.length
-          ? <ul className="pick-list">
-            {shown.map(entry => <li key={entry.id}>
-              <button type="button" disabled={busy} onClick={() => setChosen(entry.id)}>
-                <span className="pick-name">{entry.name}</span>
-                <span className="pick-held">{t.orders.held(entry.quantity)}</span>
-              </button>
-            </li>)}
-          </ul>
-          : <p className="pick-empty">{t.orders.noneSellable}</p>)}
-        {matches.length > shown.length && <p className="pick-more">{t.orders.moreMatch(matches.length - shown.length)}</p>}
-      </>}
-  </div>
+    {shown.length
+      ? <ul className="group docket">
+        {shown.map(item => <li key={item.id}>
+          <article className="docket-line stock-line" aria-label={item.name}>
+            <Thumb src={item.image_url} name={item.name}/>
+            <div className="line-main">
+              <h3 className="line-name" title={item.name}>{item.name}</h3>
+              <p className="line-sub">{[rankLabel(item, t), t.orders.held(item.quantity)].filter(Boolean).join(' · ')}</p>
+            </div>
+            <span className="line-figure">{item.platinum === undefined
+              ? <em>—</em>
+              : <>{item.platinum}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></>}</span>
+            <span className="line-fix">
+              {chosen !== item.id && <button type="button" className="stamp" disabled={busy} onClick={() => setChosen(item.id)}><span>{t.card.sell}</span></button>}
+            </span>
+            {chosen === item.id && <SellForm item={item} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={() => setChosen(null)}/>}
+          </article>
+        </li>)}
+      </ul>
+      : <p className="pick-empty">{t.orders.noneSellable}</p>}
+    {matches.length > shown.length && <p className="pick-more">{t.orders.moreMatch(matches.length - shown.length)}</p>}
+  </section>
 }
 
 function UnlinkedPanel({ onSignIn, onLinkToken, busy, error }: {
