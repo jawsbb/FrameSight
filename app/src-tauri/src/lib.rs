@@ -895,6 +895,23 @@ async fn set_mastery_marks(
     .map_err(|_| "preferences task failed".to_owned())?
 }
 
+/// Turn on or off the order repair that follows an inventory read. See `sync_orders_after_read`.
+#[tauri::command]
+async fn set_sync_orders(
+    state: State<'_, SharedRuntime>,
+    enabled: bool,
+) -> Result<Preferences, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut runtime = shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?;
+        save_sync_orders(&mut runtime, enabled)
+    })
+    .await
+    .map_err(|_| "preferences task failed".to_owned())?
+}
+
 #[tauri::command]
 async fn set_language(
     state: State<'_, SharedRuntime>,
@@ -917,6 +934,14 @@ fn save_mastery_marks(runtime: &mut Runtime, enabled: bool) -> Result<Preference
         ..runtime.preferences
     };
     store_preferences(runtime, next, "mastery marks setting could not be saved")
+}
+
+fn save_sync_orders(runtime: &mut Runtime, enabled: bool) -> Result<Preferences, String> {
+    let next = Preferences {
+        sync_orders: enabled,
+        ..runtime.preferences
+    };
+    store_preferences(runtime, next, "order sync setting could not be saved")
 }
 
 fn save_language(runtime: &mut Runtime, language: Option<Language>) -> Result<Preferences, String> {
@@ -1796,7 +1821,7 @@ async fn update_order(
     .map_err(|_| "order edit task failed".to_owned())?
 }
 
-/// Both writes share this: perform it, keep whatever token came back, then refresh.
+/// Every write shares this: perform it, keep whatever token came back, then refresh.
 ///
 /// The refresh happens whether or not the renewed token could be stored. A write that changed the
 /// account and left the list showing the old state would invite the player to press the same
@@ -1807,6 +1832,19 @@ fn write_then_refresh<F>(
     kind: &'static str,
     write: F,
 ) -> Result<AppView, String>
+where
+    F: FnOnce(
+        &dyn warframe_market::MarketTransport,
+        &warframe_market::MarketToken,
+    ) -> Result<warframe_market::MarketToken, warframe_market::MarketError>,
+{
+    write_order(shared, kind, write)?;
+    publish_account(shared)
+}
+
+/// One write with no lock held across it, and the renewed token kept. The token is read from the
+/// store per write, so a run of writes each sends the one the write before it renewed.
+fn write_order<F>(shared: &SharedRuntime, kind: &'static str, write: F) -> Result<(), String>
 where
     F: FnOnce(
         &dyn warframe_market::MarketTransport,
@@ -1843,8 +1881,8 @@ where
             return Err(market_account::failure_message(error).to_owned());
         }
     };
-    // Not propagated on failure: the write already happened on the account, and returning early
-    // here would leave the list on screen out of date with no way back except pressing the same
+    // Not propagated on failure: the write already happened on the account, and reporting it as
+    // failed would leave the list on screen out of date with no way back except pressing the same
     // button again. `publish_account` re-reads the token itself and reports whatever it finds.
     let _ = {
         let mut runtime = shared
@@ -1855,7 +1893,69 @@ where
         runtime.market.supersede_reads();
         runtime.market.adopt(renewed)
     };
-    publish_account(shared)
+    Ok(())
+}
+
+/// Repair the account's flagged orders after an inventory read, when the player has asked for it.
+///
+/// Runs only under the conditions a press of either repair button would: the setting is on and
+/// Full access holds. An unlinked account needs no check of its own: `publish_account` asks
+/// nothing without a token and the unlinked view it publishes has no orders to act on. The
+/// account is fetched and reconciled against the snapshot just read, and the repairs are exactly
+/// `sync_actions` of that, so every refusal the reconciliation makes (a stale or incoherent
+/// snapshot, a set, a relic, a ranked copy) is a refusal here too.
+///
+/// No lock is held over the network, as in `publish_account` and `write_order`. A write that fails
+/// is logged and the rest carry on; nothing is retried, and the one republish at the end shows
+/// whatever the account now holds. Returns that view, or `None` when nothing ran.
+fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
+    {
+        let runtime = shared.lock().ok()?;
+        if !runtime.preferences.sync_orders || market_inventory_writes_authorized(&runtime).is_err()
+        {
+            return None;
+        }
+    }
+    let view = publish_account(shared)
+        .inspect_err(|error| log::warn!("market: order sync could not read the account: {error}"))
+        .ok()?;
+    let actions = app_core::sync_actions(&view.market_account().orders);
+    if actions.is_empty() {
+        return Some(view);
+    }
+    let mut synced = Vec::new();
+    for (entry, action) in actions {
+        let name = entry.name.as_deref().unwrap_or(&entry.order.item_id);
+        let (kind, to) = match action {
+            app_core::SyncAction::Remove => ("remove", 0),
+            app_core::SyncAction::Lower(owned) => ("quantity", owned),
+        };
+        let written = write_order(shared, kind, |transport, token| match action {
+            app_core::SyncAction::Remove => {
+                warframe_market::delete_order(transport, token, &entry.order.id)
+            }
+            app_core::SyncAction::Lower(owned) => {
+                warframe_market::set_order_quantity(transport, token, &entry.order.id, owned)
+            }
+        });
+        match written {
+            Ok(()) => {
+                log::info!("market: sync {name}: {} -> {to}", entry.order.quantity);
+                synced.push(app_core::SyncedOrder {
+                    name: entry.name.clone(),
+                    thumb_url: entry.thumb_url.clone(),
+                    from: entry.order.quantity,
+                    to,
+                    at: now_unix_seconds(),
+                });
+            }
+            Err(error) => log::warn!("market: sync {name} failed: {error}"),
+        }
+    }
+    if !synced.is_empty() {
+        shared.lock().ok()?.core.set_synced(synced);
+    }
+    publish_account(shared).ok()
 }
 
 async fn refresh_shared(shared: SharedRuntime) -> Result<AppView, String> {
@@ -1882,7 +1982,12 @@ fn refresh_blocking(shared: &SharedRuntime) -> Result<AppView, String> {
     };
     let port = ProductionAcquisition { app_data };
     let outcome = port.refresh();
-    let result = apply_outcome(shared, outcome);
+    let read = matches!(outcome, InventoryRefreshOutcome::Success { .. });
+    let mut result = apply_outcome(shared, outcome);
+    // Inside the refresh window, so a second read cannot start a second sync over the first.
+    if read && result.is_ok() {
+        result = sync_orders_after_read(shared).map_or(result, Ok);
+    }
     if let Ok(mut runtime) = shared.lock() {
         runtime.refresh.finish();
     }
@@ -2421,6 +2526,7 @@ pub fn run() {
             get_setup_status,
             get_preferences,
             set_mastery_marks,
+            set_sync_orders,
             set_language,
             set_access_mode,
             authorize_screen_capture,
@@ -2785,6 +2891,7 @@ mod tests {
             Ok(Preferences {
                 mastery_marks: false,
                 language: None,
+                sync_orders: false,
             })
         );
         assert!(!runtime.preferences.mastery_marks);
@@ -2808,6 +2915,7 @@ mod tests {
         let both = Preferences {
             mastery_marks: false,
             language: Some(Language::Fr),
+            sync_orders: false,
         };
         assert_eq!(save_language(&mut runtime, Some(Language::Fr)), Ok(both));
         assert_eq!(preferences::load_preferences(&writable), both);
@@ -2833,6 +2941,34 @@ mod tests {
             "None goes back to following the system"
         );
         assert_eq!(preferences::load_preferences(&writable).language, None);
+    }
+
+    /// The order sync switch writes only itself, and moves only when its save lands.
+    #[test]
+    fn the_order_sync_switch_saves_beside_the_other_settings() {
+        let directory = tempfile::tempdir().expect("temp dir");
+        let shared = test_runtime(directory.path());
+        let mut runtime = shared.lock().expect("lock");
+        let writable = directory.path().join("tennoscope-preferences.json");
+        runtime.preferences_path = writable.clone();
+        save_language(&mut runtime, Some(Language::Fr)).expect("language saved");
+
+        let saved = save_sync_orders(&mut runtime, true).expect("sync saved");
+        assert!(saved.sync_orders);
+        assert_eq!(saved.language, Some(Language::Fr), "the language is kept");
+        assert_eq!(preferences::load_preferences(&writable), saved);
+
+        let regular_file = directory.path().join("not-a-directory");
+        fs::write(&regular_file, b"").expect("regular file");
+        runtime.preferences_path = regular_file.join("tennoscope-preferences.json");
+        assert_eq!(
+            save_sync_orders(&mut runtime, false).err().as_deref(),
+            Some("order sync setting could not be saved")
+        );
+        assert!(
+            runtime.preferences.sync_orders,
+            "a failed save leaves it on"
+        );
     }
 
     /// A refresh that is already running, and one that just finished, are both reasons not to

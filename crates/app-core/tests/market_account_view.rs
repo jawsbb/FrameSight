@@ -1,4 +1,7 @@
-use app_core::{AppCore, HealthState, LinkState, MarketAccountView, OrderStatus, ReconciledOrder};
+use app_core::{
+    AppCore, HealthState, LinkState, MarketAccountView, OrderStatus, ReconciledOrder, SyncAction,
+    SyncedOrder, sync_actions,
+};
 use local_store::SnapshotInstant;
 use warframe_domain::{
     CatalogItem, Category, Collection, InventoryEntry, InventorySnapshot, ItemId,
@@ -271,4 +274,62 @@ fn the_listable_set_names_the_rows_the_market_would_accept() {
         ],
         "the part-ranked row is the one refusal in here"
     );
+}
+
+/// A sync makes exactly the repairs the interface offers beside a flagged order, and nothing for
+/// an order the reconciliation did not flag. A buy order is never touched, even if something ever
+/// flagged it.
+#[test]
+fn a_sync_repairs_only_flagged_sell_orders() {
+    let mut buying = order("buy", 12, 2, true);
+    buying.kind = OrderKind::Buy;
+    let orders = vec![
+        reconciled(order("gone", 12, 2, true), OrderStatus::Missing),
+        reconciled(
+            order("over", 12, 5, true),
+            OrderStatus::Overshoot { owned: 3 },
+        ),
+        reconciled(order("fine", 12, 1, true), OrderStatus::Ok),
+        reconciled(order("unknown", 12, 1, true), OrderStatus::Unverifiable),
+        reconciled(buying, OrderStatus::Missing),
+    ];
+
+    let actions: Vec<_> = sync_actions(&orders)
+        .into_iter()
+        .map(|(entry, action)| (entry.order.id.as_str(), action))
+        .collect();
+
+    assert_eq!(
+        actions,
+        [("gone", SyncAction::Remove), ("over", SyncAction::Lower(3))]
+    );
+}
+
+/// The report of the last sync outlives an ordinary order refresh, which builds a fresh view, and
+/// goes with the account when it is unlinked.
+#[test]
+fn the_last_sync_outlives_a_refresh_and_goes_with_the_account() {
+    let mut core = AppCore::in_memory().expect("core opens");
+    let synced = vec![SyncedOrder {
+        name: Some("Braton Prime Blueprint".to_owned()),
+        thumb_url: None,
+        from: 2,
+        to: 0,
+        at: "1785492000".to_owned(),
+    }];
+    core.set_synced(synced.clone());
+
+    let refreshed = core
+        .set_market_account(MarketAccountView::linked(
+            CredentialBacking::Keyring,
+            Vec::new(),
+            "1785492060".to_owned(),
+        ))
+        .expect("account sets");
+    assert_eq!(refreshed.market_account().synced, synced);
+
+    let unlinked = core
+        .set_market_account(MarketAccountView::unlinked())
+        .expect("account clears");
+    assert!(unlinked.market_account().synced.is_empty());
 }

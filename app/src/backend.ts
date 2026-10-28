@@ -35,7 +35,10 @@ export type OrderStatus =
 export interface MarketOrder { id: string; item_id: string; kind: 'sell' | 'buy'; platinum: number; quantity: number; per_trade: number; rank?: number; subtype?: string; visible: boolean; updated_at?: number }
 /** `thumb_url` is absolute; `slug` addresses the item's live order book. */
 export interface ReconciledOrder { order: MarketOrder; name?: string; row_id?: string; thumb_url?: string; slug?: string; status: OrderStatus }
-export interface MarketAccount { link: LinkState; backing?: CredentialBacking; orders: ReconciledOrder[]; fetched_at?: string; listed_platinum: number; flagged: number; listable: string[]; presence: PresenceView }
+/** One change an automatic order sync made. `to` 0 is a listing taken down; `at` is in the form of `fetched_at`. */
+export interface SyncedOrder { name?: string; thumb_url?: string; from: number; to: number; at: string }
+/** `synced` is what the most recent sync that changed anything changed, empty before one has. */
+export interface MarketAccount { link: LinkState; backing?: CredentialBacking; orders: ReconciledOrder[]; fetched_at?: string; listed_platinum: number; flagged: number; listable: string[]; presence: PresenceView; synced: SyncedOrder[] }
 
 export interface AppView {
   collection: {
@@ -158,10 +161,12 @@ export const authorizeScreenCapture = () => invoke<SetupStatus>('authorize_scree
 
 /** Preferences the backend owns; the overlays never read browser storage for them. */
 export type Language = 'en' | 'fr'
-/** `language` absent or null follows the system language. */
-export interface Preferences { mastery_marks: boolean; language?: Language | null }
+/** `language` absent or null follows the system language. `sync_orders`: an inventory read takes
+ * down listings for what is no longer held and lowers ones listing more than is held. */
+export interface Preferences { mastery_marks: boolean; language?: Language | null; sync_orders: boolean }
 export const getPreferences = () => invoke<Preferences>('get_preferences')
 export const setMasteryMarks = (enabled: boolean) => invoke<Preferences>('set_mastery_marks', { enabled })
+export const setSyncOrders = (enabled: boolean) => invoke<Preferences>('set_sync_orders', { enabled })
 export const setLanguage = (language: Language | null) => invoke<Preferences>('set_language', { language })
 
 export const marketStatus = () => invoke<AppView>('market_status')

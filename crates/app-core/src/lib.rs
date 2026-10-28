@@ -57,6 +57,7 @@ pub struct AppCore {
     pricing: Option<PricingProgress>,
     market_account: MarketAccountView,
     presence: PresenceView,
+    synced: Vec<SyncedOrder>,
     mastery_catalog: Option<Arc<CatalogIndex>>,
     mastery_facts: Option<MasteryFacts>,
     /// Whether the installed access mode reads the inventory. Companion and Overlay show a
@@ -159,6 +160,7 @@ impl AppCore {
             pricing: None,
             market_account: MarketAccountView::unlinked(),
             presence: PresenceView::default(),
+            synced: Vec::new(),
             mastery_catalog: None,
             mastery_facts: None,
             reads_inventory: false,
@@ -278,12 +280,23 @@ impl AppCore {
         self.current_view()
     }
 
+    /// Replace what the last order sync changed. Only a sync that changed something calls this, so
+    /// the report stands until there is a newer one.
+    pub fn set_synced(&mut self, synced: Vec<SyncedOrder>) {
+        self.synced = synced;
+    }
+
     /// Replace the account state and say so in the health row.
     pub fn set_market_account(&mut self, account: MarketAccountView) -> Result<AppView, AppError> {
         self.health.market_account = match account.link {
             // Nothing carried forward: with no account linked there is no fetch for a timestamp
-            // to describe, and one left behind reads as though a link were still in place.
-            LinkState::Unlinked => BackendHealth::idle("No warframe.market account linked", None)?,
+            // to describe, and one left behind reads as though a link were still in place. The
+            // last sync's report goes for the same reason, and would otherwise greet the next
+            // account linked here.
+            LinkState::Unlinked => {
+                self.synced.clear();
+                BackendHealth::idle("No warframe.market account linked", None)?
+            }
             LinkState::NeedsRelink => {
                 BackendHealth::degraded("The warframe.market credential was refused")?
             }
@@ -417,6 +430,7 @@ impl AppCore {
             health,
             market_account: MarketAccountView {
                 presence: self.presence,
+                synced: self.synced.clone(),
                 ..self.market_account.clone()
             },
         })
@@ -1477,6 +1491,48 @@ fn status_for(
     }
 }
 
+/// A repair the reconciliation itself calls for, made without a press when the player has asked
+/// for order sync.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SyncAction {
+    /// The collection holds none of it: take the listing down.
+    Remove,
+    /// The listing offers more than is held: lower it to the holding.
+    Lower(u32),
+}
+
+/// The repairs an automatic sync makes, and only those: the two buttons the interface already puts
+/// beside a flagged order, derived from nothing but the flag.
+///
+/// Everything that keeps a flag honest has already happened in [`reconcile_orders`]: no claim
+/// without a coherent snapshot newer than the order, none for a set, a relic, a ranked copy or an
+/// item the table cannot place. An order that is not flagged gets nothing, and a buy order is
+/// checked for here as well as there, because owning none of something is what buying it means.
+pub fn sync_actions(orders: &[ReconciledOrder]) -> Vec<(&ReconciledOrder, SyncAction)> {
+    orders
+        .iter()
+        .filter(|entry| entry.order.kind == OrderKind::Sell)
+        .filter_map(|entry| match entry.status {
+            OrderStatus::Missing => Some((entry, SyncAction::Remove)),
+            OrderStatus::Overshoot { owned } => Some((entry, SyncAction::Lower(owned))),
+            OrderStatus::Ok | OrderStatus::Unverifiable => None,
+        })
+        .collect()
+}
+
+/// One change an automatic sync made, for the interface to report.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SyncedOrder {
+    pub name: Option<String>,
+    pub thumb_url: Option<String>,
+    /// The quantity listed before.
+    pub from: u32,
+    /// The quantity listed after; zero is a listing taken down.
+    pub to: u32,
+    /// When, in the same form as `fetched_at`.
+    pub at: String,
+}
+
 /// Whether an account is linked, and whether it still works.
 ///
 /// `NeedsRelink` is separate from `Unlinked` because they call for different things from the
@@ -1522,6 +1578,11 @@ pub struct MarketAccountView {
     /// an order fetch that reset it would blank the switch every refresh. `current_view` stamps it
     /// on instead, from the one place that holds it.
     pub presence: PresenceView,
+    /// What the most recent order sync that changed anything changed, empty before one has.
+    ///
+    /// Stamped on by `current_view` like `presence`, for the same reason: an order refresh builds a
+    /// fresh view, and the report of the last sync has to outlive it.
+    pub synced: Vec<SyncedOrder>,
 }
 
 /// The presence switch, as the screen needs it.
@@ -1595,6 +1656,7 @@ impl MarketAccountView {
             flagged,
             listable: Vec::new(),
             presence: PresenceView::default(),
+            synced: Vec::new(),
         }
     }
 

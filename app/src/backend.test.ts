@@ -18,6 +18,7 @@ import {
   setAccessMode,
   setLanguage,
   setOrderQuantity,
+  setSyncOrders,
   updateOrder,
   updateDownloadAndInstall,
 } from './backend'
@@ -52,6 +53,12 @@ describe('typed Tauri command bridge', () => {
     invoke.mockResolvedValueOnce({ mastery_marks: true, language: null })
     await setLanguage(null)
     expect(invoke).toHaveBeenLastCalledWith('set_language', { language: null })
+  })
+
+  it('switches the order sync on and off', async () => {
+    invoke.mockResolvedValueOnce({ mastery_marks: true, language: null, sync_orders: true })
+    await expect(setSyncOrders(true)).resolves.toEqual({ mastery_marks: true, language: null, sync_orders: true })
+    expect(invoke).toHaveBeenCalledWith('set_sync_orders', { enabled: true })
   })
 
   it('waits out a backend that has not finished starting', async () => {
