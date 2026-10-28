@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+use crate::relic_base;
 use warframe_domain::{CatalogItem, Category, DomainError, InventoryEntry, ItemId};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -105,7 +107,6 @@ pub struct Recipe {
 pub struct RecipeResource {
     pub path: String,
     pub name: String,
-    pub image_name: Option<String>,
     pub per_build: u32,
 }
 
@@ -140,7 +141,8 @@ impl RecipeComponent {
 
 /// Whether a recipe slot is the build's blueprint, one of its tradable parts, or a whole
 /// masterable item consumed by the build.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ComponentKind {
     Blueprint,
     Part,
@@ -345,7 +347,6 @@ impl CatalogIndex {
                 resources.push(RecipeResource {
                     path: (*path).to_owned(),
                     name,
-                    image_name: first.image_name.clone(),
                     per_build: (*per_build).max(1),
                 });
                 continue;
@@ -353,7 +354,11 @@ impl CatalogIndex {
             let mut drops = first
                 .drops
                 .iter()
-                .map(|drop| unrefined(drop.location.trim()).to_owned())
+                .map(|drop| {
+                    // A relic once, whatever the refinement: it changes the odds, not the relic.
+                    let location = drop.location.trim();
+                    relic_base(location).unwrap_or(location).to_owned()
+                })
                 .filter(|location| !location.is_empty())
                 .collect::<Vec<_>>();
             drops.sort();
@@ -612,14 +617,6 @@ struct WfcdDrop {
     /// "Axi B1 Relic (Radiant)": one entry per refinement of each relic.
     #[serde(default)]
     location: String,
-}
-
-/// A relic's name without its refinement, which changes the odds but not the relic to farm.
-fn unrefined(location: &str) -> &str {
-    [" (Intact)", " (Exceptional)", " (Flawless)", " (Radiant)"]
-        .iter()
-        .find_map(|suffix| location.strip_suffix(suffix))
-        .unwrap_or(location)
 }
 
 fn classify_item(item: &WfcdItem) -> Option<Category> {

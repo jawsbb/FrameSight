@@ -4,7 +4,7 @@ mod fake_session;
 mod foundry;
 
 pub use foundry::{
-    FoundryItem, FoundryPiece, FoundryResource, FoundryStage, FoundryStatus, FoundryView, PieceKind,
+    FoundryItem, FoundryPiece, FoundryResource, FoundryStage, FoundryStatus, FoundryView,
 };
 
 use std::path::Path;

@@ -8,10 +8,6 @@ use warframe_domain::Category;
 
 use crate::{AppCore, AppError, wfcd_image_url};
 
-/// The inventory decoder reads this whole section, so a resource under it that the snapshot does
-/// not hold is held at zero rather than unknown.
-const READ_RESOURCES: &str = "/Lotus/Types/Items/MiscItems/";
-
 /// A build "almost" there lacks at most this many pieces, copies counted.
 const ALMOST: u32 = 2;
 
@@ -61,7 +57,8 @@ pub struct FoundryItem {
     /// Copies of pieces still to find: two Guandao Prime blades short is two.
     pub missing: u32,
     pub pieces: Vec<FoundryPiece>,
-    /// Only resources the inventory can count; the rest are left out rather than guessed.
+    /// Resources live in the inventory sections the decoder reads whole, so one the snapshot
+    /// does not hold is held at zero.
     pub resources: Vec<FoundryResource>,
     /// What warframe.market trades the whole set for.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -79,21 +76,13 @@ pub struct FoundryPiece {
     pub name: String,
     /// The game's part art file name, for the bundled silhouettes.
     pub image: Option<String>,
-    pub kind: PieceKind,
+    pub kind: ComponentKind,
     pub uses: u32,
     pub held: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub platinum: Option<u32>,
     /// Relics the current drop tables give this piece from.
     pub drops: Vec<String>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PieceKind {
-    Blueprint,
-    Part,
-    Ingredient,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -156,20 +145,17 @@ fn foundry_item(
     // Holding Bronco Prime alone has not started an Akbronco.
     if !pieces
         .iter()
-        .any(|piece| piece.kind != PieceKind::Ingredient && piece.held > 0)
+        .any(|piece| piece.kind != ComponentKind::Ingredient && piece.held > 0)
     {
         return None;
     }
     let resources = recipe
         .resources
         .iter()
-        .filter_map(|resource| {
-            let held = holdings.quantity(&resource.path);
-            (held > 0 || resource.path.starts_with(READ_RESOURCES)).then(|| FoundryResource {
-                name: resource.name.clone(),
-                uses: resource.per_build,
-                held,
-            })
+        .map(|resource| FoundryResource {
+            name: resource.name.clone(),
+            uses: resource.per_build,
+            held: holdings.quantity(&resource.path),
         })
         .collect::<Vec<_>>();
     let missing = pieces
@@ -186,7 +172,7 @@ fn foundry_item(
     };
     let pieces_platinum = pieces
         .iter()
-        .filter(|piece| piece.kind != PieceKind::Ingredient)
+        .filter(|piece| piece.kind != ComponentKind::Ingredient)
         .map(|piece| Some(piece.platinum?.saturating_mul(piece.uses)))
         .sum::<Option<u32>>();
     let metadata = catalog.resolve(&recipe.parent);
@@ -219,13 +205,8 @@ fn piece(
     let sibling = slot.blueprint_sibling();
     let held = holdings.quantity(&slot.path)
         + sibling.as_deref().map_or(0, |path| holdings.quantity(path));
-    let kind = match slot.kind {
-        ComponentKind::Blueprint => PieceKind::Blueprint,
-        ComponentKind::Part => PieceKind::Part,
-        ComponentKind::Ingredient => PieceKind::Ingredient,
-    };
     // The market sells a Warframe part under its blueprint's name, a weapon part under its own.
-    let platinum = (kind != PieceKind::Ingredient)
+    let platinum = (slot.kind != ComponentKind::Ingredient)
         .then(|| {
             [sibling.as_deref(), Some(slot.path.as_str())]
                 .into_iter()
@@ -237,7 +218,7 @@ fn piece(
     FoundryPiece {
         name: slot.name.clone(),
         image: slot.image_name.clone(),
-        kind,
+        kind: slot.kind,
         uses: slot.per_build,
         held,
         platinum,
@@ -368,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    fn resources_short_keep_a_complete_set_almost_and_unread_ones_are_left_out() {
+    fn resources_short_keep_a_complete_set_almost() {
         let held = holdings(
             &[
                 (ASH_BP, 1),
@@ -389,8 +370,7 @@ mod tests {
             .collect();
         assert_eq!(
             resources,
-            vec![("Orokin Cell", 1, 0)],
-            "a shard the inventory does not read is not shown at zero"
+            vec![("Eidolon Shard", 1, 0), ("Orokin Cell", 1, 0)]
         );
     }
 
