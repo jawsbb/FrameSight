@@ -403,7 +403,7 @@ describe('MVP desktop interface', () => {
     expect(screen.getByRole('button', { name: 'Allow desktop capture' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Preview reward overlay' })).toBeDisabled()
     expect(screen.getAllByText(/Overlay or Full access is required/i).length).toBeGreaterThan(0)
-    expect(screen.getByRole('region', { name: 'What Companion adds' })).toHaveTextContent(/Nothing read from Warframe.*saved data.*prices.*trading/i)
+    expect(screen.getByRole('region', { name: 'What Companion adds' })).toHaveTextContent(/Reads nothing from Warframe\. Saved data, prices and trading stay available\./)
     expect(screen.getByText('Using saved and reference data')).toBeInTheDocument()
     expect(screen.getByText(/Companion does not observe the game process or EE\.log/i)).toBeInTheDocument()
     expect(screen.getByText(/Inventory synchronization needs Full access/i)).toBeInTheDocument()
