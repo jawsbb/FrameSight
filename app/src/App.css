@@ -15,7 +15,7 @@
 
 /* The window has no compositor decorations, so this bar is its titlebar. */
 .titlebar {
-  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; height: 36px;
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
   padding-left: var(--step); border-bottom: 1px solid var(--line); background: var(--bg-0);
 }
 .wordmark { font-size: .9375rem; font-weight: 700; letter-spacing: -.01em; color: var(--text); }
@@ -124,7 +124,7 @@
   text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; cursor: pointer;
 }
 .link-button:hover:not(:disabled) { color: var(--accent-hover); }
-.link-button:disabled { opacity: .5; cursor: default; }
+.link-button:disabled { opacity: .5; cursor: not-allowed; }
 .head-link { margin-left: 6px; text-decoration: none; }
 .head-link:hover { text-decoration: underline; }
 .head-actions { display: flex; flex-wrap: wrap; gap: var(--tight); margin-left: auto; }
@@ -167,7 +167,7 @@
   background: var(--bg-2); color: var(--text-dim); font-size: .875rem; cursor: pointer;
 }
 .display-switch:hover:not(:disabled), .display-switch[aria-checked="true"] { color: var(--text); }
-.display-switch:disabled { opacity: .5; cursor: default; }
+.display-switch:disabled { opacity: .5; cursor: not-allowed; }
 .display-face { display: inline-flex; align-items: center; gap: 6px; }
 .display-track {
   position: relative; flex: none; width: 30px; height: 18px;
@@ -265,7 +265,7 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 }
 .pagination button:hover:not(:disabled) { border-color: var(--line-control); color: var(--text); }
 .pagination button[aria-current="page"] { border-color: var(--accent); background: var(--accent-soft); color: var(--text); font-weight: 600; }
-.pagination button:disabled { opacity: .35; cursor: default; }
+.pagination button:disabled { opacity: .5; cursor: not-allowed; }
 .page-slot { display: inline-flex; align-items: center; gap: 4px; }
 .page-slot i { color: var(--text-faint); font-style: normal; }
 
@@ -300,6 +300,9 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
   display: flex; align-items: center; gap: 10px; padding: 10px 12px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2);
 }
+/* Top-aligned, so the names of rows sharing a grid line sit level whatever their detail holds. */
+.health-row { align-items: flex-start; }
+.health-row > .state-icon, .health-row > .verdict { margin-top: 2px; }
 .health-row > div, .stages li > div { flex: 1; min-width: 0; }
 .health-row h3, .stages strong { margin: 0; font-size: .875rem; font-weight: 600; }
 .health-row p, .stages p { margin: 2px 0 0; color: var(--text-dim); font-size: .8125rem; }
@@ -540,9 +543,10 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 
 /* responsive */
 
-/* Below 900px the sidebar keeps its icons only; every label stays in the accessibility tree. */
+/* Below 900px the sidebar keeps its icons only; every label stays in the accessibility tree.
+   64px leaves a count badge room beside the icon rather than on it. */
 @media (max-width: 900px) {
-  .shell { grid-template-columns: 56px minmax(0, 1fr); }
+  .shell { grid-template-columns: 64px minmax(0, 1fr); }
   .sidebar { padding: var(--tight) 6px; }
   .nav-item { justify-content: center; padding: 0; }
   .nav-label, .update-text { display: none; }
@@ -589,9 +593,12 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 /* A coarse pointer (the Steam Deck's touch screen): every control the main window offers is at
    least 44px tall, and the title bar grows to hold its window controls. */
 @media (pointer: coarse) {
-  .shell { grid-template-rows: 44px minmax(0, 1fr); }
+  .shell, .setup-shell { grid-template-rows: 44px minmax(0, 1fr); }
   .nav-item, .stamp, .chip, .segmented button, .display-switch, .update-mark,
-  .link-button, .search input, .select select, .pagination button, .window-control { min-height: 44px; }
+  .link-button, .search input, .select select, .pagination button, .window-control,
+  .status-line .price-page, .line-fix .stamp, .token-help summary, .update-channel summary,
+  .presence-auto, .sell-visible, .check-row { min-height: 44px; }
+  .check-row { align-items: center; }
   .pagination button { min-width: 44px; }
 }
 
