@@ -405,7 +405,6 @@ describe('MVP desktop interface', () => {
     expect(screen.getAllByText(/Overlay or Full access is required/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('region', { name: 'What Companion adds' })).toHaveTextContent(/Reads nothing from Warframe\. Saved data, prices and trading stay available\./)
     expect(screen.getByText('Using saved and reference data')).toBeInTheDocument()
-    expect(screen.getByText(/Companion does not observe the game process or EE\.log/i)).toBeInTheDocument()
     expect(screen.getByText(/Inventory synchronization needs Full access/i)).toBeInTheDocument()
   })
 
@@ -624,7 +623,9 @@ describe('MVP desktop interface', () => {
     const about = screen.getByRole('region', { name: 'About' })
     expect(within(about).getByText(/Free, open-source and local-first/)).toBeInTheDocument()
     expect(await within(about).findByText('Version 0.11.0')).toBeInTheDocument()
-    expect(within(about).getByRole('heading', { name: 'Warframe access disclosure' })).toBeInTheDocument()
+    // What Full sends and risks is said once, at the point of choice, not repeated in About.
+    expect(within(about).queryByText(/mobile\.warframe\.com/)).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'What Full adds' })).toHaveTextContent(/account ID and a nonce to mobile\.warframe\.com, and nowhere else.*account-policy or anti-cheat risk/)
   })
 
   it('supports every stable category and sortable collection results', async () => {

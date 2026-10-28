@@ -1220,27 +1220,24 @@ function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
     <p className="prose">Free, open-source and local-first. GPLv3 · MVP.</p>
     <p className="band-note">{versionLine}</p>
 
-    <div className="clauses">
-      <article className="clause">
+    {/* What each access level reads, and what Full sends, is said once, in the selector above. */}
+    <div className="setting">
+      <div>
         <h3>Local-first storage</h3>
         <p className="prose">Your inventory snapshot and preferences stay in this device's app data folder. No telemetry, no cloud account.</p>
-      </article>
-      <article className={observesGame ? 'clause caution' : 'clause'}>
-        <h3>{observesGame ? 'Warframe access disclosure' : 'Companion access'}</h3>
-        <p className="prose">{effectiveMode === 'full'
-          ? 'Full reads the game process memory, read-only, and sends your account ID and a nonce to mobile.warframe.com only. Process inspection may carry account-policy or anti-cheat risk, even though no game memory is modified.'
-          : effectiveMode === 'overlay'
-            ? 'Overlay watches the game process, EE.log and the reward screen. It does not read memory or acquire inventory.'
-            : 'Companion does not observe the game process or EE.log, capture the screen, show overlays, read memory or acquire inventory.'}</p>
-      </article>
-      <article className="clause">
+      </div>
+    </div>
+    <div className="setting">
+      <div>
         <h3>Inventory synchronization</h3>
         <p className="prose">{acquiresInventory ? 'Syncs automatically, or with Refresh inventory in the sidebar.' : 'Inventory synchronization needs Full access. Your saved snapshot stays available.'}</p>
-      </article>
-      <article className="clause">
+      </div>
+    </div>
+    <div className="setting">
+      <div>
         <h3>Reward assistance</h3>
         <p className="prose">{observesGame ? 'Reward names are read from the screen with OCR and matched against the squad’s relic pool. The overlay is click-through and never takes input from the game.' : 'The catalog and relic reference stay available. Screen reading and the overlay need Overlay or Full access.'}</p>
-      </article>
+      </div>
     </div>
   </section>
 }

@@ -338,7 +338,7 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 .section-title + .setting { padding-top: 0; }
 .setting:last-child { padding-bottom: 0; border-bottom: 0; }
 .setting > * { max-width: 100%; }
-.setting h3, .clause h3 { margin: 0 0 4px; font-size: .9375rem; font-weight: 600; }
+.setting h3 { margin: 0 0 4px; font-size: .9375rem; font-weight: 600; }
 /* The empty status is clipped, not removed: display:none would drop the live region before its
    first message, and a reader that lands as the text arrives would announce nothing. */
 .capture-status:empty { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
@@ -368,10 +368,6 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 .dial-slot input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid var(--accent); border-radius: 50%; background: var(--text); }
 .dial-slot input[type="range"]:focus-visible { outline-offset: 4px; }
 
-.clauses { display: grid; gap: var(--tight); }
-.clause { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2); }
-.clause.caution { border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
-.clause.caution h3 { color: var(--warn); }
 
 /* updates */
 
