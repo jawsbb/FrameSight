@@ -8,7 +8,7 @@ const backend = vi.hoisted(() => ({
   refreshOrders: vi.fn(), removeOrder: vi.fn(), setOrderQuantity: vi.fn(),
   setMarketPresence: vi.fn(), createOrder: vi.fn(), updateOrder: vi.fn(),
   getVersionInfo: vi.fn(), updateCheck: vi.fn(), updateDownloadAndInstall: vi.fn(),
-  getPreferences: vi.fn(), setMasteryMarks: vi.fn(), getRelics: vi.fn(), getFoundry: vi.fn(), getFarm: vi.fn(),
+  getPreferences: vi.fn(), setMasteryMarks: vi.fn(), getWorldState: vi.fn(),
 }))
 const overlay = vi.hoisted(() => ({ showRewardOverlay: vi.fn(), hideRewardOverlay: vi.fn() }))
 const windowApi = vi.hoisted(() => ({
@@ -28,7 +28,7 @@ vi.mock('@tauri-apps/plugin-process', () => ({ relaunch: vi.fn(() => Promise.res
 
 import App from './App'
 import { resetUpdateStoreForTests } from './updateStore'
-import type { AppView, FarmView, FoundryItem, FoundryView, Relic, RelicsView } from './backend'
+import type { AppView, WorldView } from './backend'
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void
   let reject!: (reason?: unknown) => void
@@ -121,36 +121,8 @@ const view: AppView = {
   },
 }
 
-const relic = (id: string, name: string, quantity: number, opening: number | null, refinement: Relic['refinement'] = 'intact'): Relic => ({
-  id, name, era: name.split(' ')[0], refinement, quantity, vaulted: false, platinum: 5, monthly_trades: 10, rewards: [],
-  opening: opening === null ? null : { platinum: opening, ducats: 20, unpriced: 0, unpriced_chance: 0 },
-})
-// Opening total: 7 × 4.5 + 2 × 31.2 + 12 + 2 + nothing for the unpriced one = 107.9.
-const relicsView: RelicsView = {
-  catalog: true, prices_date: '2026-07-27', ducats: true,
-  relics: [relic('lith-a1', 'Lith A1', 7, 4.5), relic('axi-b2', 'Axi B2', 2, 31.2, 'radiant'), relic('meso-c3', 'Meso C3', 1, 12), relic('neo-d4', 'Neo D4', 1, 2), relic('requiem-i', 'Requiem I', 3, null)],
-}
-const build = (id: string, name: string, stage: FoundryItem['stage'], set_platinum?: number): FoundryItem => ({
-  id, name, category: 'frame', masterable: true, mastered: false, stage, missing: stage === 'ready' ? 0 : 1, pieces: [], resources: [], set_platinum,
-})
-const foundryView: FoundryView = {
-  status: 'ready',
-  items: [build('ash-prime', 'Ash Prime', 'ready', 60), build('nova-prime', 'Nova Prime', 'ready'), build('nikana-prime', 'Nikana Prime', 'almost'), build('lex-prime', 'Lex Prime', 'set')],
-}
-// Each list as the backend ranks it: its first row is what the dashboard shows.
-const farmView: FarmView = {
-  prices_date: '2026-07-27', earlier_date: null, drops: true, relic_tables: true,
-  sell: [
-    { id: 'serration', name: 'Serration', quantity: 4, platinum: 30, monthly_trades: 90, value: 120, pace: 'fast', change: null, market: 'Serration' },
-    { id: 'scan', name: 'Scan Matter', quantity: 5, platinum: 2, monthly_trades: 3, value: 6, pace: 'slow', change: null, market: null },
-  ],
-  open: [{ id: 'axi-b2', name: 'Axi B2', refinement: 'radiant', quantity: 2, vaulted: false, value: 31.2, pace: 'fair', change: null, market: null }],
-  farm: [
-    { location: 'Void/Mot (Survival), Rotation C', value: 2.3, pace: 'fast', drops: [{ name: 'Lith T1 Relic', chance: 20, unit: 11.6, value: 2.3, relic: true, monthly_trades: 120, change: null }] },
-    { location: 'Lua/Apollo (Disruption), Rotation B', value: 1.1, pace: 'fair', drops: [{ name: 'Meso N1 Relic', chance: 10, unit: 11, value: 1.1, relic: true, monthly_trades: 60, change: null }] },
-  ],
-  trends: [],
-}
+/** An empty world: the dashboard the app opens on asks for it, and the dashboard's own suite tests it. */
+const world: WorldView = { cycles: [], fissures: [], storms: [], sortie: null, archon_hunt: null, baro: null, fetched_at: 0, stale: false }
 
 /** The app opens on the dashboard; most of what is tested here is the collection behind it. */
 async function openCollection(user: Pick<ReturnType<typeof userEvent.setup>, 'click'> = userEvent) {
@@ -185,9 +157,7 @@ describe('MVP desktop interface', () => {
     // The mastery preference lives on the backend, so every Settings mount reads it once even in
     // the tests that never touch the switch.
     backend.getPreferences.mockResolvedValue({ mastery_marks: true })
-    backend.getRelics.mockResolvedValue(relicsView)
-    backend.getFoundry.mockResolvedValue(foundryView)
-    backend.getFarm.mockResolvedValue(farmView)
+    backend.getWorldState.mockResolvedValue(world)
     backend.setMasteryMarks.mockResolvedValue({ mastery_marks: true })
     overlay.hideRewardOverlay.mockResolvedValue(undefined)
     // Every mount reads the window's state once and subscribes for more; tests that never touch
@@ -942,158 +912,14 @@ describe('MVP desktop interface', () => {
     expect(within(navigation).queryByRole('button', { name: 'Mastery' })).not.toBeInTheDocument()
   })
 
-  describe('dashboard', () => {
-    /** One row of a dashboard group, found by what it is. */
-    const row = (group: HTMLElement, label: string | RegExp) => within(group).getByText(label).closest('.dash-row') as HTMLElement
-
-    it('sums up every page from what the backend holds', async () => {
-      render(<App />)
-      const collection = await screen.findByRole('region', { name: 'Collection' })
-      expect(row(collection, 'Market value')).toHaveTextContent('159')
-      expect(row(collection, 'Sellable')).toHaveTextContent('79')
-      expect(row(collection, 'Ducats at stake')).toHaveTextContent('15')
-      expect(row(collection, 'Items')).toHaveTextContent(/8 owned.*8/)
-
-      const mastery = screen.getByRole('region', { name: 'Mastery' })
-      expect(row(mastery, 'Mastered')).toHaveTextContent('2/5 · 40%')
-      expect(row(mastery, 'Frame')).toHaveTextContent('0/1')
-      expect(row(mastery, 'Weapon')).toHaveTextContent('2/4')
-      expect(within(mastery).getByRole('progressbar', { name: 'Weapon' })).toHaveAttribute('value', '2')
-      // A category the catalog counts nothing in has no progress to draw.
-      expect(within(mastery).queryByText('Companion')).not.toBeInTheDocument()
-
-      const relics = await screen.findByRole('region', { name: 'Relics' })
-      expect(await within(relics).findByText('Relics held')).toBeInTheDocument()
-      expect(row(relics, 'Relics held')).toHaveTextContent('14')
-      expect(row(relics, 'Average opening value, all held')).toHaveTextContent('108')
-      expect(within(relics).getByText('Best to open')).toBeInTheDocument()
-      const best = within(relics).getAllByText(/^(Axi|Meso|Lith|Neo|Requiem) /).map(node => node.textContent)
-      expect(best).toEqual(['Axi B2Radiant', 'Meso C3Intact', 'Lith A1Intact'])
-      expect(row(relics, /^Axi B2/)).toHaveTextContent('≈ 31.2')
-
-      const foundry = screen.getByRole('region', { name: 'Foundry' })
-      expect(await within(foundry).findByText('Ready to build')).toBeInTheDocument()
-      expect(row(foundry, 'Ready to build')).toHaveTextContent('2')
-      expect(row(foundry, 'Ash Prime')).toHaveTextContent('60')
-      expect(within(foundry).getByText('Nova Prime')).toBeInTheDocument()
-      expect(row(foundry, 'Almost there')).toHaveTextContent(/Nikana Prime.*1/)
-      expect(within(foundry).queryByText('Lex Prime')).not.toBeInTheDocument()
-
-      const farm = screen.getByRole('region', { name: 'Farm & sales' })
-      expect(await within(farm).findByText('4 × Serration')).toBeInTheDocument()
-      // The best of each list only, its unit as the Farm page names it, an average marked as one.
-      expect(row(farm, '4 × Serration')).toHaveTextContent(/Sell · this month, best stack.*120/)
-      expect(row(farm, '4 × Serration')).not.toHaveTextContent('≈')
-      expect(row(farm, 'Axi B2')).toHaveTextContent(/Radiant.*Open · per opening, best relic.*≈ 31.2/)
-      expect(row(farm, 'Void/Mot (Survival), Rotation C')).toHaveTextContent(/Farm · per run, best place.*≈ 2.3/)
-      expect(within(farm).queryByText(/Scan Matter|Lua\/Apollo/)).not.toBeInTheDocument()
-
-      const orders = screen.getByRole('region', { name: 'Orders' })
-      expect(row(orders, 'Not linked')).toHaveTextContent('Link an account in Orders')
-
-      const rewards = screen.getByRole('region', { name: 'Last reward screen' })
-      expect(row(rewards, 'Forma Blueprint')).toHaveTextContent(/Best value.*12.*25/)
-      expect(within(rewards).getAllByText(/Prime|Blueprint/)).toHaveLength(4)
-
-      const state = screen.getByRole('region', { name: 'State' })
-      expect(row(state, 'Game reader')).toHaveTextContent('Attention needed')
-      expect(row(state, 'Inventory snapshot')).toHaveTextContent('No successful sync yet')
-      expect(row(state, 'Market prices')).toHaveTextContent('27 Jul')
-    })
-
-    it('asks for relics, builds and farm rankings when it opens, not on every poll', async () => {
-      vi.useFakeTimers()
-      render(<App />)
-      await act(async () => {})
-      await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
-      expect(backend.getView.mock.calls.length).toBeGreaterThanOrEqual(3)
-      expect(backend.getRelics).toHaveBeenCalledOnce()
-      expect(backend.getFoundry).toHaveBeenCalledOnce()
-      expect(backend.getFarm).toHaveBeenCalledOnce()
-
-      fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-      fireEvent.click(screen.getByRole('button', { name: 'Dashboard' }))
-      await act(async () => {})
-      expect(backend.getRelics).toHaveBeenCalledTimes(2)
-    })
-
-    it('leads to each page, and to the collection in To master', async () => {
-      const user = userEvent.setup()
-      render(<App />)
-      await user.click(await screen.findByRole('button', { name: 'See what is left to master' }))
-      expect(screen.getByRole('heading', { name: 'Your collection' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'To master' })).toHaveAttribute('aria-pressed', 'true')
-      expect(screen.getByRole('list', { name: 'Mastery items' })).toBeInTheDocument()
-
-      const back = async () => user.click(screen.getByRole('button', { name: 'Dashboard' }))
-      for (const [link, heading] of [
-        ['See the collection', 'Your collection'], ['See relics', 'Relics'], ['See the foundry', 'Foundry'], ['See farm & sales', 'Farm & sales'],
-        ['See orders', 'Market orders'], ['See rewards', 'Reward advisor'], ['See diagnostics', 'Diagnostics'],
-      ]) {
-        await back()
-        await user.click(screen.getByRole('button', { name: link }))
-        expect(await screen.findByRole('heading', { name: heading, level: 1 })).toBeInTheDocument()
-      }
-      expect(backend.refreshOrders).toHaveBeenCalledOnce()
-    })
-
-    it('says per group what it is waiting for, without holding up the others', async () => {
-      backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'overlay', desktop_capture_action_available: false })
-      backend.getView.mockResolvedValue({ ...view, mastery: { available: false, items: [], totals: [] }, reward: { cards: [], best_value_index: null, best_ducat_index: null } })
-      backend.getRelics.mockRejectedValue('no database')
-      backend.getFoundry.mockReturnValue(new Promise(() => {}))
-      backend.getFarm.mockRejectedValue('no prices')
-      render(<App />)
-
-      const relics = await screen.findByRole('region', { name: 'Relics' })
-      expect(await within(relics).findByText('Relics could not be loaded.')).toBeInTheDocument()
-      expect(within(screen.getByRole('region', { name: 'Foundry' })).getByText('Loading the foundry…')).toBeInTheDocument()
-      expect(await within(screen.getByRole('region', { name: 'Farm & sales' })).findByText('Farm and sales could not be loaded.')).toBeInTheDocument()
-      expect(within(screen.getByRole('region', { name: 'Mastery' })).getByText('Mastery needs an inventory read under Full access')).toBeInTheDocument()
-      expect(within(screen.getByRole('region', { name: 'Last reward screen' })).getByText('No reward choices detected')).toBeInTheDocument()
-      // The collection's figures stand whatever the slower sources do.
-      expect(row(screen.getByRole('region', { name: 'Collection' }), 'Market value')).toHaveTextContent('159')
-      expect(row(screen.getByRole('region', { name: 'Collection' }), 'Saved entries')).toBeInTheDocument()
-    })
-
-    it('says the foundry needs an inventory read, and that relics are empty in the snapshot', async () => {
-      backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'companion', desktop_capture_action_available: false })
-      backend.getRelics.mockResolvedValue({ ...relicsView, relics: [] })
-      backend.getFoundry.mockResolvedValue({ status: 'no_inventory', items: [] })
-      render(<App />)
-      const foundry = await screen.findByRole('region', { name: 'Foundry' })
-      expect(await within(foundry).findByText('No inventory read yet')).toBeInTheDocument()
-      expect(await within(screen.getByRole('region', { name: 'Relics' })).findByText('No relics in the saved snapshot')).toBeInTheDocument()
-      expect(row(screen.getByRole('region', { name: 'State' }), 'Game reader')).toHaveTextContent('Companion mode')
-      // Selling and opening read the inventory; farming does not, as on the Farm page.
-      const farm = screen.getByRole('region', { name: 'Farm & sales' })
-      expect(within(farm).getAllByText('Needs Full access').map(label => label.closest('.dash-row')?.textContent)).toEqual(['Needs Full accessSell', 'Needs Full accessOpen'])
-      expect(row(farm, 'Void/Mot (Survival), Rotation C')).toHaveTextContent('≈ 2.3')
-      expect(within(farm).queryByText('4 × Serration')).not.toBeInTheDocument()
-    })
-
-    it('puts orders to fix forward, in a sentence and a tint', async () => {
-      const linked: AppView = {
-        ...view,
-        market_account: {
-          ...view.market_account,
-          link: 'linked',
-          listed_platinum: 340,
-          flagged: 2,
-          presence: { status: 'ingame', wanted: 'ingame', auto: false },
-          orders: [{ order: { id: 'o1', item_id: 'lex', kind: 'sell', platinum: 340, quantity: 1, per_trade: 1, visible: true }, name: 'Lex Prime Receiver', status: { state: 'overshoot', owned: 0 } }],
-        },
-      }
-      backend.getView.mockResolvedValue(linked)
-      backend.marketStatus.mockResolvedValue(linked)
-      render(<App />)
-      const orders = await screen.findByRole('region', { name: 'Orders' })
-      expect(row(orders, 'Status')).toHaveTextContent('In game')
-      expect(row(orders, 'Platinum listed')).toHaveTextContent(/1 sell order.*340/)
-      const toFix = row(orders, 'Orders to fix')
-      expect(toFix).toHaveAttribute('data-tone', 'danger')
-      expect(toFix).toHaveTextContent(/Listed above what this device says you hold.*2/)
-    })
+  it('asks for the world state while the dashboard is on screen, and not once it is left', async () => {
+    vi.useFakeTimers()
+    render(<App />)
+    await act(async () => {})
+    expect(backend.getWorldState).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(5 * 60_000) })
+    expect(backend.getWorldState).toHaveBeenCalledOnce()
   })
 
   it('gives the reader icon its detail and the snapshot age, in its tip and its description', async () => {

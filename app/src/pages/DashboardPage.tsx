@@ -1,204 +1,273 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { getFarm, getFoundry, getRelics, type AccessMode, type AppView, type Refinement } from '../backend'
-import { collectionTotals, figure, masteryProgress } from '../collection'
-import { snapshotFreshness } from '../freshness'
-import { Icon } from '../components/Icon'
-import { Ducats, Platinum } from '../components/Platinum'
-import { StateIcon } from '../components/StateIcon'
-import { shortDate, useMessages } from '../i18n'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
+import { getWorldState, type CycleState, type Fissure, type Sortie, type WorldNode, type WorldView } from '../backend'
+import { Icon, type IconName } from '../components/Icon'
+import { useMessages, type Messages } from '../i18n'
+import { readFissureAlerts, readFissureFilters, writeFissureAlerts, writeFissureFilters } from '../settings'
+import { ANY_FILTER, ERAS, FISSURE_TABS, duration, fissureIds, fissuresOf, matches, newMatches, nextDailyReset, type FissureFilter, type FissureFilters, type FissureTab } from '../world'
 import './DashboardPage.css'
 
-type Target = 'collection' | 'relics' | 'foundry' | 'farm' | 'orders' | 'rewards' | 'diagnostics'
-type FarmAction = 'sell' | 'open' | 'farm'
-const farmActions: FarmAction[] = ['sell', 'open', 'farm']
+/** How often the page asks again while it is on screen; the backend keeps an answer this long. */
+const REFRESH_MS = 60_000
 
-/** Relics, foundry builds and farm rankings are asked for once, when the page opens: the 2.5s poll does not repeat them. */
-function useOnOpen<T>(fetch: () => Promise<T>): { data: T | null; failed: boolean } {
-  const [state, setState] = useState<{ data: T | null; failed: boolean }>({ data: null, failed: false })
+const stateIcons: Record<CycleState, IconName> = { day: 'sun', fass: 'sun', night: 'moon', vome: 'moon', warm: 'warm', cold: 'cold' }
+
+function nodeLabel(node: WorldNode): string {
+  return node.planet ? `${node.name} (${node.planet})` : node.name
+}
+
+function missionName(name: string, t: Messages): string {
+  return t.dashboard.missions[name] ?? name
+}
+
+/** The clock the countdowns read, ticking each second while the page is open. */
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    let active = true
-    fetch()
-      .then(data => { if (active) setState({ data, failed: false }) })
-      .catch(() => { if (active) setState({ data: null, failed: true }) })
-    return () => { active = false }
-  }, [fetch])
-  return state
-}
-
-/** A titled group of rows, and the way to the page that holds the rest. */
-function Block({ id, title, link, onOpen, children }: { id: string; title: string; link: string; onOpen: () => void; children: ReactNode }) {
-  return <section className="dash-block" aria-labelledby={`dash-${id}`}>
-    <div className="dash-head">
-      <h2 id={`dash-${id}`} className="section-title">{title}</h2>
-      <button type="button" className="link-button head-link" onClick={onOpen}>{link}<Icon name="next"/></button>
-    </div>
-    <div className="group">{children}</div>
-  </section>
-}
-
-/** What a row is on the left, with an optional note under it; its value on the right. */
-function Row({ label, note, tone, children }: { label: ReactNode; note?: ReactNode; tone?: 'danger' | 'warn'; children?: ReactNode }) {
-  return <div className="dash-row" data-tone={tone}>
-    <span className="dash-label">{label}{note && <span className="dash-note">{note}</span>}</span>
-    {children !== undefined && <span className="dash-figure">{children}</span>}
-  </div>
-}
-
-/** A relic's name, its refinement in the colour the Relics page gives it. */
-function RelicName({ name, refinement }: { name: string; refinement: Refinement | null }) {
-  const t = useMessages()
-  return <span className="dash-relic">{name}{refinement && <span className={`tag refinement ${refinement}`}>{t.relics.refinements[refinement]}</span>}</span>
-}
-
-/** One of the progress rows: a thin bar and the fraction it draws. */
-function Progress({ label, mastered, total, percent = null }: { label: string; mastered: number; total: number; percent?: number | null }) {
-  const t = useMessages()
-  return <Row label={label}>
-    <progress max={Math.max(total, 1)} value={mastered} aria-label={label}/>
-    <span>{figure(mastered, t)}/{figure(total, t)}{percent !== null && ` · ${t.units.percent(percent)}`}</span>
-  </Row>
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  return now
 }
 
 /**
- * Where everything stands, read in one look: a few groups of rows from what the backend already
- * holds, each pointing at the page that holds the rest. Each group says on its own when it is
- * still loading or cannot be read, so one slow source never blanks the others.
+ * The world state, asked for when the page opens and then each minute, or one second after the
+ * next cycle change when that comes sooner so a state flips on time. Nothing is asked while the
+ * page is not on screen.
  */
-export function DashboardPage({ view, effectiveMode, priceFloor, now, onOpen, onToMaster }: { view: AppView; effectiveMode: AccessMode; priceFloor: number; now: Date; onOpen: (page: Target) => void; onToMaster: () => void }) {
+function useWorld() {
+  const [world, setWorld] = useState<WorldView | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const load = useCallback(() => {
+    getWorldState()
+      .then(next => { setWorld(next); setFailed(false) })
+      .catch(() => setFailed(true))
+      .finally(() => setAttempts(count => count + 1))
+  }, [])
+  useEffect(load, [load])
+  useEffect(() => {
+    if (attempts === 0) return
+    const delay = Math.min(REFRESH_MS, ...(world?.cycles ?? []).map(cycle => cycle.expiry - Date.now() + 1000))
+    const timer = setTimeout(load, Math.max(1000, delay))
+    return () => clearTimeout(timer)
+  }, [attempts, world, load])
+  return { world, failed, load }
+}
+
+/**
+ * A desktop notification for each refresh that brings fissures not seen before and matching their
+ * tab's filters. The first answer only sets what has been seen, so opening the page never fires a
+ * burst for what was already open.
+ */
+function useFissureAlerts(world: WorldView | null, filters: FissureFilters, on: boolean) {
+  const t = useMessages()
+  const seen = useRef<Set<string> | null>(null)
+  useEffect(() => {
+    if (!world) return
+    const fresh = seen.current ? newMatches(world, seen.current, filters) : []
+    seen.current = new Set(fissureIds(world))
+    if (!on || !fresh.length) return
+    const d = t.dashboard
+    sendNotification({
+      title: d.alerts.title(fresh.length),
+      body: fresh.map(fissure => `${d.eras[fissure.era]} · ${missionName(fissure.mission_type, t)} · ${nodeLabel(fissure.node)}`).join('\n'),
+    })
+  }, [world, filters, on, t])
+}
+
+function Cycles({ world, now }: { world: WorldView; now: number }) {
+  const d = useMessages().dashboard
+  const units = d.units
+  return <section className="world-section" aria-labelledby="world-cycles">
+    <h2 id="world-cycles" className="section-title">{d.cycles}</h2>
+    <ul className="world-cycles">
+      {world.cycles.map(cycle => <li key={cycle.place} className="world-cycle">
+        <span className="cycle-place">{d.places[cycle.place]}</span>
+        <span className="cycle-state"><Icon name={stateIcons[cycle.state]}/>{d.states[cycle.state]}</span>
+        <span className="cycle-left">{duration(cycle.expiry - now, units)}</span>
+      </li>)}
+    </ul>
+  </section>
+}
+
+/** Every value a select can offer: those open now, plus the one a stored row already holds. */
+function options(values: Array<string | null>, held: string | null): string[] {
+  return [...new Set([...values, held].filter((value): value is string => value !== null))]
+}
+
+function FilterRow({ index, row, fissures, onChange, onRemove }: { index: number; row: FissureFilter; fissures: Fissure[]; onChange: (row: FissureFilter) => void; onRemove: () => void }) {
+  const t = useMessages()
+  const f = t.dashboard.filter
+  const missions = options(fissures.map(fissure => fissure.mission_type), row.mission)
+    .toSorted((left, right) => missionName(left, t).localeCompare(missionName(right, t), t.locale))
+  const planets = options(fissures.map(fissure => fissure.node.planet), row.planet).toSorted((left, right) => left.localeCompare(right, t.locale))
+  const pick = (value: string) => value === '' ? null : value
+  return <div className="fissure-filter" role="group" aria-label={f.group(index + 1)}>
+    <label className="select"><span>{f.era}</span>
+      <select value={row.era ?? ''} onChange={event => onChange({ ...row, era: ERAS.find(era => era === event.target.value) ?? null })}>
+        <option value="">{f.any}</option>
+        {ERAS.map(era => <option key={era} value={era}>{t.dashboard.eras[era]}</option>)}
+      </select>
+    </label>
+    <label className="select"><span>{f.mission}</span>
+      <select value={row.mission ?? ''} onChange={event => onChange({ ...row, mission: pick(event.target.value) })}>
+        <option value="">{f.any}</option>
+        {missions.map(mission => <option key={mission} value={mission}>{missionName(mission, t)}</option>)}
+      </select>
+    </label>
+    <label className="select"><span>{f.planet}</span>
+      <select value={row.planet ?? ''} onChange={event => onChange({ ...row, planet: pick(event.target.value) })}>
+        <option value="">{f.any}</option>
+        {planets.map(planet => <option key={planet} value={planet}>{planet}</option>)}
+      </select>
+    </label>
+    <button type="button" className="stamp sheet-icon" aria-label={f.remove(index + 1)} onClick={onRemove}><Icon name="close"/></button>
+  </div>
+}
+
+function Fissures({ world, now, filters, onFilters, alerts, onAlerts, denied }: {
+  world: WorldView; now: number; filters: FissureFilters; onFilters: (filters: FissureFilters) => void
+  alerts: boolean; onAlerts: () => void; denied: boolean
+}) {
   const t = useMessages()
   const d = t.dashboard
-  const relics = useOnOpen(getRelics)
-  const foundry = useOnOpen(getFoundry)
-  const farm = useOnOpen(getFarm)
-  const snapshotOnly = effectiveMode !== 'full'
+  const [tab, setTab] = useState<FissureTab>('normal')
+  const all = fissuresOf(world, tab)
+  const rows = filters[tab]
+  const shown = all.filter(fissure => matches(fissure, rows))
+  const setRows = (next: FissureFilter[]) => onFilters({ ...filters, [tab]: next })
+  return <section className="world-section" aria-labelledby="world-fissures">
+    <div className="world-head">
+      <h2 id="world-fissures" className="section-title">{d.fissures}</h2>
+      <button type="button" role="switch" aria-checked={alerts} className="display-switch" onClick={onAlerts} aria-describedby="fissure-alerts-note">
+        <span className="display-face"><Icon name="bell"/>{d.alerts.label}</span>
+        <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
+      </button>
+    </div>
+    <span id="fissure-alerts-note" hidden>{d.alerts.note}</span>
+    {denied && <p className="band-note warn" role="alert">{d.alerts.denied}</p>}
+    <div className="segmented" role="group" aria-label={d.tabsLabel}>
+      {FISSURE_TABS.map(name => <button key={name} type="button" aria-pressed={tab === name} onClick={() => setTab(name)}>
+        {d.tabs[name]} <span className="chip-count">{fissuresOf(world, name).length}</span>
+      </button>)}
+    </div>
+    <div className="fissure-filters">
+      {rows.map((row, index) => <FilterRow
+        key={index}
+        index={index}
+        row={row}
+        fissures={all}
+        onChange={next => setRows(rows.map((old, at) => at === index ? next : old))}
+        onRemove={() => setRows(rows.filter((_, at) => at !== index))}
+      />)}
+      <div className="fissure-filter-foot">
+        <button type="button" className="stamp" onClick={() => setRows([...rows, ANY_FILTER])}><Icon name="plus"/>{d.filter.add}</button>
+        {rows.length > 1 && <span className="band-note">{d.filter.note}</span>}
+      </div>
+    </div>
+    <ul className="group fissure-list" aria-label={d.tabs[tab]}>
+      {shown.length === 0 && <li className="world-empty">{d.noFissures}</li>}
+      {shown.map(fissure => <li key={fissure.id} className="fissure-row">
+        <span className="fissure-era"><Icon name="relics"/>{d.eras[fissure.era]}</span>
+        <span className="world-label">
+          {missionName(fissure.mission_type, t)}
+          <span className="band-note">{[nodeLabel(fissure.node), fissure.node.enemy].filter(Boolean).join(' · ')}</span>
+        </span>
+        <span className="world-figure">{duration(fissure.expiry - now, d.units)}</span>
+      </li>)}
+    </ul>
+  </section>
+}
 
-  const { owned, worth, sellable, ducatsAtStake } = collectionTotals(view.collection.items, priceFloor)
-  const collection = view.collection.items.length === 0
-    ? <Row label={snapshotOnly ? t.collection.emptySnapshot : t.collection.empty} note={snapshotOnly ? t.collection.emptySnapshotDetail : t.collection.emptyDetail}/>
-    : <>
-      <Row label={d.marketValue}><Platinum value={worth}/></Row>
-      <Row label={d.sellable} note={t.collection.sellableNote(priceFloor)}><Platinum value={sellable}/></Row>
-      <Row label={d.ducats} note={d.ducatsNote}><Ducats value={ducatsAtStake}/></Row>
-      <Row label={snapshotOnly ? d.savedEntries : d.items} note={d.owned(owned)}>{figure(view.collection.total_entries, t)}</Row>
-    </>
+/** A sortie or archon hunt: who, against whom, the three missions, and how long it stays. */
+function SortieRow({ title, sortie, now }: { title: string; sortie: Sortie | null; now: number }) {
+  const t = useMessages()
+  const d = t.dashboard
+  if (!sortie) return <div className="world-row"><span className="world-label">{title}<span className="band-note">{d.none}</span></span></div>
+  return <div className="world-row">
+    <span className="world-label">
+      {title}
+      <span className="band-note">{[sortie.boss, sortie.faction].filter(Boolean).join(' · ')}</span>
+      <ol className="world-missions">
+        {sortie.missions.map((mission, index) => <li key={index}>{missionName(mission.mission_type, t)} <span className="band-note">{nodeLabel(mission.node)}</span></li>)}
+      </ol>
+    </span>
+    <span className="world-figure">{duration(sortie.expiry - now, d.units)}</span>
+  </div>
+}
 
-  const { mastery } = view
-  const progress = masteryProgress(mastery.totals)
-  const masteryRows = !mastery.available
-    ? <Row label={t.mastery.unavailable} note={t.mastery.unavailableDetail}/>
-    : <>
-      <Progress label={d.mastered} {...progress}/>
-      {mastery.totals.filter(entry => entry.total > 0).map(entry => <Progress key={entry.category} label={t.categories[entry.category]} mastered={entry.mastered} total={entry.total}/>)}
-    </>
+function Today({ world, now }: { world: WorldView; now: number }) {
+  const d = useMessages().dashboard
+  const { baro } = world
+  return <section className="world-section" aria-labelledby="world-today">
+    <h2 id="world-today" className="section-title">{d.today}</h2>
+    <div className="group">
+      <SortieRow title={d.sortie} sortie={world.sortie} now={now}/>
+      <SortieRow title={d.archonHunt} sortie={world.archon_hunt} now={now}/>
+      <div className="world-row">
+        <span className="world-label">{d.baro}<span className="band-note">{baro ? nodeLabel(baro.relay) : d.none}</span></span>
+        {baro && <span className="world-figure">{now < baro.activation
+          ? d.baroArrives(duration(baro.activation - now, d.units))
+          : d.baroLeaves(duration(baro.expiry - now, d.units))}</span>}
+      </div>
+      <div className="world-row">
+        <span className="world-label">{d.dailyReset}<span className="band-note">{d.dailyResetNote}</span></span>
+        <span className="world-figure">{duration(nextDailyReset(now) - now, d.units)}</span>
+      </div>
+    </div>
+  </section>
+}
 
-  function relicRows() {
-    if (relics.failed) return <Row label={t.relics.failed}/>
-    if (!relics.data) return <Row label={t.relics.loading}/>
-    const held = relics.data.relics
-    if (!held.length) return <Row label={snapshotOnly ? t.relics.emptySnapshot : t.relics.empty} note={snapshotOnly ? t.relics.emptySnapshotDetail : t.relics.emptyDetail}/>
-    const count = held.reduce((sum, relic) => sum + relic.quantity, 0)
-    const valued = relics.data.prices_date !== null && relics.data.catalog
-    const opening = held.reduce((sum, relic) => sum + relic.quantity * (relic.opening?.platinum ?? 0), 0)
-    const best = held.flatMap(relic => relic.opening ? [{ relic, value: relic.opening.platinum }] : [])
-      .toSorted((left, right) => right.value - left.value)
-      .slice(0, 3)
-    return <>
-      <Row label={d.relicsHeld}>{figure(count, t)}</Row>
-      {valued && <Row label={d.openingTotal} note={t.relics.averageNote}><Platinum value={Math.round(opening)}/></Row>}
-      {valued && best.length > 0 && <>
-        <p className="dash-caption">{d.bestToOpen}</p>
-        {best.map(({ relic, value }) => <Row key={relic.id} label={<RelicName {...relic}/>} note={t.relics.quantity(relic.quantity)}><Platinum value={value} approx/></Row>)}
-      </>}
-    </>
+/**
+ * What a player wants on logging in, read from the game's own world state: the open-world cycles,
+ * the void fissures (filtered, with an optional notification for new ones) and today's rotations.
+ */
+export function DashboardPage() {
+  const d = useMessages().dashboard
+  const now = useNow()
+  const { world, failed, load } = useWorld()
+  const [filters, setFilters] = useState(readFissureFilters)
+  const [alerts, setAlerts] = useState(readFissureAlerts)
+  const [denied, setDenied] = useState(false)
+  useFissureAlerts(world, filters, alerts)
+
+  function changeFilters(next: FissureFilters) {
+    setFilters(next)
+    writeFissureFilters(next)
   }
 
-  function foundryRows() {
-    if (foundry.failed) return <Row label={t.foundry.failed}/>
-    if (!foundry.data) return <Row label={t.foundry.loading}/>
-    if (foundry.data.status === 'no_catalog') return <Row label={t.foundry.noCatalog} note={t.foundry.noCatalogDetail}/>
-    if (foundry.data.status === 'no_inventory') return <Row label={t.foundry.noInventory} note={t.foundry.noInventoryDetail}/>
-    const ready = foundry.data.items.filter(item => item.stage === 'ready')
-    const almost = foundry.data.items.filter(item => item.stage === 'almost')
-    if (!ready.length && !almost.length) return <Row label={t.foundry.empty} note={t.foundry.emptyDetail}/>
-    return <>
-      <Row label={t.foundry.stages.ready}>{figure(ready.length, t)}</Row>
-      {ready.slice(0, 3).map(item => <Row key={item.id} label={item.name} note={item.category && t.categories[item.category]}>
-        {item.set_platinum !== undefined && <Platinum value={item.set_platinum}/>}
-      </Row>)}
-      <Row label={t.foundry.stages.almost} note={almost.slice(0, 3).map(item => item.name).join(' · ') || undefined}>{figure(almost.length, t)}</Row>
-    </>
-  }
-
-  /** The top of each Farm & sales list, ranked there by what the market takes. */
-  function farmRows() {
-    const f = t.farm
-    if (farm.failed) return <Row label={f.failed}/>
-    if (!farm.data) return <Row label={f.loading}/>
-    const { sell: [sell], open: [relic], farm: [place], prices_date } = farm.data
-    const best = {
-      sell: sell && { name: f.table.stack(sell.quantity, sell.name), value: sell.value },
-      open: relic && { name: <RelicName {...relic}/>, value: relic.value },
-      farm: place && { name: place.location, value: place.value },
+  async function toggleAlerts() {
+    let granted = false
+    if (!alerts) {
+      try {
+        granted = await isPermissionGranted() || await requestPermission() === 'granted'
+      } catch {
+        granted = false
+      }
+      setDenied(!granted)
     }
-    return farmActions.map(action => {
-      // Selling and opening read the inventory; farming does not, as on the Farm page.
-      if (action !== 'farm' && snapshotOnly) return <Row key={action} label={f.fullRequired} note={f.actions[action]}/>
-      const top = best[action]
-      if (!top || top.value <= 0) return <Row key={action} label={f.table.empty[action]} note={prices_date ? undefined : f.table.waiting}/>
-      return <Row key={action} label={top.name} note={`${f.actions[action]} · ${f.chart.key[action]}`}>
-        <Platinum value={top.value} approx={action !== 'sell'}/>
-      </Row>
-    })
+    setAlerts(granted)
+    writeFissureAlerts(granted)
   }
 
-  const account = view.market_account
-  const presence = t.orders.presence
-  const orders = account.link === 'unlinked'
-    ? <Row label={presence.notLinked} note={presence.linkInOrders}/>
-    : <>
-      {account.link === 'needs_relink'
-        ? <Row label={t.orders.credentialRefused} note={t.orders.relinkNote} tone="warn"/>
-        : <Row label={d.status}>{presence[account.presence.status ?? 'offline']}</Row>}
-      <Row label={d.listed} note={d.sellOrders(account.orders.length)}><Platinum value={account.listed_platinum}/></Row>
-      {/* Red only while something is flagged: a zero is not an alarm. */}
-      <Row label={d.toFix} note={account.flagged ? t.orders.flaggedNote : t.orders.matchingNote} tone={account.flagged ? 'danger' : undefined}>{figure(account.flagged, t)}</Row>
-    </>
-
-  const { reward } = view
-  const rewards = reward.cards.length
-    ? reward.cards.map((card, index) => <Row key={`${index}-${card.name}`} label={card.name} note={index === reward.best_value_index ? d.bestValue : undefined}>
-      <Platinum value={card.platinum}/>
-      <Ducats value={card.ducats}/>
-    </Row>)
-    : <Row label={t.rewards.none} note={effectiveMode === 'companion' ? t.rewards.companionDetail : t.rewards.waiting}/>
-
-  const readerState = effectiveMode === 'companion' ? 'idle' : view.health.game_reader.state
-  const freshness = snapshotFreshness(view.collection.snapshot, now, t)
-  const pricesDate = view.health.collection_prices.last_success
-
+  const age = duration(now - (world?.fetched_at ?? now), d.units)
   return <section className="page" aria-labelledby="dashboard-title">
     <div className="page-head">
       <h1 id="dashboard-title" className="page-title">{d.title}</h1>
     </div>
-    <div className="dash-columns">
-      <div className="dash-column">
-        <Block id="collection" title={t.nav.pages.collection} link={d.open.collection} onOpen={() => onOpen('collection')}>{collection}</Block>
-        <Block id="mastery" title={d.masteryTitle} link={d.open.toMaster} onOpen={onToMaster}>{masteryRows}</Block>
-        <Block id="relics" title={t.nav.pages.relics} link={d.open.relics} onOpen={() => onOpen('relics')}>{relicRows()}</Block>
-      </div>
-      <div className="dash-column">
-        <Block id="orders" title={t.nav.pages.orders} link={d.open.orders} onOpen={() => onOpen('orders')}>{orders}</Block>
-        <Block id="farm" title={t.nav.pages.farm} link={d.open.farm} onOpen={() => onOpen('farm')}>{farmRows()}</Block>
-        <Block id="foundry" title={t.nav.pages.foundry} link={d.open.foundry} onOpen={() => onOpen('foundry')}>{foundryRows()}</Block>
-        <Block id="rewards" title={d.lastRewards} link={d.open.rewards} onOpen={() => onOpen('rewards')}>{rewards}</Block>
-        <Block id="state" title={d.state} link={d.open.diagnostics} onOpen={() => onOpen('diagnostics')}>
-          <Row label={t.diagnostics.systems.game_reader} note={effectiveMode === 'companion' ? t.sidebar.companionDetail : view.health.game_reader.message}>
-            <StateIcon state={readerState}/>{effectiveMode === 'companion' ? t.sidebar.companionMode : t.sidebar.reader[readerState]}
-          </Row>
-          <Row label={d.snapshot} note={freshness.detail}>{freshness.label}</Row>
-          <Row label={d.prices}>{pricesDate ? shortDate(pricesDate, t) : t.collection.noPrices}</Row>
-        </Block>
-      </div>
+    {!world
+      ? failed ? <p className="error-banner" role="alert">{d.failed}</p> : <p className="band-note" role="status">{d.loading}</p>
+      : <>
+        <Cycles world={world} now={now}/>
+        <div className="world-columns">
+          <Fissures world={world} now={now} filters={filters} onFilters={changeFilters} alerts={alerts} onAlerts={() => void toggleAlerts()} denied={denied}/>
+          <Today world={world} now={now}/>
+        </div>
+      </>}
+    <div className="world-foot">
+      {world && <p className={world.stale ? 'band-note warn' : 'band-note'}>{world.stale ? d.stale(age) : d.fetched(age)}</p>}
+      <button type="button" className="stamp" onClick={load}><Icon name="refresh"/>{d.refresh}</button>
     </div>
   </section>
 }

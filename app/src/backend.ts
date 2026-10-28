@@ -99,6 +99,32 @@ export interface Relic { id: string; name: string; era: string; refinement: Refi
 export interface RelicsView { catalog: boolean; prices_date: string | null; ducats: boolean; relics: Relic[] }
 export const getRelics = () => invoke<RelicsView>('get_relics')
 export const getKioskView = () => invoke<KioskView | null>('get_kiosk_view')
+
+export type Era = 'lith' | 'meso' | 'neo' | 'axi' | 'requiem' | 'omnia'
+export type CyclePlace = 'earth' | 'cetus' | 'vallis' | 'cambion'
+export type CycleState = 'day' | 'night' | 'warm' | 'cold' | 'fass' | 'vome'
+/** `expiry`s are Unix milliseconds: the page counts down to them itself. */
+export interface Cycle { place: CyclePlace; state: CycleState; expiry: number }
+/** Names as WFCD's table gives them, in English; a node it does not know is its code, with no planet. */
+export interface WorldNode { name: string; planet: string | null; enemy: string | null }
+/** `mission_type` is WFCD's English name ("Mobile Defense"), which the catalogs translate. */
+export interface Fissure { id: string; era: Era; mission_type: string; node: WorldNode; steel_path: boolean; expiry: number }
+export interface WorldMission { mission_type: string; node: WorldNode }
+/** A sortie or an archon hunt. */
+export interface Sortie { boss: string; faction: string | null; missions: WorldMission[]; expiry: number }
+export interface WorldView {
+  cycles: Cycle[]
+  fissures: Fissure[]
+  storms: Fissure[]
+  sortie: Sortie | null
+  archon_hunt: Sortie | null
+  baro: { activation: number; expiry: number; relay: WorldNode } | null
+  /** When this state was downloaded; `stale` when the latest attempt failed and this is the one before. */
+  fetched_at: number
+  stale: boolean
+}
+/** The game's public world state, kept a minute by the backend. */
+export const getWorldState = () => invoke<WorldView>('get_world_state')
 export const refreshInventory = () => invoke<AppView>('refresh_inventory')
 export const refreshPrices = (ids: string[]) => invoke<AppView>('refresh_prices', { itemIds: ids })
 export const loadFakeSession = () => invoke<AppView>('load_fake_session')

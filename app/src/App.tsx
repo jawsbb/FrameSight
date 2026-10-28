@@ -440,10 +440,7 @@ function App() {
           appears and disappears with its content is not announced by every reader. */}
       <p className="sr-only" role="status">{ordersNote}</p>
       {!view ? <LoadingView/> : <>
-        {page === 'dashboard' && <DashboardPage view={view} effectiveMode={effectiveMode} priceFloor={priceFloor} now={clock} onOpen={openPage} onToMaster={() => {
-          setCollectionFilters(filters => ({ ...filters, ownership: 'toMaster', page: 1 }))
-          openPage('collection')
-        }}/>}
+        {page === 'dashboard' && <DashboardPage/>}
         {page === 'collection' && <CollectionPage view={view} effectiveMode={effectiveMode} filters={collectionFilters} onFilters={setCollectionFilters} pricing={pricing} onPriceLive={priceLive} priceFloor={priceFloor} showDucats={showDucats} onToggleDucats={() => {
           writeShowDucats(!showDucats)
           setShowDucats(!showDucats)

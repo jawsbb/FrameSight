@@ -5,6 +5,8 @@
  * backend has no use for it, so putting it in SQLite would mean a schema migration, an IPC pair and
  * a round trip to move a slider, for a number that never leaves this file.
  */
+import { ERAS, FISSURE_TABS, type FissureFilter, type FissureFilters } from './world'
+
 const FLOOR_KEY = 'tennoscope.price-floor'
 
 /**
@@ -282,5 +284,60 @@ export function clearUpdateOffered(): void {
     localStorage.removeItem(OFFERED_KEY)
   } catch {
     // Removing is best-effort; a stale offer re-checks into place.
+  }
+}
+
+/** The Dashboard's fissure filters, per tab. */
+const FISSURE_FILTERS_KEY = 'tennoscope.fissure-filters'
+
+/** A stored row, kept field by field: an unreadable field is "any", never a refusal. */
+function filterRow(value: unknown): FissureFilter {
+  const row = value && typeof value === 'object' ? value as Record<string, unknown> : {}
+  const text = (field: unknown) => typeof field === 'string' ? field : null
+  return {
+    era: ERAS.find(era => era === row.era) ?? null,
+    mission: text(row.mission),
+    planet: text(row.planet),
+  }
+}
+
+export function readFissureFilters(): FissureFilters {
+  let stored: Record<string, unknown> = {}
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(FISSURE_FILTERS_KEY) ?? '{}')
+    if (parsed && typeof parsed === 'object') stored = parsed as Record<string, unknown>
+  } catch {
+    // Unreadable is no filter.
+  }
+  return Object.fromEntries(FISSURE_TABS.map(tab => {
+    const rows = stored[tab]
+    return [tab, Array.isArray(rows) ? rows.map(filterRow) : []]
+  })) as FissureFilters
+}
+
+export function writeFissureFilters(filters: FissureFilters): void {
+  try {
+    localStorage.setItem(FISSURE_FILTERS_KEY, JSON.stringify(filters))
+  } catch {
+    // A preference that cannot be saved is still a preference for this session.
+  }
+}
+
+/** Desktop notifications for new fissures: off until asked for. */
+const FISSURE_ALERTS_KEY = 'tennoscope.fissure-alerts'
+
+export function readFissureAlerts(): boolean {
+  try {
+    return localStorage.getItem(FISSURE_ALERTS_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function writeFissureAlerts(on: boolean): void {
+  try {
+    localStorage.setItem(FISSURE_ALERTS_KEY, String(on))
+  } catch {
+    // A preference that cannot be saved is still a preference for this session.
   }
 }

@@ -16,6 +16,20 @@ see the difference.
 
 ### Added
 
+- **The Dashboard shows the game's world as you log in, instead of account statistics.** The
+  cycles of Earth, Cetus, Orb Vallis and the Cambion Drift count down to their next change; the
+  void fissures sit in three tabs (Normal, Steel Path, Void storms), soonest to close first, each
+  tab with filter rows to stack (era, mission, planet; a fissure shows when it matches any row),
+  kept between sessions, and a bell that sends a desktop notification when a new matching fissure
+  opens (off by default, never for what was open when the page opened); and Today lists the
+  sortie, the archon hunt, Baro Ki'Teer and the daily reset. The data is Digital Extremes' own
+  public world state, `api.warframe.com/cdn/worldState.php`, read only while the Dashboard is on
+  screen and at most once a minute, with star-chart, mission and boss names from WFCD's tables on
+  GitHub, cached on disk for a week; when the game does not answer, the last state shows with its
+  age. Cetus and the Drift are read from the Ostron bounty cycle, Earth and the Vallis computed with
+  the rules of WFCD's worldstate parser; Zariman and Duviri are left out, having no rule that could
+  be checked. The collection, relic, foundry, order and reward summaries the Dashboard held are
+  gone from it; their own pages keep them.
 - **A Mastery tab lists every masterable item the account has yet to master.** Under Full
   access, once an inventory has been read and the item catalog has loaded, the tab shows
   mastery-eligible equipment the account has never mastered. What it holds but has not ranked,

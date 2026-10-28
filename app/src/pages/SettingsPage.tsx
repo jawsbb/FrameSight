@@ -263,6 +263,12 @@ function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
         <p className="prose">{observesGame ? t.about.assistanceObserving : t.about.assistanceOther}</p>
       </div>
     </div>
+    <div className="setting">
+      <div>
+        <h3>{t.about.worldState}</h3>
+        <p className="prose">{t.about.worldStateNote}</p>
+      </div>
+    </div>
     </div>
   </section>
 }

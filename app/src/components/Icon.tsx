@@ -1,4 +1,4 @@
-export type IconName = 'dashboard' | 'collection' | 'mastery' | 'relics' | 'foundry' | 'market' | 'farm' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'close'
+export type IconName = 'dashboard' | 'collection' | 'mastery' | 'relics' | 'foundry' | 'market' | 'farm' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'close' | 'sun' | 'moon' | 'warm' | 'cold' | 'bell' | 'plus'
 
 /** Line icons on a 24px grid, one round stroke throughout. */
 export function Icon({ name }: { name: IconName }) {
@@ -22,6 +22,13 @@ export function Icon({ name }: { name: IconName }) {
     // A sprout: what is planted to be picked up again.
     farm: <><path d="M12 20.5V11"/><path d="M12 13.5c0-4.4 2.9-7.5 7.5-7.5 0 4.4-2.9 7.5-7.5 7.5z"/><path d="M12 15.5c0-3.6-2.4-6-6-6 0 3.6 2.4 6 6 6z"/></>,
     close: <path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>,
+    // The cycle states: day and Fass a sun, night and Vome a moon, warm a flame, cold a snowflake.
+    sun: <><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></>,
+    moon: <path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z"/>,
+    warm: <path d="M12 3.5c.4 3 4.5 5 4.5 9.5a4.5 4.5 0 0 1-9 0c0-2.2 1.2-3.7 2.3-4.6.2 1.6.9 2.6 1.9 3.1.6-2.6-.3-5 .3-8z"/>,
+    cold: <path d="M12 3.5v17M4.6 7.75l14.8 8.5M4.6 16.25l14.8-8.5M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5"/>,
+    bell: <><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></>,
+    plus: <path d="M12 5.5v13M5.5 12h13"/>,
   }
   return <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>
 }

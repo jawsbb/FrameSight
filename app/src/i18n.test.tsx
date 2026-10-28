@@ -3,9 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const backend = vi.hoisted(() => ({
-  // The dashboard the app opens on asks for these once.
-  getFarm: vi.fn(() => Promise.resolve({ prices_date: null, earlier_date: null, drops: false, relic_tables: false, sell: [], open: [], farm: [], trends: [] })),
-  getRelics: vi.fn(() => Promise.resolve({ catalog: true, prices_date: null, ducats: false, relics: [] })), getFoundry: vi.fn(() => Promise.resolve({ status: 'ready', items: [] })),
+  // The dashboard the app opens on asks for this.
+  getWorldState: vi.fn(() => new Promise(() => {})),
   getSetupStatus: vi.fn(), setAccessMode: vi.fn(), authorizeScreenCapture: vi.fn(), getView: vi.fn(), refreshInventory: vi.fn(), refreshPrices: vi.fn(),
   marketStatus: vi.fn(), marketSignIn: vi.fn(), marketLinkToken: vi.fn(), marketSignOut: vi.fn(),
   refreshOrders: vi.fn(), removeOrder: vi.fn(), setOrderQuantity: vi.fn(),
@@ -104,9 +103,7 @@ describe('French interface', () => {
     }
     expect(within(nav).queryByRole('button', { name: 'Maîtrise' })).not.toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Tableau de bord', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Maîtrise' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Voir ce qui reste à maîtriser' })).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Collection' })).getByText('Valeur marché')).toBeInTheDocument()
+    expect(screen.getByText('Lecture de l’état du monde…')).toBeInTheDocument()
     await userEvent.click(within(nav).getByRole('button', { name: 'Collection' }))
     expect(screen.getByRole('button', { name: 'À maîtriser' })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Votre collection' })).toBeInTheDocument()

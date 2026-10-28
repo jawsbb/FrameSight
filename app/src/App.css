@@ -218,9 +218,6 @@ summary::before {
 }
 details[open] > summary::before { transform: rotate(45deg); }
 summary:hover { color: var(--text); }
-.head-link { text-decoration: none; }
-.head-link:hover { text-decoration: underline; }
-.stats .head-link { margin-left: 12px; }
 .head-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight); }
