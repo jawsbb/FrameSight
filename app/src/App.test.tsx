@@ -1335,7 +1335,9 @@ describe('MVP desktop interface', () => {
     // which is exactly what the three cells beside it hold.
     expect(within(worth).getAllByAltText(/platinum/i)).toHaveLength(2)
     expect(worth.querySelector('.stat-aside')?.textContent, 'the achievable total, the size of a footnote').toBe('79 sellable')
-    expect(within(worth).getByText(/only the copies the market buys in a month/i), 'the cap, on the figure it applies to').toBeInTheDocument()
+    expect(within(worth).getByText(/only the copies the market buys in a month/i), 'the cap, on the figure it applies to').toHaveClass('sr-only')
+    // A tooltip, not visible text: spelled out, it doubled the height of the chip it was on.
+    expect(worth).toHaveAttribute('title', 'Sellable counts only the copies the market buys in a month.')
   })
 
   // A slider whose effect is invisible until you navigate away is a knob, not a control.

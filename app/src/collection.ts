@@ -148,3 +148,8 @@ export function pageNumbers(currentPage: number, totalPages: number): number[] {
   const middle = Array.from({ length: edge ? 4 : 5 }, (_, index) => start + index)
   return [...new Set([1, ...middle, total])].sort((left, right) => left - right)
 }
+
+/** Figures are grouped: a five-digit total is read, not counted. */
+export function figure(value: number): string {
+  return value.toLocaleString('en-US')
+}

@@ -124,6 +124,15 @@ describe('the linked screen', () => {
     expect(screen.getByText(/local database file/i)).toBeInTheDocument()
   })
 
+  // The stats read like Collection's: the qualification is a tooltip and a spoken suffix.
+  it('keeps the stat notes in tooltips rather than on screen', () => {
+    render(<OrdersView account={account({ orders: [entry('gone', { state: 'missing' })], flagged: 1 })} {...handlers} busy={false} error={null} />)
+
+    expect(screen.getByTestId('stat-flagged')).toHaveAttribute('title', 'Listed above what this device says you hold')
+    expect(screen.getByText(/Listed above what this device says you hold/)).toHaveClass('sr-only')
+    expect(screen.getByTestId('stat-backing')).toHaveAttribute('title', 'Credential held in system keyring')
+  })
+
   it('never shows an email address', () => {
     render(<OrdersView account={account()} {...handlers} busy={false} error={null} />)
 

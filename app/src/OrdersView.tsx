@@ -4,6 +4,7 @@ import { SellForm, type SellHandler, type UpdateHandler } from './SellForm'
 import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderValue, sortOrders, statusLabel, uncountedReason } from './orders'
 import { stampReading } from './freshness'
 import { MetalMark } from './MetalMark'
+import { Stat } from './Stat'
 
 type OrdersViewProps = {
   account: MarketAccount
@@ -36,33 +37,36 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
   return <section className="page" aria-labelledby="orders-title">
     <div className="page-head">
       <h1 id="orders-title" className="page-title">Market orders</h1>
-      <p className="page-note">Sell listings on your linked warframe.market account, checked against this device's inventory.</p>
-    </div>
-
-    <div className="stats">
-      <div className="stat orders" data-summary="orders">
-        <span className="stat-figure">{account.listed_platinum}<MetalMark metal="plat" alt=" platinum"/></span>
-        <span className="stat-label">Listed value</span>
-        <p className="stat-note">Visible sell listings only. {freshness}</p>
-      </div>
-      <div className="stat flagged" data-summary="flagged" data-count={account.flagged}>
-        <span className="stat-figure">{account.flagged}</span>
-        <span className="stat-label">Need attention</span>
-        <p className="stat-note">{account.flagged
-          ? 'Listed above what this device says you hold'
-          : ownershipUnverifiable
-            ? 'Ownership could not be verified for every listing'
-            : 'Every listing matches the collection'}</p>
-      </div>
-      <div className="stat backing" data-summary="backing">
+      <div className="stats">
+        <Stat kind="orders" value={account.listed_platinum} unit={<MetalMark metal="plat" alt=" platinum"/>} label="listed value" note={`Visible sell listings only. ${freshness}`}/>
+        {/* Red only while something is flagged: a zero is not an alarm. */}
+        <Stat
+          kind={account.flagged ? 'flagged' : 'unflagged'}
+          value={account.flagged}
+          label="need attention"
+          note={account.flagged
+            ? 'Listed above what this device says you hold'
+            : ownershipUnverifiable
+              ? 'Ownership could not be verified for every listing'
+              : 'Every listing matches the collection'}
+        />
         {/* A refused credential is not a linked account. Reading "Linked" beside a refusal notice
             is the band contradicting the screen it heads. */}
-        <span className="stat-label">Status</span>
-        <span className="stat-figure">{needsRelink ? 'Refused' : 'Linked'}</span>
-        <p className="stat-note">{needsRelink
-          ? 'Sign in again, or link a fresh token'
-          : `Credential held in ${backingLabel(account.backing).toLowerCase()}`}</p>
+        <Stat
+          kind="backing"
+          value={needsRelink ? 'Refused' : 'Linked'}
+          note={needsRelink
+            ? 'Sign in again, or link a fresh token'
+            : `Credential held in ${backingLabel(account.backing).toLowerCase()}`}
+        />
       </div>
+      <div className="head-actions">
+        <button type="button" className="stamp" onClick={onRefresh} disabled={busy}>
+          <span>{busy ? 'Refreshing…' : 'Refresh orders'}</span>
+        </button>
+        <ConfirmButton label="Unlink account" confirmLabel="Confirm unlink" busy={busy} onConfirm={onSignOut}/>
+      </div>
+      <p className="page-note">Sell listings on your linked warframe.market account, checked against this device's inventory.</p>
     </div>
 
     {/* Suppressed while the relink block is up: that block already names the refusal and offers
@@ -77,13 +81,6 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
       <p className="prose">warframe.market refused the stored credential. The listings below are the last that were fetched; sign in again, or link a fresh token, to bring them up to date.</p>
       <LinkForms onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} />
     </div>}
-
-    <div className="toolbar">
-      <button type="button" className="stamp" onClick={onRefresh} disabled={busy}>
-        <span>{busy ? 'Refreshing…' : 'Refresh orders'}</span>
-      </button>
-      <ConfirmButton label="Unlink account" confirmLabel="Confirm unlink" busy={busy} onConfirm={onSignOut}/>
-    </div>
 
     {!needsRelink && <PresenceSwitch presence={account.presence} busy={busy} onPresence={onPresence}/>}
 

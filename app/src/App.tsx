@@ -38,7 +38,7 @@ import { MetalMark } from './MetalMark'
 import { OrdersView } from './OrdersView'
 import { isListable, listedLabel, listedOrderFor } from './orders'
 import { SellForm, type SellHandler, type UpdateHandler } from './SellForm'
-import { atMaxRank, collectionTotals, masteryOrder, pageNumbers, pageWindow, rankLabel, stackValue } from './collection'
+import { atMaxRank, collectionTotals, figure, masteryOrder, pageNumbers, pageWindow, rankLabel, stackValue } from './collection'
 import { MAX_PRICE_FLOOR, readPriceFloor, readShowDucats, writePriceFloor, writeShowDucats } from './settings'
 import { snapshotFreshness, stampReading } from './freshness'
 import { bootUpdateChecks } from './updateStore'
@@ -47,6 +47,7 @@ import { UpdateMark, UpdatesSetting } from './UpdateSettings'
 import { reportBlockVisible } from './reportable'
 import { AccessSelector } from './AccessSelector'
 import { accessMode } from './access'
+import { Stat } from './Stat'
 
 type Page = 'collection' | 'mastery' | 'rewards' | 'orders' | 'diagnostics' | 'settings'
 type Ownership = 'all' | 'owned' | 'mastered' | 'missing' | 'tradeable'
@@ -677,8 +678,8 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
             : 'Sellable counts only the copies the market buys in a month.'}
         />
         {showDucats && <Stat kind="ducats" value={ducatsAtStake} unit={<MetalMark metal="ducat" alt=" ducats"/>} label="at stake"/>}
+        <button type="button" className="link-button head-link" onClick={onOpenMastery}>Mastery progress<Icon name="next"/></button>
       </div>
-      <button type="button" className="link-button head-link" onClick={onOpenMastery}>Mastery progress<Icon name="next"/></button>
       {snapshotOnly && <p className="page-note">Read from the saved snapshot. Current ownership can't be verified without Full access.</p>}
     </div>
 
@@ -703,15 +704,6 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
           <span className="display-face"><MetalMark metal="ducat"/>Ducat values</span>
           <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
         </button>
-        {/* Live prices come from the market dump and explicit price checks, neither of which
-            reads the game or needs verified ownership: Companion and Overlay keep valuation.
-            Selling still needs Full, and that gate lives on the sell controls, not here. */}
-        <button
-          type="button"
-          className="stamp primary price-page"
-          disabled={pricing || inProgress !== null || pricableVisibleIds.length === 0}
-          onClick={() => onPriceLive(pricableVisibleIds)}
-        >{pricing || inProgress ? 'Pricing…' : `Price this page (${pricableVisibleIds.length})`}</button>
       </div>
 
       <div className="chips" role="group" aria-label="Item categories">
@@ -727,6 +719,15 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
       <div className="status-line">
         <span>{dumpDate ? `Prices from the ${shortDumpDate(dumpDate)} market summary` : 'No price summary loaded yet'}</span>
         <span>{firstResult}–{lastResult} of {filtered.length}</span>
+        {/* Live prices come from the market dump and explicit price checks, neither of which
+            reads the game or needs verified ownership: Companion and Overlay keep valuation.
+            Selling still needs Full, and that gate lives on the sell controls, not here. */}
+        <button
+          type="button"
+          className="stamp primary price-page"
+          disabled={pricing || inProgress !== null || pricableVisibleIds.length === 0}
+          onClick={() => onPriceLive(pricableVisibleIds)}
+        >{pricing || inProgress ? 'Pricing…' : `Price this page (${pricableVisibleIds.length})`}</button>
         {inProgress && <span className="pricing" role="status">
           <progress max={Math.max(inProgress.total, 1)} value={inProgress.done} aria-label="Live price check"/>
           <span>Checking live prices · {inProgress.done} of {inProgress.total}</span>
@@ -744,11 +745,6 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
       detail={snapshotOnly ? 'Full access can acquire one; Companion remains useful for reference, prices, and planning.' : 'Start Warframe and refresh to create your first local snapshot.'}
     />}
   </section>
-}
-
-/** Figures are grouped: a five-digit total is read, not counted. */
-function figure(value: number): string {
-  return value.toLocaleString('en-US')
 }
 
 function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }: { view: AppView; filters: MasteryFilters; onFilters: (filters: MasteryFilters) => void; onSell: SellHandler; onUpdate: UpdateHandler; ordersBusy: boolean }) {
@@ -826,17 +822,6 @@ function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }:
   </section>
 }
 
-/** One summary figure, inline in a page head: the figure, what it counts, and an optional
- * qualification on it. */
-function Stat({ kind, value, unit, label, aside, note }: { kind: string; value: number; unit?: ReactNode; label: string; aside?: ReactNode; note?: string }) {
-  return <div className={`stat ${kind}`} data-summary={kind} data-testid={`stat-${kind}`}>
-    <span className="stat-figure">{figure(value)}{unit}</span>
-    <span className="stat-label">{label}</span>
-    {aside && <span className="stat-aside">{aside}</span>}
-    {note && <p className="stat-note">{note}</p>}
-  </div>
-}
-
 function CollectionEntry({ item, ownershipVerified, missingLabel = 'Missing', showDucats, listedOrder, sellable, onSell, onUpdate, busy }: { item: CollectionItem; ownershipVerified: boolean; missingLabel?: string; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }) {
   const missing = item.quantity === 0
   const [artFailed, setArtFailed] = useState(false)
@@ -892,10 +877,10 @@ function CollectionEntry({ item, ownershipVerified, missingLabel = 'Missing', sh
         </span>
         : item.category === 'prime_part' && <span className="value-missing">Ducat value unavailable</span>)}
       {item.live && <span className="checked-live">Checked live</span>}
+      {/* On the value line, so a sellable card is no taller than its neighbours. */}
+      {remaining && !selling && <button type="button" className="stamp sell-open" disabled={busy} onClick={() => setSelling(true)}>{listedOrder ? 'Sell more' : 'Sell'}</button>}
     </div>
-    {remaining && (selling
-      ? <SellForm item={item} listing={listedOrder ?? undefined} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={() => setSelling(false)}/>
-      : <button type="button" className="stamp sell-open" disabled={busy} onClick={() => setSelling(true)}>{listedOrder ? 'Sell more' : 'Sell'}</button>)}
+    {remaining && selling && <SellForm item={item} listing={listedOrder ?? undefined} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={() => setSelling(false)}/>}
   </article>
 }
 
