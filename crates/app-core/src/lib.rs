@@ -1408,8 +1408,6 @@ pub struct ReconciledOrder {
     pub row_id: Option<String>,
     /// The item's picture on warframe.market, absolute, for the row.
     pub thumb_url: Option<String>,
-    /// warframe.market's URL name for the item, which addresses its live order book.
-    pub slug: Option<String>,
     pub status: OrderStatus,
 }
 
@@ -1443,7 +1441,6 @@ pub fn reconcile_orders(
             name: items.name(&order.item_id).map(str::to_owned),
             row_id: items.row_of(&order.item_id, order.rank, order.subtype.as_deref()),
             thumb_url: items.thumb_url(&order.item_id),
-            slug: items.slug(&order.item_id).map(str::to_owned),
             status: status_for(order, items, &owned, snapshot),
         })
         .collect()
@@ -1491,30 +1488,21 @@ fn status_for(
     }
 }
 
-/// A repair the reconciliation itself calls for, made without a press when the player has asked
-/// for order sync.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SyncAction {
-    /// The collection holds none of it: take the listing down.
-    Remove,
-    /// The listing offers more than is held: lower it to the holding.
-    Lower(u32),
-}
-
 /// The repairs an automatic sync makes, and only those: the two buttons the interface already puts
-/// beside a flagged order, derived from nothing but the flag.
+/// beside a flagged order, derived from nothing but the flag. Each is the count the listing goes
+/// to, the holding, where zero is taking it down, the same reading [`SyncedOrder::to`] reports.
 ///
 /// Everything that keeps a flag honest has already happened in [`reconcile_orders`]: no claim
 /// without a coherent snapshot newer than the order, none for a set, a relic, a ranked copy or an
 /// item the table cannot place. An order that is not flagged gets nothing, and a buy order is
 /// checked for here as well as there, because owning none of something is what buying it means.
-pub fn sync_actions(orders: &[ReconciledOrder]) -> Vec<(&ReconciledOrder, SyncAction)> {
+pub fn sync_actions(orders: &[ReconciledOrder]) -> Vec<(&ReconciledOrder, u32)> {
     orders
         .iter()
         .filter(|entry| entry.order.kind == OrderKind::Sell)
         .filter_map(|entry| match entry.status {
-            OrderStatus::Missing => Some((entry, SyncAction::Remove)),
-            OrderStatus::Overshoot { owned } => Some((entry, SyncAction::Lower(owned))),
+            OrderStatus::Missing => Some((entry, 0)),
+            OrderStatus::Overshoot { owned } => Some((entry, owned)),
             OrderStatus::Ok | OrderStatus::Unverifiable => None,
         })
         .collect()

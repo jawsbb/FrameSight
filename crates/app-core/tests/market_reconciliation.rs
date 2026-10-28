@@ -385,10 +385,5 @@ fn a_reconciled_order_carries_the_item_picture_and_url_name() {
             "https://warframe.market/static/assets/items/images/en/thumbs/braton_prime_blueprint.128x128.png"
         )
     );
-    assert_eq!(
-        reconciled[0].slug.as_deref(),
-        Some("braton_prime_blueprint")
-    );
     assert_eq!(reconciled[1].thumb_url, None);
-    assert_eq!(reconciled[1].slug, None);
 }

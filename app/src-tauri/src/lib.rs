@@ -1924,18 +1924,14 @@ fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
         return Some(view);
     }
     let (mut synced, at) = (Vec::new(), now_unix_seconds());
-    for (entry, action) in actions {
+    for (entry, to) in actions {
         let name = entry.name.as_deref().unwrap_or(&entry.order.item_id);
-        let (kind, to) = match action {
-            app_core::SyncAction::Remove => ("remove", 0),
-            app_core::SyncAction::Lower(owned) => ("quantity", owned),
-        };
-        let written = write_order(shared, kind, |transport, token| match action {
-            app_core::SyncAction::Remove => {
+        let kind = if to == 0 { "remove" } else { "quantity" };
+        let written = write_order(shared, kind, |transport, token| {
+            if to == 0 {
                 warframe_market::delete_order(transport, token, &entry.order.id)
-            }
-            app_core::SyncAction::Lower(owned) => {
-                warframe_market::set_order_quantity(transport, token, &entry.order.id, owned)
+            } else {
+                warframe_market::set_order_quantity(transport, token, &entry.order.id, to)
             }
         });
         match written {

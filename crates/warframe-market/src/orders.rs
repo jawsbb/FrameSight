@@ -132,6 +132,9 @@ pub fn list_mine(
 
 /// Rejects an id that could not name a single existing order: empty, or carrying a `/` that would
 /// let it address something other than one order in the path it is interpolated into.
+/// The most units one order may list or close, by the API's own bound.
+const MAX_QUANTITY: u32 = 9_999;
+
 fn validate_order_id(order_id: &str) -> Result<(), MarketError> {
     if order_id.is_empty() || order_id.contains('/') {
         return Err(MarketError::Rejected);
@@ -201,7 +204,7 @@ pub fn update_order(
     quantity: u32,
 ) -> Result<MarketToken, MarketError> {
     validate_order_id(order_id)?;
-    if !(1..=900_000).contains(&platinum) || !(1..=9_999).contains(&quantity) {
+    if !(1..=900_000).contains(&platinum) || !(1..=MAX_QUANTITY).contains(&quantity) {
         return Err(MarketError::Rejected);
     }
     let response = transport.send(MarketRequest {
@@ -230,7 +233,7 @@ pub fn close_order(
     quantity: u32,
 ) -> Result<MarketToken, MarketError> {
     validate_order_id(order_id)?;
-    if !(1..=9_999).contains(&quantity) {
+    if !(1..=MAX_QUANTITY).contains(&quantity) {
         return Err(MarketError::Rejected);
     }
     let response = transport.send(MarketRequest {
@@ -309,7 +312,7 @@ pub fn create_order(
     if order.per_trade.is_some_and(|per_trade| per_trade == 0) {
         return Err(MarketError::Rejected);
     }
-    if !(1..=900_000).contains(&order.platinum) || !(1..=9_999).contains(&order.quantity) {
+    if !(1..=900_000).contains(&order.platinum) || !(1..=MAX_QUANTITY).contains(&order.quantity) {
         return Err(MarketError::Rejected);
     }
     // Appended rather than one `format!`, so a field goes in exactly when it is present and the

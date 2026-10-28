@@ -1,6 +1,6 @@
 use app_core::{
-    AppCore, HealthState, LinkState, MarketAccountView, OrderStatus, ReconciledOrder, SyncAction,
-    SyncedOrder, sync_actions,
+    AppCore, HealthState, LinkState, MarketAccountView, OrderStatus, ReconciledOrder, SyncedOrder,
+    sync_actions,
 };
 use local_store::SnapshotInstant;
 use warframe_domain::{
@@ -68,7 +68,6 @@ fn reconciled(order: MarketOrder, status: OrderStatus) -> ReconciledOrder {
         name: Some("Braton Prime Blueprint".to_owned()),
         row_id: Some("/Lotus/Types/Recipes/Weapons/BratonPrimeBlueprint".to_owned()),
         thumb_url: None,
-        slug: None,
         status,
     }
 }
@@ -299,10 +298,7 @@ fn a_sync_repairs_only_flagged_sell_orders() {
         .map(|(entry, action)| (entry.order.id.as_str(), action))
         .collect();
 
-    assert_eq!(
-        actions,
-        [("gone", SyncAction::Remove), ("over", SyncAction::Lower(3))]
-    );
+    assert_eq!(actions, [("gone", 0), ("over", 3)]);
 }
 
 /// The report of the last sync outlives an ordinary order refresh, which builds a fresh view, and

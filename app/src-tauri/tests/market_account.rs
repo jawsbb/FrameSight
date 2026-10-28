@@ -272,7 +272,6 @@ fn order(id: &str, status: OrderStatus) -> ReconciledOrder {
         name: Some("Braton Prime Blueprint".to_owned()),
         row_id: Some("/Lotus/Types/Recipes/Weapons/BratonPrimeBlueprint".to_owned()),
         thumb_url: None,
-        slug: None,
         status,
     }
 }

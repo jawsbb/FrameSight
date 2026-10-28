@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { CollectionItem, MarketAccount, MarketOrder, SyncedOrder } from '../backend'
 import { SellForm, type SellHandler, type UpdateHandler } from '../SellForm'
 import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderValue, sortOrders, statusLabel, uncountedReason } from '../orders'
 import { stampReading } from '../freshness'
-import { rankLabel } from '../collection'
+import { rankLabel, stackValue } from '../collection'
 import { MetalMark } from '../MetalMark'
 import { Stat } from '../components/Stat'
 import { Thumb } from '../components/Thumb'
@@ -23,7 +23,7 @@ type OrdersViewProps = {
   onClose: (orderId: string, quantity: number) => Promise<void>
   onSell: SellHandler
   onUpdate: UpdateHandler
-  syncOrders: boolean | null
+  syncOrders: boolean
   onSyncOrders: (enabled: boolean) => Promise<void>
   items: CollectionItem[]
   busy: boolean
@@ -143,7 +143,6 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onClose, onSell, on
   const held = order.kind === 'sell' && entry.row_id
     ? items.find(item => item.id === entry.row_id && item.quantity > 0)
     : undefined
-  const trade = Math.max(order.per_trade, 1)
   return <article className={`docket-line${flagged ? ' doubt' : ''}`} aria-label={name}>
     <Thumb src={entry.thumb_url ?? held?.image_url} name={name}/>
     <div className="line-main">
@@ -167,8 +166,8 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onClose, onSell, on
         type="button"
         className="stamp sold"
         disabled={busy}
-        title={t.orders.soldHint(trade)}
-        onClick={() => onClose(order.id, trade)}
+        title={t.orders.soldHint(order.per_trade)}
+        onClick={() => onClose(order.id, order.per_trade)}
       ><span>{t.orders.sold}</span></button>}
       {held && <button type="button" className="stamp" disabled={busy} onClick={() => setEditing(true)}><span>{t.orders.editListing}</span></button>}
       {/* A flagged row's removal is the repair it asks for and goes on one press. */}
@@ -200,7 +199,7 @@ function Quantity({ order, name, held, busy, onSet }: {
   onSet: (quantity: number) => Promise<void>
 }) {
   const t = useMessages()
-  const step = Math.max(order.per_trade, 1)
+  const step = order.per_trade
   if (held === null) return <span className="line-count">× {order.quantity}</span>
   return <span className="stepper" role="group" aria-label={t.orders.quantityOf(name)}>
     <button type="button" aria-label={t.orders.fewer} disabled={busy || order.quantity - step < 1} onClick={() => onSet(order.quantity - step)}><Icon name="minus"/></button>
@@ -214,15 +213,15 @@ function Quantity({ order, name, held, busy, onSet }: {
  * down what the game no longer holds and lowers what it holds less of: the same two repairs the
  * rows offer, made without the press, and only where the reconciliation makes a claim at all.
  */
-function SyncSwitch({ enabled, busy, onChange }: { enabled: boolean | null; busy: boolean; onChange: (enabled: boolean) => Promise<void> }) {
+function SyncSwitch({ enabled, busy, onChange }: { enabled: boolean; busy: boolean; onChange: (enabled: boolean) => Promise<void> }) {
   const t = useMessages()
   return <div className="sync-switch">
     <button
       type="button"
       role="switch"
-      aria-checked={enabled === true}
+      aria-checked={enabled}
       className="display-switch"
-      disabled={enabled === null || busy}
+      disabled={busy}
       onClick={() => { void onChange(!enabled) }}
     >
       <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
@@ -241,7 +240,7 @@ function SyncReport({ synced }: { synced: SyncedOrder[] }) {
     <ul>
       {synced.map((change, index) => <li key={index}>
         <Thumb src={change.thumb_url} name={change.name ?? '?'}/>
-        <span className="sync-name">{change.name ?? t.market.theItem}</span>
+        <span>{change.name ?? t.market.theItem}</span>
         <span className="sync-change">{change.to === 0 ? t.orders.syncRemoved : t.orders.syncLowered(change.from, change.to)}</span>
       </li>)}
     </ul>
@@ -299,9 +298,11 @@ function ToSell({ items, account, busy, onSell, onUpdate }: {
   const t = useMessages()
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState<string | null>(null)
-  const sellable = items
+  // Built once per view rather than per keystroke. ponytail: `isListable` scans the listable ids
+  // per item; a Set if a collection of a few thousand rows ever makes a view change felt.
+  const sellable = useMemo(() => items
     .filter(item => isListable(item, account.listable) && !listedOrderFor(account.orders, item.id))
-    .sort((left, right) => (right.platinum ?? 0) * right.quantity - (left.platinum ?? 0) * left.quantity)
+    .sort((left, right) => (stackValue(right) ?? 0) - (stackValue(left) ?? 0)), [items, account])
   if (!sellable.length) return null
   const needle = query.trim().toLowerCase()
   const matches = needle ? sellable.filter(item => item.name.toLowerCase().includes(needle)) : sellable

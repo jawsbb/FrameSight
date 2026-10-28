@@ -131,7 +131,8 @@ function MarketGlance({ itemId, onMatch, busy }: { itemId: string; onMatch: (pla
   const ingame = book.sell.filter(order => order.status === 'ingame')
   const shown = (ingame.length ? ingame : book.sell).slice(0, 5)
   if (!shown.length) return <p className="glance">{t.sell.glanceNone}</p>
-  const cheapest = Math.min(...shown.map(order => order.platinum))
+  // The backend sorts each status cheapest per unit first, so the first is the one to match.
+  const cheapest = shown[0].platinum
   return <p className="glance">
     <span>{ingame.length ? t.sell.ingameNow : t.sell.onlineNow}</span>
     <b className="glance-prices">{shown.map(order => order.platinum).join(' · ')}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></b>

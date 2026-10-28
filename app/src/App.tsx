@@ -103,7 +103,7 @@ function App() {
   const [ordersBusy, setOrdersBusy] = useState(false)
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [ordersNote, setOrdersNote] = useState<string | null>(null)
-  const [syncOrders, setSyncOrdersState] = useState<boolean | null>(null)
+  const [syncOrders, setSyncOrdersState] = useState(false)
   const [captureNote, setCaptureNote] = useState<CaptureNote | null>(null)
   const [collectionFilters, setCollectionFilters] = useState(initialCollectionFilters)
   const viewGeneration = useRef(0)
@@ -154,7 +154,7 @@ function App() {
     getPreferences()
       .then(preferences => {
         setLanguagePreference(preferences.language ?? null)
-        setSyncOrdersState(preferences.sync_orders ?? false)
+        setSyncOrdersState(preferences.sync_orders)
       })
       .catch(() => setLanguagePreference(null))
     getSetupStatus()
@@ -291,23 +291,25 @@ function App() {
    * note is spoken once, on success only. The badge appearing is the sighted player's
    * confirmation, and the note is the same confirmation for anyone not looking at it.
    */
-  async function ordersOperation(
-    operation: () => Promise<AppView>,
-    failure: string,
-    note?: (next: AppView) => string,
-  ) {
+  async function ordersRun<T>(operation: () => Promise<T>, failure: string, done: (result: T) => void) {
     setOrdersBusy(true)
     setOrdersError(null)
     try {
-      const next = await operation()
-      setView(next)
-      setOrdersNote(note ? note(next) : null)
+      done(await operation())
     } catch (reason) {
       setOrdersError(failureWithReason(failure, reason, t))
     } finally {
       setOrdersBusy(false)
     }
   }
+  const ordersOperation = (
+    operation: () => Promise<AppView>,
+    failure: string,
+    note?: (next: AppView) => string,
+  ) => ordersRun(operation, failure, next => {
+    setView(next)
+    setOrdersNote(note ? note(next) : null)
+  })
 
   const failures = t.market.failures
   const ordersSignIn = (email: string, password: string) =>
@@ -326,17 +328,11 @@ function App() {
     const name = view?.market_account.orders.find(entry => entry.order.id === orderId)?.name
     return ordersOperation(() => closeOrder(orderId, quantity), failures.close, () => t.market.sold(name ?? t.market.theItem, quantity))
   }
-  async function ordersSync(enabled: boolean) {
-    setOrdersBusy(true)
-    setOrdersError(null)
-    try {
-      setSyncOrdersState((await setSyncOrders(enabled)).sync_orders ?? false)
-    } catch (reason) {
-      setOrdersError(failureWithReason(failures.sync, reason, t))
-    } finally {
-      setOrdersBusy(false)
-    }
-  }
+  const ordersSync = (enabled: boolean) =>
+    ordersRun(() => setSyncOrders(enabled), failures.sync, preferences => {
+      setSyncOrdersState(preferences.sync_orders)
+      setOrdersNote(null)
+    })
   const ordersPresence = (status: Presence | null, auto: boolean) =>
     ordersOperation(() => setMarketPresence(status, auto), failures.presence)
   /** The card's own accessible name: the rank belongs in it because a mod held at two ranks is two

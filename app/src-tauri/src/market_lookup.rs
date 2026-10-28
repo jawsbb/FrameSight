@@ -18,9 +18,7 @@ use app_core::{AppCore, MarketBoard};
 use serde::Serialize;
 use tauri::State;
 use warframe_acquisition::{PriceTable, relic_base, slug_and_subtype};
-use warframe_market::{
-    DayTrades, ItemOrders, ItemSummary, Listing, LiveOrder, MarketHttp, MarketItems,
-};
+use warframe_market::{DayTrades, ItemOrders, ItemSummary, LiveOrder, MarketHttp, MarketItems};
 
 use crate::{
     SharedRuntime,
@@ -282,14 +280,20 @@ fn orders_blocking(
     )
 }
 
-/// The orders in a book that trade the listing a collection row would publish: the same rank and
-/// the same subtype. A plain item's orders carry no rank where a mod's unranked stack is quoted at
-/// rank 0, and both are the bottom of the item, so the two read as one; a subtype is matched as
-/// the market spells it.
-fn for_listing(book: ItemOrders, listing: Listing<'_>) -> ItemOrders {
+/// The orders in a book that trade the copy one collection row holds, decided by the join the
+/// account's own orders go through, [`MarketItems::row_of`]: a live order belongs to the row its
+/// rank and subtype would reconcile to, so the book beside a sell form and the badge on a listed
+/// card can never disagree about which copy an order is for.
+fn for_row(
+    book: ItemOrders,
+    items: &MarketItems,
+    item_id: &str,
+    collection_id: &str,
+) -> ItemOrders {
     let same = |order: &LiveOrder| {
-        order.rank.unwrap_or(0) == listing.rank.unwrap_or(0)
-            && order.subtype.as_deref() == listing.subtype
+        items
+            .row_of(item_id, order.rank, order.subtype.as_deref())
+            .is_some_and(|row| row == collection_id)
     };
     ItemOrders {
         sell: book.sell.into_iter().filter(same).collect(),
@@ -319,7 +323,7 @@ fn row_orders_blocking(
     let slug = items.slug(listing.item_id).ok_or(NOT_AN_ITEM)?;
     let book = orders_blocking(shared, lookup, slug)?;
     Ok(MarketItemOrders {
-        orders: for_listing(book.orders, listing),
+        orders: for_row(book.orders, &items, listing.item_id, collection_id),
         ..book
     })
 }
@@ -485,53 +489,28 @@ mod tests {
         }
     }
 
-    fn listing(rank: Option<u32>, subtype: Option<&str>) -> Listing<'_> {
-        Listing {
-            item_id: "item",
-            rank,
-            subtype,
-            per_trade: None,
-        }
-    }
-
     #[test]
     fn a_row_keeps_only_the_orders_for_the_copy_it_holds() {
+        let items = MarketItems::from_response(ITEMS.as_bytes()).expect("items");
+        let id = "54a74454e779892d5e515596";
+        let path = "/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod";
         let book = ItemOrders {
-            sell: vec![live(Some(0), None), live(Some(10), None), live(None, None)],
-            buy: vec![live(Some(10), None), live(Some(3), None)],
+            sell: vec![
+                live(Some(0), None),
+                live(Some(10), None),
+                live(Some(3), None),
+            ],
+            buy: vec![live(Some(10), None)],
         };
 
-        // A maxed mod: only its ceiling.
-        let maxed = for_listing(book.clone(), listing(Some(10), None));
+        let maxed = for_row(book.clone(), &items, id, &format!("{path}#10"));
         assert_eq!(maxed.sell, [live(Some(10), None)]);
         assert_eq!(maxed.buy, [live(Some(10), None)]);
 
-        // The unranked stack and a plain item are both the bottom: rank 0 and no rank alike.
-        let unranked = for_listing(book.clone(), listing(Some(0), None));
-        assert_eq!(unranked.sell, [live(Some(0), None), live(None, None)]);
+        // The unranked stack is the bare path; a part-ranked copy is nobody's row.
+        let unranked = for_row(book, &items, id, path);
+        assert_eq!(unranked.sell, [live(Some(0), None)]);
         assert!(unranked.buy.is_empty());
-        assert_eq!(
-            for_listing(book, listing(None, None)).sell,
-            unranked.sell,
-            "a plain item reads rank 0 and no rank the same way"
-        );
-    }
-
-    #[test]
-    fn a_relic_row_keeps_only_its_refinement() {
-        let book = ItemOrders {
-            sell: vec![
-                live(None, Some("intact")),
-                live(None, Some("radiant")),
-                live(None, None),
-            ],
-            buy: vec![live(None, Some("radiant"))],
-        };
-
-        let radiant = for_listing(book, listing(None, Some("radiant")));
-
-        assert_eq!(radiant.sell, [live(None, Some("radiant"))]);
-        assert_eq!(radiant.buy, [live(None, Some("radiant"))]);
     }
 
     #[test]

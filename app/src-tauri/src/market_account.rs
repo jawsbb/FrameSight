@@ -266,6 +266,19 @@ pub fn authorize_removal(view: &MarketAccountView, order_id: &str) -> Result<(),
     find_order(view, order_id).map(|_| ()).ok_or(ORDER_NOT_HELD)
 }
 
+/// The sell listing a write names, from the view currently held. Buy orders are not this
+/// application's to write.
+fn find_sell_order<'a>(
+    view: &'a MarketAccountView,
+    order_id: &str,
+) -> Result<&'a ReconciledOrder, &'static str> {
+    let entry = find_order(view, order_id).ok_or(ORDER_NOT_HELD)?;
+    if entry.order.kind != OrderKind::Sell {
+        return Err(ORDER_NOT_A_SELL);
+    }
+    Ok(entry)
+}
+
 /// Whether a sale may be recorded against this order.
 ///
 /// The count is the player's statement of what changed hands, so it is bounded by the order and
@@ -278,14 +291,11 @@ pub fn authorize_close(
     order_id: &str,
     quantity: u32,
 ) -> Result<(), &'static str> {
-    let entry = find_order(view, order_id).ok_or(ORDER_NOT_HELD)?;
-    if entry.order.kind != OrderKind::Sell {
-        return Err(ORDER_NOT_A_SELL);
-    }
+    let entry = find_sell_order(view, order_id)?;
     if !(1..=entry.order.quantity).contains(&quantity) {
         return Err(SALE_OUTSIDE_ORDER);
     }
-    if quantity % entry.order.per_trade.max(1) != 0 {
+    if quantity % entry.order.per_trade != 0 {
         return Err(SALE_NOT_WHOLE_TRADES);
     }
     Ok(())
@@ -305,10 +315,7 @@ pub fn authorize_update(
     order_id: &str,
     quantity: u32,
 ) -> Result<(), &'static str> {
-    let entry = find_order(view, order_id).ok_or(ORDER_NOT_HELD)?;
-    if entry.order.kind != OrderKind::Sell {
-        return Err(ORDER_NOT_A_SELL);
-    }
+    let entry = find_sell_order(view, order_id)?;
     let row_id = entry.row_id.as_deref().ok_or(ORDER_NOT_ON_A_ROW)?;
     let held = collection
         .entries()
