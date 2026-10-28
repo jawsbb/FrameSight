@@ -148,3 +148,27 @@ export const getVersionInfo = () => invoke<VersionInfo>('get_version_info')
 export const updateCheck = (feed: string) => invoke<CheckResult>('update_check', { feed })
 export const updateDownloadAndInstall = (feed: string, expectedVersion: string) =>
   invoke<UpdateSummary>('update_download_and_install', { feed, expectedVersion })
+
+/** One Market search suggestion. The figures come from the daily summary; `held` names the
+ * collection rows that hold the item. */
+export interface MarketHit {
+  id: string
+  slug: string
+  name: string
+  thumb_url: string | null
+  max_rank: number | null
+  median: number | null
+  median_max_rank: number | null
+  checked_live: boolean
+  monthly_trades: number | null
+  held: string[]
+}
+/** `dump_date` is the day the daily summary describes, null until it has loaded. */
+export interface MarketSearch { hits: MarketHit[]; dump_date: string | null }
+export type TraderStatus = 'ingame' | 'online'
+/** `platinum` buys one trade of `per_trade` units. */
+export interface LiveOrder { user: string; status: TraderStatus; platinum: number; quantity: number; per_trade: number; rank: number | null; subtype: string | null }
+/** `fetched_at` is when warframe.market answered, in Unix seconds; a cached answer keeps it. */
+export interface MarketItemOrders { sell: LiveOrder[]; buy: LiveOrder[]; fetched_at: number }
+export const marketSearch = (query: string) => invoke<MarketSearch>('market_search', { query })
+export const marketItemOrders = (slug: string) => invoke<MarketItemOrders>('market_item_orders', { slug })
