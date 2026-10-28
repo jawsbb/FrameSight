@@ -1519,6 +1519,42 @@ describe('MVP desktop interface', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not publish that listing/i)
   })
 
+  // The backend rejects with a sentence meant for the player; it follows the generic line, once.
+  it('adds the backend’s own reason to a refused market write', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.marketStatus.mockResolvedValue({
+      ...view,
+      market_account: { ...view.market_account, link: 'linked', listable: ['lex-prime-receiver'] },
+    })
+    backend.createOrder.mockRejectedValue('warframe.market is limiting requests; try again shortly')
+    render(<App/>)
+
+    const card = await screen.findByRole('article', { name: 'Lex Prime Receiver' })
+    await userEvent.click(await within(card).findByRole('button', { name: 'Sell' }))
+    await userEvent.click(within(card).getByRole('button', { name: /list for sale/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not publish that listing. Warframe.market is limiting requests; try again shortly.')
+  })
+
+  it('does not repeat a backend reason the generic line already says', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.marketStatus.mockResolvedValue({ ...view, market_account: { ...view.market_account, link: 'linked' } })
+    backend.refreshOrders.mockRejectedValue('warframe.market could not be reached')
+    render(<App/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Orders' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^warframe\.market could not be reached\.$/)
+  })
+
+  it('adds the backend’s own reason to a failed inventory refresh', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.refreshInventory.mockRejectedValue('application state is unavailable')
+    render(<App/>)
+    await userEvent.click(await screen.findByRole('button', { name: /Refresh inventory/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Inventory refresh failed. Check diagnostics for acquisition health. Application state is unavailable.')
+  })
+
   /**
    * The window ships with the compositor's own decorations off, so on KDE there is no titlebar to
    * take hold of and nothing to press for minimize, maximize or close. The app draws its own title

@@ -112,6 +112,17 @@ const pageLabel: Record<Page, string> = {
   settings: 'Settings',
 }
 
+/**
+ * A failure in the app's words, followed by the backend's own reason when it gives one: the Rust
+ * commands reject with a sentence meant for the player ("warframe.market is limiting requests; try
+ * again shortly"), which says what the generic line cannot.
+ */
+function failureWithReason(failure: string, reason: unknown): string {
+  const text = typeof reason === 'string' ? reason.trim().replace(/\.$/, '') : ''
+  if (!text || failure.toLowerCase().startsWith(text.toLowerCase())) return failure
+  return `${failure} ${text[0].toUpperCase()}${text.slice(1)}.`
+}
+
 /** `1 choice`, `4 choices`: a nav badge's count, said in words for its accessible name. */
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`
@@ -226,8 +237,8 @@ function App() {
         setView(next)
         setError(null)
       }
-    } catch {
-      if (generation === viewGeneration.current) setError(failure)
+    } catch (reason) {
+      if (generation === viewGeneration.current) setError(failureWithReason(failure, reason))
     }
   }, [])
 
@@ -400,8 +411,8 @@ function App() {
       const next = await operation()
       setView(next)
       setOrdersNote(note ? note(next) : null)
-    } catch {
-      setOrdersError(failure)
+    } catch (reason) {
+      setOrdersError(failureWithReason(failure, reason))
     } finally {
       setOrdersBusy(false)
     }
