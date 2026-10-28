@@ -48,7 +48,7 @@
 .nav-item[aria-current="page"] .icon { color: var(--accent); }
 .nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-count {
-  min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--accent); color: var(--accent-ink);
+  min-width: 20px; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--bg-2); color: var(--text);
   font-size: .75rem; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums;
 }
 
@@ -260,7 +260,7 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 .tag.absent { border-style: dashed; color: var(--text-faint); }
 .tag.mastered { border-color: color-mix(in srgb, var(--ok) 45%, transparent); color: var(--ok); }
 .tag.rank.maxed { border-color: var(--line-control); color: var(--text); }
-.tag.listed { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+.tag.listed { border-color: var(--line-control); color: var(--text); }
 
 .card-values { display: flex; flex-wrap: wrap; align-items: center; align-self: end; gap: 2px 12px; min-width: 0; }
 .value { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
