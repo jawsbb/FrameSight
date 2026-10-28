@@ -734,7 +734,7 @@ pub const MAX_DUMP_BYTES: usize = 32 * 1024 * 1024;
 /// How far back to look for a dump. Measured lag on 2026-07-29 was two days; five is slack for a
 /// missed publication, and a bound so a dead host costs six requests rather than an unbounded walk.
 pub const DUMP_LOOKBACK_DAYS: u64 = 5;
-const USER_AGENT: &str = concat!(
+pub(crate) const USER_AGENT: &str = concat!(
     "TennoScope/",
     env!("CARGO_PKG_VERSION"),
     " (+https://github.com/Deftera186/tennoscope)"

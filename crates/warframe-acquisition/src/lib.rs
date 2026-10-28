@@ -22,6 +22,7 @@ mod reward_ui_memory;
 mod run_drops;
 #[cfg(windows)]
 mod windows_proc;
+mod world_state;
 
 pub use authorization::AuthorizationScanner;
 pub use catalog::{
@@ -64,6 +65,10 @@ pub use reward_ui_memory::PersistentRewardResolver;
 pub use run_drops::RunDrop;
 #[cfg(windows)]
 pub use windows_proc::WindowsProc;
+pub use world_state::{
+    Cycle, CycleState, Era, Node, Place, WorldNames, WorldNamesCache, WorldState, WorldStateHttp,
+    WorldView,
+};
 
 /// A credential whose standard formatting surfaces never expose its contents.
 pub struct SecretString(Zeroizing<String>);
