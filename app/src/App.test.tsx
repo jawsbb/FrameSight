@@ -496,6 +496,93 @@ describe('MVP desktop interface', () => {
     expect(screen.getByRole('article', { name: 'Forma Blueprint' })).toHaveTextContent('Missing')
   })
 
+  it('keeps each grid page’s filters across a change of tab', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    await user.type(screen.getByRole('searchbox', { name: 'Search collection' }), 'prime')
+    await user.click(screen.getByRole('button', { name: 'Prime Parts' }))
+    await user.click(screen.getByRole('button', { name: 'Owned' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort collection' }), 'Platinum')
+
+    await user.click(screen.getByRole('button', { name: 'Mastery' }))
+    await user.click(screen.getByRole('button', { name: 'Frame 0/1' }))
+    await user.click(screen.getByRole('button', { name: 'Collection' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search collection' })).toHaveValue('prime')
+    expect(screen.getByRole('button', { name: 'Prime Parts' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Owned' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('combobox', { name: 'Sort collection' })).toHaveValue('platinum-desc')
+    const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
+    expect(names).toEqual(['Lex Prime Receiver', 'Zenith Prime Receiver'])
+
+    await user.click(screen.getByRole('button', { name: 'Mastery' }))
+    expect(screen.getByRole('button', { name: 'Frame 0/1' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('keeps the page of a paginated grid across a change of tab', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.getView.mockResolvedValue({
+      ...view,
+      collection: {
+        total_entries: 60,
+        items: Array.from({ length: 60 }, (_, index) => ({
+          id: `item-${index.toString().padStart(2, '0')}`,
+          name: `Item ${index.toString().padStart(2, '0')}`,
+          category: 'weapon' as const,
+          quantity: 1,
+          mastered: false,
+          live: false,
+        })),
+      },
+    })
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Go to page 2' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Collection' }))
+    expect(screen.getByText('49–60 of 60')).toBeInTheDocument()
+  })
+
+  it('clears the filters from an empty result', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    await user.click(screen.getByRole('button', { name: 'Relic' }))
+    await user.type(screen.getByRole('searchbox', { name: 'Search collection' }), 'no such item')
+    expect(screen.getByRole('heading', { name: 'No matching items' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search collection' })).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'All categories' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByRole('article')).toHaveLength(view.collection.items.length)
+  })
+
+  it('opens Mastery from the collection, and calls a never-held item what it is', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    render(<App />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Mastery progress' }))
+    expect(screen.getByRole('heading', { name: 'Mastery' })).toBeInTheDocument()
+    expect(screen.getByRole('article', { name: 'Excalibur' })).toHaveTextContent('Never held')
+    expect(screen.getByRole('article', { name: 'Excalibur' })).not.toHaveTextContent('Missing')
+  })
+
+  it('shows About at the foot of Settings rather than as its own page', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    expect(screen.queryByRole('button', { name: 'About' })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    const about = screen.getByRole('region', { name: 'About' })
+    expect(within(about).getByText(/free, open-source, local-first companion/)).toBeInTheDocument()
+    expect(await within(about).findByText('Version 0.11.0')).toBeInTheDocument()
+    expect(within(about).getByRole('heading', { name: 'Warframe access disclosure' })).toBeInTheDocument()
+  })
+
   it('supports every stable category and sortable collection results', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App />)
