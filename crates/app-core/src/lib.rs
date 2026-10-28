@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod fake_session;
+mod relics;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -11,7 +12,7 @@ use thiserror::Error;
 use warframe_acquisition::{
     AcquisitionError, AcquisitionFailure, AcquisitionResult, AcquisitionStage, CatalogIndex,
     CatalogLoadSource, DucatTable, Holdings, MarketPriceCache, MasteryEvidence, MasteryFacts,
-    MasteryLedger, PriceTable, StageState,
+    MasteryLedger, PriceTable, RelicRewardIndex, StageState,
 };
 use warframe_domain::{
     CatalogItem, Category, Collection, DomainError, InventoryEntry, InventorySnapshot,
@@ -19,6 +20,8 @@ use warframe_domain::{
 };
 use warframe_market::{CredentialBacking, MarketItems, MarketOrder, OrderKind};
 use warframe_status::Presence;
+
+pub use relics::{Opening, Rarity, Refinement, RelicRewardView, RelicView, RelicsView, opening};
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -47,6 +50,8 @@ pub struct AppCore {
     /// which is a claim about the account as it stands, is only made under a mode that can
     /// stand behind it.
     reads_inventory: bool,
+    /// WFCD's relic tables, for the Relics page.
+    relics: Option<Arc<RelicRewardIndex>>,
 }
 
 /// A snapshot of what mastery marks may say, taken once per overlay publish.
@@ -142,6 +147,7 @@ impl AppCore {
             mastery_catalog: None,
             mastery_facts: None,
             reads_inventory: false,
+            relics: None,
         })
     }
 
