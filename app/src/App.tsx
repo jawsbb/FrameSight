@@ -413,7 +413,7 @@ function App() {
         {/* The detail and the snapshot age are the reader's description, read on focus. */}
         <span id="reader-detail" hidden>{readerDetail}</span>
         {view && <span id="inventory-freshness" hidden>{freshness.label}, {freshness.detail}</span>}
-        <Tip text={<><strong>{readerLabel}</strong><span>{readerDetail}</span>{view && <small>{freshness.label} · {freshness.detail}</small>}</>}>
+        <Tip text={<><strong>{readerLabel}</strong><span>{readerDetail}</span>{view && <><small>{freshness.label}</small><small>{freshness.detail}</small></>}</>}>
           <button type="button" className={`rail-item reader ${readerState}`} aria-label={readerLabel} aria-describedby={view ? 'reader-detail inventory-freshness' : 'reader-detail'} onClick={() => openPage('diagnostics')}>
             <StateIcon state={readerState}/>
           </button>

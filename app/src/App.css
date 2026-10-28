@@ -53,9 +53,10 @@
 .rail-item .icon { width: 18px; height: 18px; }
 .rail-item:hover:not(:disabled) { background: var(--fill); color: var(--text); }
 .rail-item[aria-current="page"] { background: var(--fill); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); }
-/* A count rides the corner on an opaque ground, carved out of the icon by a ring of the rail. */
+/* A count rides the corner on an opaque ground, carved out of the icon by a ring of the rail,
+   inside the button so the focus ring stays whole. */
 .nav-count {
-  position: absolute; top: 0; right: 0; min-width: 16px; padding: 0 4px; border-radius: 8px;
+  position: absolute; top: 1px; right: 1px; min-width: 16px; padding: 0 4px; border-radius: 8px;
   background: var(--bg-2); box-shadow: 0 0 0 2px var(--bg-1);
   color: var(--text); font-size: .75rem; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums;
 }
