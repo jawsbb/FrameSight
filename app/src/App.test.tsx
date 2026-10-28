@@ -1535,7 +1535,7 @@ describe('MVP desktop interface', () => {
     await userEvent.click(await within(card).findByRole('button', { name: 'Sell' }))
     await userEvent.click(within(card).getByRole('button', { name: /list for sale/i }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not publish that listing. Warframe.market is limiting requests; try again shortly.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not publish that listing. warframe.market is limiting requests; try again shortly.')
   })
 
   it('does not repeat a backend reason the generic line already says', async () => {

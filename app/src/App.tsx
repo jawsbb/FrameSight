@@ -121,7 +121,9 @@ const pageLabel: Record<Page, string> = {
 function failureWithReason(failure: string, reason: unknown): string {
   const text = typeof reason === 'string' ? reason.trim().replace(/\.$/, '') : ''
   if (!text || failure.toLowerCase().startsWith(text.toLowerCase())) return failure
-  return `${failure} ${text[0].toUpperCase()}${text.slice(1)}.`
+  // A sentence starts with a capital, a domain name never does: "warframe.market is limiting…".
+  const lead = /^\S+\.\S/.test(text) ? text : text[0].toUpperCase() + text.slice(1)
+  return `${failure} ${lead}.`
 }
 
 /** `1 choice`, `4 choices`: a nav badge's count, said in words for its accessible name. */
