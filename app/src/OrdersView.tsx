@@ -6,6 +6,7 @@ import { stampReading } from './freshness'
 import { MetalMark } from './MetalMark'
 import { Stat } from './Stat'
 import { useMessages } from './i18n'
+import { EmptyState } from './EmptyState'
 
 type OrdersViewProps = {
   account: MarketAccount
@@ -89,15 +90,12 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
     {!needsRelink && <NewListing items={items} orders={account.orders} listable={account.listable} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
 
     {account.orders.length
-      ? <ul className="docket" aria-label={t.orders.list}>
+      ? <ul className="group docket" aria-label={t.orders.list}>
         {sortOrders(account.orders).map(entry => <li key={entry.order.id}>
           <OrderRow entry={entry} items={items} busy={busy} onRemove={onRemove} onLowerTo={onLowerTo} onSell={onSell} onUpdate={onUpdate} />
         </li>)}
       </ul>
-      : <div className="empty-state">
-        <h2>{t.orders.none}</h2>
-        <p>{t.orders.noneDetail}</p>
-      </div>}
+      : <EmptyState icon="orders" title={t.orders.none} detail={t.orders.noneDetail}/>}
   </section>
 }
 
@@ -240,9 +238,22 @@ function PresenceSwitch({ presence, busy, onPresence }: {
   ]
   const wanted = presence.wanted ?? null
   const settled = presence.status === wanted
-  return <div className="presence">
-    <div className="presence-head">
+  return <div className="group presence">
+    <div className="setting">
       <span className="presence-label" id="presence-label">{t.orders.presence.label}</span>
+      <div className="segmented presence-choices" role="group" aria-labelledby="presence-label" data-auto={presence.auto || undefined}>
+        {choices.map(choice => <button
+          key={choice.label}
+          type="button"
+          aria-pressed={wanted === choice.value}
+          // In automatic mode the row reports rather than accepts: pressing one would silently be
+          // overridden by the next poll, and a control that undoes itself is worse than a disabled one.
+          disabled={busy || presence.auto}
+          onClick={() => onPresence(choice.value, false)}
+        >{choice.label}</button>)}
+      </div>
+    </div>
+    <div className="setting">
       {/* A real checkbox: it is a mode with two states, a reader announces it as one without
           being told to, and the space bar works on it for free. */}
       <label className="presence-auto">
@@ -254,25 +265,13 @@ function PresenceSwitch({ presence, busy, onPresence }: {
         />
         <span>{t.orders.presence.auto}</span>
       </label>
+      <p className="presence-note" role="status">{
+        !settled ? t.orders.presence.asking
+          : presence.auto ? t.orders.presence.following(t.orders.presence.words[wanted ?? 'offline'])
+            : wanted ? t.orders.presence.held
+              : t.orders.presence.silent
+      }</p>
     </div>
-    <div className="presence-choices" role="group" aria-labelledby="presence-label" data-auto={presence.auto || undefined}>
-      {choices.map(choice => <button
-        key={choice.label}
-        type="button"
-        className="stamp"
-        aria-pressed={wanted === choice.value}
-        // In automatic mode the row reports rather than accepts: pressing one would silently be
-        // overridden by the next poll, and a control that undoes itself is worse than a disabled one.
-        disabled={busy || presence.auto}
-        onClick={() => onPresence(choice.value, false)}
-      ><span>{choice.label}</span></button>)}
-    </div>
-    <p className="presence-note" role="status">{
-      !settled ? t.orders.presence.asking
-        : presence.auto ? t.orders.presence.following(t.orders.presence.words[wanted ?? 'offline'])
-          : wanted ? t.orders.presence.held
-            : t.orders.presence.silent
-    }</p>
   </div>
 }
 

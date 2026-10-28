@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
 import {
   authorizeScreenCapture,
@@ -51,6 +51,8 @@ import { reportBlockVisible } from './reportable'
 import { AccessSelector } from './AccessSelector'
 import { accessMode } from './access'
 import { Stat } from './Stat'
+import { Icon } from './Icon'
+import { EmptyState } from './EmptyState'
 import { LANGUAGE_NAMES, MessagesContext, backendReason, catalogs, resolveLanguage, shortDate, useDocumentLanguage, useMessages, type Messages } from './i18n'
 
 type Page = 'collection' | 'mastery' | 'rewards' | 'orders' | 'diagnostics' | 'settings'
@@ -86,23 +88,6 @@ function failureWithReason(failure: string, reason: unknown, t: Messages): strin
   // A sentence starts with a capital, a domain name never does: "warframe.market is limiting…".
   const lead = /^\S+\.\S/.test(text) ? text : text[0].toUpperCase() + text.slice(1)
   return `${failure} ${lead}.`
-}
-
-/** Line icons on a 24px grid, one round stroke throughout. */
-function Icon({ name }: { name: Page | 'refresh' | 'search' | 'previous' | 'next' }) {
-  const paths = {
-    collection: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></>,
-    mastery: <><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-5.1"/></>,
-    rewards: <><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H5a2.5 2.5 0 0 0 2.6 3.4M16.5 6H19a2.5 2.5 0 0 1-2.6 3.4M12 13.5V17M8.5 20h7"/></>,
-    orders: <><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12.5h4"/></>,
-    diagnostics: <path d="M3 12h4l2.5-6.5 5 13 2.5-6.5h4"/>,
-    settings: <><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></>,
-    refresh: <><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></>,
-    search: <><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></>,
-    previous: <path d="m14.5 6-6 6 6 6"/>,
-    next: <path d="m9.5 6 6 6-6 6"/>,
-  }
-  return <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>
 }
 
 /** A health state as a shape and a colour, never colour alone: a full dot is ready, a ring is
@@ -504,7 +489,7 @@ function App() {
           </span>
         </div>
         {view && <span className="snapshot-age" title={freshness.detail}>{freshness.label}<span className="sr-only">, {freshness.detail}</span></span>}
-        <button type="button" className="stamp refresh" onClick={refresh} disabled={busy || modeBusy || setupStatus?.access_mode !== 'full'} aria-describedby={setupStatus?.access_mode !== 'full' ? 'inventory-access-note' : undefined}>
+        <button type="button" className="nav-item refresh" onClick={refresh} disabled={busy || modeBusy || setupStatus?.access_mode !== 'full'} aria-describedby={setupStatus?.access_mode !== 'full' ? 'inventory-access-note' : undefined}>
           <Icon name="refresh"/><span className="refresh-label">{busy ? t.sidebar.refreshing : t.sidebar.refreshInventory}</span>
         </button>
         {setupStatus?.access_mode !== 'full' && <span id="inventory-access-note" className="sr-only">{t.sidebar.fullRequired}</span>}
@@ -642,6 +627,14 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
   return <section className="page" aria-labelledby="collection-title">
     <div className="page-head">
       <h1 id="collection-title" className="page-title">{snapshotOnly ? t.collection.titleSnapshot : t.collection.title}</h1>
+      {ownershipVerified && view.collection.items.length > 0 && <div className="segmented head-tabs" role="group" aria-label={t.collection.ownershipFilters}>
+        {(['all', 'owned', 'mastered', 'missing', 'tradeable'] as const).map(filter => <button
+          type="button"
+          key={filter}
+          aria-pressed={ownership === filter}
+          onClick={() => update({ ownership: filter })}
+        >{t.collection.ownership[filter]}</button>)}
+      </div>}
       <div className="stats">
         <Stat kind="items" value={view.collection.total_entries} label={snapshotOnly ? t.collection.savedEntries : t.collection.items}/>
         <Stat kind="owned" value={owned} label={t.collection.owned} aside={t.collection.missing(missing)}/>
@@ -668,14 +661,6 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
             {sorts.map(option => <option key={option} value={option}>{t.collection.sorts[option]}</option>)}
           </select>
         </label>
-        {ownershipVerified && <div className="segmented" role="group" aria-label={t.collection.ownershipFilters}>
-          {(['all', 'owned', 'mastered', 'missing', 'tradeable'] as const).map(filter => <button
-            type="button"
-            key={filter}
-            aria-pressed={ownership === filter}
-            onClick={() => update({ ownership: filter })}
-          >{t.collection.ownership[filter]}</button>)}
-        </div>}
         <button type="button" role="switch" aria-checked={showDucats} className="display-switch" onClick={onToggleDucats}>
           <span className="display-face"><MetalMark metal="ducat"/>{t.collection.ducatValues}</span>
           <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
@@ -720,8 +705,9 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
           <p className="result-count">{t.grid.range(firstResult, lastResult, filtered.length)}</p>
           <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
         </>
-        : <EmptyState title={t.grid.noMatch} detail={t.grid.tryAnother} action={<button type="button" className="stamp" onClick={() => update({ search: '', category: 'all', ownership: 'all' })}>{t.grid.clearFilters}</button>}/>}
+        : <EmptyState icon="search" title={t.grid.noMatch} detail={t.grid.tryAnother} action={<button type="button" className="stamp" onClick={() => update({ search: '', category: 'all', ownership: 'all' })}>{t.grid.clearFilters}</button>}/>}
     </> : <EmptyState
+      icon="collection"
       title={snapshotOnly ? t.collection.emptySnapshot : t.collection.empty}
       detail={snapshotOnly ? t.collection.emptySnapshotDetail : t.collection.emptyDetail}
     />}
@@ -761,7 +747,7 @@ function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }:
     </div>
 
     {!available
-      ? <EmptyState title={t.mastery.unavailable} detail={t.mastery.unavailableDetail}/>
+      ? <EmptyState icon="mastery" title={t.mastery.unavailable} detail={t.mastery.unavailableDetail}/>
       : <>
         <div className="toolbar">
           <SearchField label={t.mastery.search} value={search} onChange={value => update({ search: value })}/>
@@ -793,6 +779,7 @@ function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }:
             <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
           </>
           : <EmptyState
+            icon="mastery"
             title={t.mastery.nothingLeft}
             detail={items.length ? t.grid.tryAnother : t.mastery.allMastered}
             action={items.length > 0 && <button type="button" className="stamp" onClick={() => update({ search: '', category: 'all' })}>{t.grid.clearFilters}</button>}
@@ -893,7 +880,7 @@ function RewardPage({ view, effectiveMode }: { view: AppView; effectiveMode: Acc
     <section aria-label={t.rewards.title}>
       {view.reward.cards.length
         ? <RewardCards cards={view.reward.cards} bestValueIndex={view.reward.best_value_index} bestDucatIndex={view.reward.best_ducat_index} ownershipVerified={ownershipVerified}/>
-        : <EmptyState title={t.rewards.none} detail={companion ? t.rewards.companionDetail : t.rewards.waiting}/>}
+        : <EmptyState icon="rewards" title={t.rewards.none} detail={companion ? t.rewards.companionDetail : t.rewards.waiting}/>}
     </section>
   </div>
 }
@@ -942,20 +929,24 @@ function ReportBlock({ health, alwaysVisible }: { health: AppView['health']; alw
     }
   }
   return (
-    <section className={`report${broken ? ' broken' : ''}`} role="group" aria-label={t.report.title}>
-      <div className="report-head">
-        <StateIcon state={broken ? 'failed' : 'ready'}/>
-        <h2 className="section-title">{t.report.title}</h2>
-        <p className="prose">{broken ? t.report.failed : ''}{t.report.intro}</p>
+    <section className="page-section" role="group" aria-label={t.report.title}>
+      <h2 className="section-title">{t.report.title}</h2>
+      <div className={`group report${broken ? ' broken' : ''}`}>
+        <div className="setting">
+          <div className="report-head">
+            <StateIcon state={broken ? 'failed' : 'ready'}/>
+            <p className="prose">{broken ? t.report.failed : ''}{t.report.intro}</p>
+          </div>
+          <div className="report-actions">
+            <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(openIssue, () => t.report.opened)}>{t.report.openIssue}</button>
+            <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(copyReport, () => t.report.copied)}>{t.report.copy}</button>
+            <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(saveReport, result =>
+              t.report.saved(result?.folder_path ?? '…', result?.ee_log_included ?? false),
+            )}>{t.report.save}</button>
+          </div>
+        </div>
+        {status.kind === 'done' && <p className="setting report-status" role="status">{status.message}</p>}
       </div>
-      <div className="report-actions">
-        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(openIssue, () => t.report.opened)}>{t.report.openIssue}</button>
-        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(copyReport, () => t.report.copied)}>{t.report.copy}</button>
-        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(saveReport, result =>
-          t.report.saved(result?.folder_path ?? '…', result?.ee_log_included ?? false),
-        )}>{t.report.save}</button>
-      </div>
-      {status.kind === 'done' && <p className="report-status" role="status">{status.message}</p>}
     </section>
   )
 }
@@ -975,12 +966,12 @@ function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effectiveMode
     <section className="page-section" aria-label={t.diagnostics.title}>
       {effectiveMode === 'companion' && <p className="prose">{t.diagnostics.companion}</p>}
       <h2 className="section-title">{t.diagnostics.services}</h2>
-      <div className="health-list">{systems.map(system => <HealthRow key={system} label={t.diagnostics.systems[system]} health={view.health[system]}/>)}</div>
+      <div className="group health-list">{systems.map(system => <HealthRow key={system} label={t.diagnostics.systems[system]} health={view.health[system]}/>)}</div>
 
       {showAcquisition && <>
         <h2 className="section-title">{t.diagnostics.acquisition}</h2>
         {view.health.acquisition_stages.length
-          ? <ol className="stages">{view.health.acquisition_stages.map((stage, index) => {
+          ? <ol className="group stages">{view.health.acquisition_stages.map((stage, index) => {
             // A stage the catalog does not name yet reads as its id in words.
             const words = stage.stage.replaceAll('_', ' ')
             const label = (t.diagnostics.stages as Partial<Record<string, string>>)[stage.stage] ?? words[0].toUpperCase() + words.slice(1)
@@ -991,7 +982,7 @@ function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effectiveMode
               <span className="verdict">{t.health.states[stage.state]}</span>
             </li>
           })}</ol>
-          : <EmptyState title={t.diagnostics.noAttempt} detail={t.diagnostics.noAttemptDetail}/>}
+          : <EmptyState icon="diagnostics" title={t.diagnostics.noAttempt} detail={t.diagnostics.noAttemptDetail}/>}
       </>}
     </section>
   </div>
@@ -1007,7 +998,6 @@ function SettingsPage({ view, language, onLanguage, priceFloor, effectiveMode, s
     </div>
     <section className="page-section" aria-labelledby="access-setting-title">
       <h2 id="access-setting-title" className="section-title">{t.settings.access}</h2>
-      <p className="band-note">{t.settings.accessNote}</p>
       <AccessSelector
         value={selectedMode}
         effectiveMode={effectiveMode}
@@ -1017,13 +1007,14 @@ function SettingsPage({ view, language, onLanguage, priceFloor, effectiveMode, s
         disabled={modeBusy}
       />
       {modeError && <p className="error-banner" role="alert">{modeError}</p>}
+      <p className="band-note">{t.settings.accessNote}</p>
     </section>
 
     <LanguageSetting preference={language} onSaved={onLanguage}/>
 
     <section className="page-section" aria-labelledby="collection-setting-title">
       <h2 id="collection-setting-title" className="section-title">{t.settings.collection}</h2>
-      <div className="setting">
+      <div className="group"><div className="setting">
         <div>
           <h3>{t.settings.priceFloor}</h3>
           <p className="prose">{t.settings.priceFloorNote}</p>
@@ -1047,11 +1038,12 @@ function SettingsPage({ view, language, onLanguage, priceFloor, effectiveMode, s
           </output>
         </div>
         <p className="band-note">{t.settings.floorSummary(counted, total)}</p>
-      </div>
+      </div></div>
     </section>
 
     <section className="page-section" aria-labelledby="overlays-setting-title">
       <h2 id="overlays-setting-title" className="section-title">{t.settings.overlays}</h2>
+      <div className="group">
       <MasteryMarksSetting/>
 
       <DesktopCaptureSetting actionAvailable={effectiveMode !== 'companion' && desktopCaptureActionAvailable} prohibited={effectiveMode === 'companion'} busy={captureAuthorizationBusy} note={captureNote} onNote={onCaptureNote} onAuthorize={onAuthorizeCapture}/>
@@ -1063,15 +1055,12 @@ function SettingsPage({ view, language, onLanguage, priceFloor, effectiveMode, s
         </div>
         <OverlayPreviewToggle prohibited={effectiveMode === 'companion'} busy={modeBusy}/>
       </div>
+      </div>
     </section>
 
-    <section className="page-section" aria-labelledby="updates-title">
-      <UpdatesSetting observesGame={effectiveMode !== 'companion'}/>
-    </section>
+    <UpdatesSetting observesGame={effectiveMode !== 'companion'}/>
 
-    <div className="page-section">
-      <ReportBlock health={view.health} alwaysVisible/>
-    </div>
+    <ReportBlock health={view.health} alwaysVisible/>
 
     <AboutSection effectiveMode={effectiveMode}/>
   </section>
@@ -1128,7 +1117,7 @@ function MasteryMarksSetting() {
       aria-busy={busy}
       onClick={() => { void toggle() }}
     >
-      <span className="display-face">{t.settings.marksSwitch}</span>
+      <span className="sr-only">{t.settings.marksSwitch}</span>
       <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
     </button>
     {note && <p className="band-note" role="status">{t.settings[note]}</p>}
@@ -1161,7 +1150,7 @@ function LanguageSetting({ preference, onSaved }: { preference: Language | null;
   ]
   return <section className="page-section" aria-labelledby="language-setting-title">
     <h2 id="language-setting-title" className="section-title">{t.settings.language}</h2>
-    <div className="setting">
+    <div className="group"><div className="setting">
       <p className="prose">{t.settings.languageNote}</p>
       <div className="segmented" role="group" aria-labelledby="language-setting-title">
         {choices.map(choice => <button
@@ -1174,7 +1163,7 @@ function LanguageSetting({ preference, onSaved }: { preference: Language | null;
         >{choice.label}</button>)}
       </div>
       {failed && <p className="band-note" role="status">{t.settings.unsaved}</p>}
-    </div>
+    </div></div>
   </section>
 }
 
@@ -1228,8 +1217,11 @@ function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
     : info.kind === 'system_linux' ? (info.manager ?? t.about.installers.system_linux) : t.about.installers[info.kind]
   return <section className="page-section" aria-labelledby="about-title">
     <h2 id="about-title" className="section-title">{t.about.title}</h2>
-    <p className="prose">{t.about.tagline}</p>
-    <p className="band-note">{t.about.version(info?.version ?? APP_VERSION, installer)}</p>
+    <div className="group">
+    <div className="setting">
+      <p className="prose">{t.about.tagline}</p>
+      <p className="about-version">{t.about.version(info?.version ?? APP_VERSION, installer)}</p>
+    </div>
 
     {/* What each access level reads, and what Full sends, is said once, in the selector above. */}
     <div className="setting">
@@ -1249,6 +1241,7 @@ function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
         <h3>{t.about.assistance}</h3>
         <p className="prose">{observesGame ? t.about.assistanceObserving : t.about.assistanceOther}</p>
       </div>
+    </div>
     </div>
   </section>
 }
@@ -1281,14 +1274,6 @@ function OverlayPreviewToggle({ prohibited, busy }: { prohibited: boolean; busy:
     >{shown ? t.settings.hideOverlay : t.settings.previewOverlay}</button>
     {prohibited && <p id="overlay-prohibited" className="prohibition-note">{t.settings.overlayProhibited}</p>}
     {!prohibited && blocked && <p id="overlay-blocked" className="band-note" role="status">{t.settings.overlayBlocked}</p>}
-  </div>
-}
-
-function EmptyState({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) {
-  return <div className="empty-state">
-    <h2>{title}</h2>
-    <p>{detail}</p>
-    {action}
   </div>
 }
 

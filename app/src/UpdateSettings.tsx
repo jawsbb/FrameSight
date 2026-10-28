@@ -86,11 +86,10 @@ export function UpdatesSetting({ observesGame }: { observesGame: boolean }) {
     }
   }
 
-  return <div className="setting" id="updates-setting">
-    <div>
-      <h2 id="updates-title" className="section-title" tabIndex={-1}>{t.updates.title}</h2>
-      <p className="prose">{t.updates.intro}</p>
-      <label className="check-row">
+  return <section className="page-section" id="updates-setting" aria-labelledby="updates-title">
+    <h2 id="updates-title" className="section-title" tabIndex={-1}>{t.updates.title}</h2>
+    <div className="group">
+      <label className="setting check-row">
         <input
           type="checkbox"
           checked={autoCheck}
@@ -103,7 +102,7 @@ export function UpdatesSetting({ observesGame }: { observesGame: boolean }) {
         />
         <span>{t.updates.daily}</span>
       </label>
-      <details className="update-channel">
+      <details className="setting update-channel">
         <summary>{t.updates.prereleases}</summary>
         <label className="check-row">
           <input
@@ -121,82 +120,85 @@ export function UpdatesSetting({ observesGame }: { observesGame: boolean }) {
           <span>{t.updates.beta}</span>
         </label>
       </details>
+      <div className="setting">
+        <p ref={statusRef} tabIndex={-1} className="band-note capture-status" role="status" aria-live="polite" aria-atomic="true">
+          {store.phase === 'loading' && t.updates.loading}
+          {store.phase === 'checking' && t.updates.checking}
+          {store.phase === 'current' && info && t.updates.latest(info.version, lastChecked)}
+          {store.phase === 'idle' && info && (note ?? t.updates.current(info.version, lastChecked))}
+          {store.phase === 'idle' && !info && (note ?? t.updates.backendDown)}
+          {store.phase === 'failed' && note}
+          {/* The offline note rides with a standing offer. Without this the store holds a note that
+              nothing renders, and pressing Check now with no network answers the press with silence. */}
+          {store.phase === 'offered' && actionable && `${t.updates.offered(actionable.version)}${note ? ` ${note}` : ''}`}
+          {store.phase === 'ready' && actionable && `${t.updates.downloaded(actionable.version)}${note ? ` ${note}` : ''}`}
+          {store.phase === 'suppressed' && actionable && dismissedCount(actionable.version) >= 2
+            && `${t.updates.dismissedTwice(actionable.version)}${note ? ` ${note}` : ''}`}
+          {store.phase === 'suppressed' && actionable && dismissedCount(actionable.version) < 2
+            && `${t.updates.offered(actionable.version)}${note ? ` ${note}` : ''}`}
+          {store.phase === 'downloading' && actionable && t.updates.downloading(actionable.version)}
+        </p>
+        <button type="button" className="stamp" onClick={() => act(() => void checkForUpdatesNow())} disabled={busy}>{t.updates.checkNow}</button>
+      </div>
+      {store.phase === 'downloading' && <div className="setting update-download">
+        <progress className="update-progress" max={store.total ?? undefined} value={store.total == null ? undefined : (store.downloaded ?? undefined)} aria-label={t.updates.downloadingLabel(actionable?.version ?? t.updates.update)} aria-valuetext={actionable ? (percent === null ? t.updates.downloadStarting : `${t.updates.downloadPercent(percent)}${store.total ? t.updates.megabytesOf(megabytes(store.downloaded ?? 0), megabytes(store.total)) : ''}`) : undefined}/>
+        <p className="band-note" aria-hidden="true">{actionable && (percent === null ? t.updates.starting : `${t.updates.progress(percent)}${store.total ? t.updates.mbOf(megabytes(store.downloaded ?? 0), megabytes(store.total)) : ''}`)}</p>
+      </div>}
+      <p className="sr-only" role="status">{store.phase === 'downloading' && milestone !== null && milestone > 0 ? t.updates.milestone(milestone) : ''}</p>
+      {store.phase === 'offered' && actionable && updatable && <div className="setting update-actions">
+        <p className="prose">{t.updates.availableDownload(actionable.version)}</p>
+        {metered && <p className="prohibition-note">{t.updates.meteredDownload}</p>}
+        <button type="button" className="stamp" onClick={() => act(() => void downloadUpdate())} disabled={busy}>{t.updates.download}</button>
+        <button type="button" className="stamp" onClick={() => act(() => dismissOffered())}>{t.updates.notNow}</button>
+        <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
+      </div>}
+      {store.phase === 'offered' && actionable && !updatable && <div className="setting update-actions">
+        {info?.kind === 'appimage' && !info.writable
+          ? <p className="prose">{t.updates.appImageStuck(actionable.version)}</p>
+          : <p className="prose">{t.updates.throughManager(actionable.version, info?.manager ?? null)}</p>}
+        {info?.manager_command && <>
+          <p className="band-note" id="update-command-offered">{t.updates.copyRun}</p>
+          <div className="command-chip">
+            <input value={info.manager_command} readOnly onFocus={event => event.currentTarget.select()} aria-label={t.updates.managerCommand} aria-describedby="update-command-offered"/>
+            <button type="button" className="stamp" onClick={() => void copyCommand(info.manager_command ?? '')}>{copied ? t.updates.copiedButton : t.updates.copy}</button>
+          </div>
+          <p className="sr-only" role="status">{copyNote ?? ''}</p>
+        </>}
+        <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
+        <button type="button" className="stamp" onClick={() => act(() => dismissOffered())}>{t.updates.notNow}</button>
+      </div>}
+      {store.phase === 'suppressed' && actionable && <div className="setting update-actions">
+        {actionable && dismissedCount(actionable.version) >= 2
+          ? <p className="prose">{t.updates.dismissedTwiceRelease(actionable.version)}</p>
+          : <p className="prose">{t.updates.paused(actionable.version)}</p>}
+        <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
+      </div>}
+      {store.phase === 'failed' && actionable && updatable && <div className="setting update-actions">
+        {metered && <p className="prohibition-note">{t.updates.meteredRetry}</p>}
+        <button type="button" className="stamp" onClick={() => act(() => void downloadUpdate())} disabled={busy}>{t.updates.retry}</button>
+        <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
+      </div>}
+      {store.phase === 'failed' && actionable && !updatable && <div className="setting update-actions">
+        {info?.manager_command && <>
+          <p className="band-note" id="update-command-failed">{t.updates.copyRun}</p>
+          <div className="command-chip">
+            <input value={info.manager_command} readOnly onFocus={event => event.currentTarget.select()} aria-label={t.updates.managerCommand} aria-describedby="update-command-failed"/>
+            <button type="button" className="stamp" onClick={() => void copyCommand(info.manager_command ?? '')}>{copied ? t.updates.copiedButton : t.updates.copy}</button>
+          </div>
+          <p className="sr-only" role="status">{copyNote ?? ''}</p>
+        </>}
+        <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
+      </div>}
+      {store.phase === 'ready' && actionable && !deferred && <div className="setting update-actions">
+        <p className="prose">{t.updates.restartReady(actionable.version, observesGame)}</p>
+        <button type="button" className="stamp" onClick={() => act(() => void restartToUpdate())}>{t.updates.restart}</button>
+        <button type="button" className="stamp" onClick={() => act(() => setDeferred(true))}>{t.updates.later}</button>
+      </div>}
+      {store.phase === 'ready' && actionable && deferred && <div className="setting update-actions">
+        <p className="prose">{t.updates.restartWaiting(actionable.version, observesGame)}</p>
+        <button type="button" className="stamp" onClick={() => act(() => void restartToUpdate())}>{t.updates.restart}</button>
+      </div>}
     </div>
-    <button type="button" className="stamp" onClick={() => act(() => void checkForUpdatesNow())} disabled={busy}>{t.updates.checkNow}</button>
-    <p ref={statusRef} tabIndex={-1} className="band-note capture-status" role="status" aria-live="polite" aria-atomic="true">
-      {store.phase === 'loading' && t.updates.loading}
-      {store.phase === 'checking' && t.updates.checking}
-      {store.phase === 'current' && info && t.updates.latest(info.version, lastChecked)}
-      {store.phase === 'idle' && info && (note ?? t.updates.current(info.version, lastChecked))}
-      {store.phase === 'idle' && !info && (note ?? t.updates.backendDown)}
-      {store.phase === 'failed' && note}
-      {/* The offline note rides with a standing offer. Without this the store holds a note that
-          nothing renders, and pressing Check now with no network answers the press with silence. */}
-      {store.phase === 'offered' && actionable && `${t.updates.offered(actionable.version)}${note ? ` ${note}` : ''}`}
-      {store.phase === 'ready' && actionable && `${t.updates.downloaded(actionable.version)}${note ? ` ${note}` : ''}`}
-      {store.phase === 'suppressed' && actionable && dismissedCount(actionable.version) >= 2
-        && `${t.updates.dismissedTwice(actionable.version)}${note ? ` ${note}` : ''}`}
-      {store.phase === 'suppressed' && actionable && dismissedCount(actionable.version) < 2
-        && `${t.updates.offered(actionable.version)}${note ? ` ${note}` : ''}`}
-      {store.phase === 'downloading' && actionable && t.updates.downloading(actionable.version)}
-    </p>
-    {store.phase === 'downloading' && <>
-      <progress className="update-progress" max={store.total ?? undefined} value={store.total == null ? undefined : (store.downloaded ?? undefined)} aria-label={t.updates.downloadingLabel(actionable?.version ?? t.updates.update)} aria-valuetext={actionable ? (percent === null ? t.updates.downloadStarting : `${t.updates.downloadPercent(percent)}${store.total ? t.updates.megabytesOf(megabytes(store.downloaded ?? 0), megabytes(store.total)) : ''}`) : undefined}/>
-      <p className="band-note" aria-hidden="true">{actionable && (percent === null ? t.updates.starting : `${t.updates.progress(percent)}${store.total ? t.updates.mbOf(megabytes(store.downloaded ?? 0), megabytes(store.total)) : ''}`)}</p>
-    </>}
-    <p className="sr-only" role="status">{store.phase === 'downloading' && milestone !== null && milestone > 0 ? t.updates.milestone(milestone) : ''}</p>
-    {store.phase === 'offered' && actionable && updatable && <div className="update-actions">
-      <p className="prose">{t.updates.availableDownload(actionable.version)}</p>
-      {metered && <p className="prohibition-note">{t.updates.meteredDownload}</p>}
-      <button type="button" className="stamp" onClick={() => act(() => void downloadUpdate())} disabled={busy}>{t.updates.download}</button>
-      <button type="button" className="stamp" onClick={() => act(() => dismissOffered())}>{t.updates.notNow}</button>
-      <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
-    </div>}
-    {store.phase === 'offered' && actionable && !updatable && <div className="update-actions">
-      {info?.kind === 'appimage' && !info.writable
-        ? <p className="prose">{t.updates.appImageStuck(actionable.version)}</p>
-        : <p className="prose">{t.updates.throughManager(actionable.version, info?.manager ?? null)}</p>}
-      {info?.manager_command && <>
-        <p className="band-note" id="update-command-offered">{t.updates.copyRun}</p>
-        <div className="command-chip">
-          <input value={info.manager_command} readOnly onFocus={event => event.currentTarget.select()} aria-label={t.updates.managerCommand} aria-describedby="update-command-offered"/>
-          <button type="button" className="stamp" onClick={() => void copyCommand(info.manager_command ?? '')}>{copied ? t.updates.copiedButton : t.updates.copy}</button>
-        </div>
-        <p className="sr-only" role="status">{copyNote ?? ''}</p>
-      </>}
-      <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
-      <button type="button" className="stamp" onClick={() => act(() => dismissOffered())}>{t.updates.notNow}</button>
-    </div>}
-    {store.phase === 'suppressed' && actionable && <div className="update-actions">
-      {actionable && dismissedCount(actionable.version) >= 2
-        ? <p className="prose">{t.updates.dismissedTwiceRelease(actionable.version)}</p>
-        : <p className="prose">{t.updates.paused(actionable.version)}</p>}
-      <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
-    </div>}
-    {store.phase === 'failed' && actionable && updatable && <div className="update-actions">
-      {metered && <p className="prohibition-note">{t.updates.meteredRetry}</p>}
-      <button type="button" className="stamp" onClick={() => act(() => void downloadUpdate())} disabled={busy}>{t.updates.retry}</button>
-      <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
-    </div>}
-    {store.phase === 'failed' && actionable && !updatable && <div className="update-actions">
-      {info?.manager_command && <>
-        <p className="band-note" id="update-command-failed">{t.updates.copyRun}</p>
-        <div className="command-chip">
-          <input value={info.manager_command} readOnly onFocus={event => event.currentTarget.select()} aria-label={t.updates.managerCommand} aria-describedby="update-command-failed"/>
-          <button type="button" className="stamp" onClick={() => void copyCommand(info.manager_command ?? '')}>{copied ? t.updates.copiedButton : t.updates.copy}</button>
-        </div>
-        <p className="sr-only" role="status">{copyNote ?? ''}</p>
-      </>}
-      <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>{t.updates.releasePage}</button>
-    </div>}
-    {store.phase === 'ready' && actionable && !deferred && <div className="update-actions">
-      <p className="prose">{t.updates.restartReady(actionable.version, observesGame)}</p>
-      <button type="button" className="stamp" onClick={() => act(() => void restartToUpdate())}>{t.updates.restart}</button>
-      <button type="button" className="stamp" onClick={() => act(() => setDeferred(true))}>{t.updates.later}</button>
-    </div>}
-    {store.phase === 'ready' && actionable && deferred && <div className="update-actions">
-      <p className="prose">{t.updates.restartWaiting(actionable.version, observesGame)}</p>
-      <button type="button" className="stamp" onClick={() => act(() => void restartToUpdate())}>{t.updates.restart}</button>
-    </div>}
-  </div>
+    <p className="band-note">{t.updates.intro}</p>
+  </section>
 }

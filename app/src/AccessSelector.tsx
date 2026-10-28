@@ -42,7 +42,7 @@ export function AccessSelector({ value, onChange, effectiveMode = null, onConfir
     choose(next)
   }
 
-  return <div className="access-selector">
+  return <div className="group access-selector">
     {effective && <div className="access-mode-status" aria-live="polite">
       <span><i aria-hidden="true"/>{t.access.effective(effective.name)}</span>
       {applyingMode
@@ -84,14 +84,14 @@ export function AccessSelector({ value, onChange, effectiveMode = null, onConfir
           <ul>{newlyGranted.map(item => <li key={item}>{item}</li>)}</ul>
           {selected.caution && <p className="access-caution">{selected.caution}</p>}
         </section>
-        {onConfirmUpgrade && <button type="button" className="stamp" onClick={onConfirmUpgrade} disabled={disabled} aria-busy={disabled}>{disabled ? `${t.access.applying(selected.name)}…` : t.access.confirm(selected.name)}</button>}
+        {onConfirmUpgrade && <button type="button" className="stamp primary" onClick={onConfirmUpgrade} disabled={disabled} aria-busy={disabled}>{disabled ? `${t.access.applying(selected.name)}…` : t.access.confirm(selected.name)}</button>}
       </div>}
       {reviewingDowngrade && <div className="access-detail-body">
         <section className="access-observation">
           <h3>{t.access.toRetire}</h3>
           <ul>{retiring.map(item => <li key={item}>{item}</li>)}</ul>
         </section>
-        {onConfirmUpgrade && <button type="button" className="stamp" onClick={onConfirmUpgrade} disabled={disabled} aria-busy={disabled}>{disabled ? `${t.access.applying(selected.name)}…` : t.access.confirm(selected.name)}</button>}
+        {onConfirmUpgrade && <button type="button" className="stamp primary" onClick={onConfirmUpgrade} disabled={disabled} aria-busy={disabled}>{disabled ? `${t.access.applying(selected.name)}…` : t.access.confirm(selected.name)}</button>}
       </div>}
     </article>}
 
