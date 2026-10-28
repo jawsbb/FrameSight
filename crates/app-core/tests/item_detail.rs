@@ -227,3 +227,61 @@ fn a_mastery_row_never_held_has_a_sheet_from_the_catalogue() {
     );
     assert_eq!(sheet["components"][1]["held"], 0);
 }
+
+/// Overframe is asked by the item a build equips: a Prime part or its blueprint by the frame it
+/// builds, and nothing for a mod or a resource, which have no builds.
+#[test]
+fn builds_are_asked_for_by_the_equipment_a_part_builds() {
+    let core = core(vec![
+        entry(RHINO_PRIME, "Rhino Prime", Category::Frame, 1),
+        entry(
+            CHASSIS_BLUEPRINT,
+            "Rhino Prime Chassis Blueprint",
+            Category::PrimePart,
+            1,
+        ),
+        entry(SERRATION, "Serration", Category::Mod, 1),
+        entry(
+            "/Lotus/Types/Items/MiscItems/OrokinCell",
+            "Orokin Cell",
+            Category::Resource,
+            7,
+        ),
+    ]);
+
+    assert_eq!(detail(&core, RHINO_PRIME)["builds_for"], "Rhino Prime");
+    assert_eq!(
+        detail(&core, CHASSIS_BLUEPRINT)["builds_for"],
+        "Rhino Prime"
+    );
+    assert!(detail(&core, SERRATION).get("builds_for").is_none());
+    assert!(
+        detail(&core, "/Lotus/Types/Items/MiscItems/OrokinCell")
+            .get("builds_for")
+            .is_none()
+    );
+}
+
+/// Companion never loads the catalogue: the saved row's own name and category still ask, and a
+/// part, whose parent only the catalogue knows, does not.
+#[test]
+fn without_the_catalogue_builds_are_asked_for_by_the_saved_row() {
+    let mut core = AppCore::in_memory().expect("in-memory core");
+    core.apply_inventory_snapshot(
+        InventorySnapshot::coherent(vec![
+            entry(RHINO_PRIME, "Rhino Prime", Category::Frame, 1),
+            entry(
+                CHASSIS_BLUEPRINT,
+                "Rhino Prime Chassis Blueprint",
+                Category::PrimePart,
+                1,
+            ),
+        ])
+        .expect("coherent snapshot"),
+        SnapshotMeta::fake("synced").expect("meta"),
+    )
+    .expect("snapshot applies");
+
+    assert_eq!(detail(&core, RHINO_PRIME)["builds_for"], "Rhino Prime");
+    assert!(detail(&core, CHASSIS_BLUEPRINT).get("builds_for").is_none());
+}

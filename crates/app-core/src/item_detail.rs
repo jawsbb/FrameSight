@@ -48,6 +48,9 @@ pub struct ItemDetailView {
     introduced: Option<Introduced>,
     #[serde(skip_serializing_if = "Option::is_none")]
     wiki_url: Option<String>,
+    /// The English name Overframe files this item's builds under; absent for what has none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    builds_for: Option<String>,
     abilities: Vec<Ability>,
     stats: Vec<StatValue>,
     components: Vec<ComponentView>,
@@ -67,10 +70,47 @@ pub(crate) struct ComponentView {
     drops: Vec<DropSource>,
 }
 
+/// What Overframe lists builds for: equipment, never parts, mods, relics or resources.
+fn has_builds(category: Category) -> bool {
+    matches!(
+        category,
+        Category::Frame | Category::Weapon | Category::Companion
+    )
+}
+
+/// The name to ask Overframe for this item's builds by. A Prime part or blueprint is asked for by
+/// the item its recipe builds; anything else by its own name, when its category has builds.
+pub(crate) fn builds_name(
+    path: &str,
+    entry: Option<&InventoryEntry>,
+    catalog: Option<&CatalogIndex>,
+) -> Option<String> {
+    if let Some(catalog) = catalog
+        && let Some((recipe, _)) = catalog.part_parent(path)
+    {
+        let parent = catalog.resolve(&recipe.parent)?;
+        return parent
+            .category()
+            .is_some_and(has_builds)
+            .then(|| recipe.parent_name.clone());
+    }
+    // The saved row, as enrichment named it; the catalogue only for a Mastery row never held.
+    // Companion never loads the catalogue, so this is all it has.
+    let (name, category) = match entry {
+        Some(entry) => (entry.item.name.as_str(), entry.item.category),
+        None => {
+            let metadata = catalog?.resolve(path)?;
+            (metadata.name(), metadata.category()?)
+        }
+    };
+    has_builds(category).then(|| name.to_owned())
+}
+
 /// The sheet for the item at `path`.
 pub(crate) fn item_detail(
     path: &str,
     image_name: Option<&str>,
+    builds_for: Option<String>,
     catalog: Option<&CatalogIndex>,
     holdings: Option<&Holdings>,
 ) -> ItemDetailView {
@@ -102,6 +142,7 @@ pub(crate) fn item_detail(
         prime: facts.prime,
         introduced: facts.introduced.clone(),
         wiki_url: facts.wiki_url.clone(),
+        builds_for,
         abilities: facts.abilities.clone(),
         stats: facts.stats.clone(),
         components,

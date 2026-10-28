@@ -16,6 +16,7 @@ mod linux_proc;
 mod market;
 mod mastery;
 mod orchestrator;
+mod overframe;
 mod relic_catalog;
 mod reward_memory;
 mod reward_ui_memory;
@@ -55,6 +56,7 @@ pub use market::{
 };
 pub use mastery::{Holdings, MasteryEvidence, MasteryLedger};
 pub use orchestrator::{AcquisitionFailure, InventoryAcquirer};
+pub use overframe::{Build, OverframeHttp, parse_builds};
 pub use relic_catalog::{Relic, RelicDrop, RelicRewardIndex};
 pub use reward_memory::{
     RewardFingerprint, RewardHeapAddressOrder, RewardHit, RewardMemoryScanner, RewardNeedle,

@@ -17,7 +17,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 pub use item_detail::ItemDetailView;
-use item_detail::{entry_image_name, item_detail, wfcd_image_url};
+use item_detail::{builds_name, entry_image_name, item_detail, wfcd_image_url};
 use local_store::{SnapshotMeta, SqliteStore, StoreError};
 use serde::Serialize;
 use thiserror::Error;
@@ -531,6 +531,7 @@ impl AppCore {
         Ok(Some(item_detail(
             &path,
             image_name,
+            builds_name(&path, entry, catalog),
             catalog,
             holdings.as_ref(),
         )))

@@ -32,6 +32,7 @@ use warframe_acquisition::LinuxProc as GameMemory;
 use warframe_acquisition::WindowsProc as GameMemory;
 
 mod access;
+mod builds;
 mod kiosk_geometry;
 mod kiosk_log;
 mod kiosk_ocr;
@@ -2349,6 +2350,7 @@ pub fn run() {
             // The Market page's short cache of live orders.
             app.manage(market_lookup::MarketLookup::default());
             app.manage(world_state::WorldCache::default());
+            app.manage(builds::BuildsCache::default());
             if let Some(access_mode) = startup.access_mode {
                 start_collection_prices(Arc::clone(app.state::<SharedRuntime>().inner()));
                 // The stored mode is installed here without a transition, so the switch a
@@ -2413,6 +2415,7 @@ pub fn run() {
             set_order_quantity,
             update_order,
             get_item_detail,
+            builds::get_item_builds,
             market_lookup::market_search,
             market_lookup::market_board,
             market_lookup::market_item_orders,
