@@ -33,6 +33,14 @@ impl Refinement {
         (Self::Radiant, " Radiant"),
     ];
 
+    /// What follows the relic's name: " Radiant".
+    pub(crate) fn suffix(self) -> &'static str {
+        Self::ALL
+            .iter()
+            .find(|(refinement, _)| *refinement == self)
+            .map_or("", |(_, suffix)| suffix)
+    }
+
     /// The relic's name without its refinement, and the refinement, when the name carries one.
     fn split(name: &str) -> (&str, Option<Self>) {
         Self::ALL

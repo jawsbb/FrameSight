@@ -1,10 +1,12 @@
 #![forbid(unsafe_code)]
 
 mod fake_session;
+mod farm;
 mod foundry;
 mod item_detail;
 mod relics;
 
+pub use farm::{FarmDrop, FarmRow, FarmView, OpenRow, Pace, SellRow, Trend};
 pub use foundry::{
     FoundryItem, FoundryPiece, FoundryResource, FoundryStage, FoundryStatus, FoundryView,
 };
@@ -46,6 +48,8 @@ pub struct AppCore {
     reward: RewardView,
     health: HealthView,
     prices: Option<Arc<PriceTable>>,
+    /// The dump a week before `prices`, for the Farm page's 7-day change.
+    earlier_prices: Option<Arc<PriceTable>>,
     ducats: Option<Arc<DucatTable>>,
     live: Option<MarketPriceCache>,
     pricing: Option<PricingProgress>,
@@ -147,6 +151,7 @@ impl AppCore {
             reward: RewardAdvisor::advise(Vec::new()),
             health: HealthView::phase_one()?,
             prices: None,
+            earlier_prices: None,
             ducats: None,
             live: None,
             pricing: None,
