@@ -389,6 +389,15 @@ export const fr: Messages = {
     introduced: 'Introduit dans',
     wiki: 'Ouvrir sur le wiki',
     unavailable: 'Le catalogue n’a pas encore de détails pour cet objet.',
+    builds: 'Builds',
+    buildsLoading: 'Recherche des meilleurs builds sur Overframe…',
+    noBuilds: 'Overframe ne liste aucun build pour cet objet.',
+    buildsUnavailable: 'Overframe n’a pas pu être joint. Les builds seront redemandés à la prochaine ouverture de cette fiche.',
+    buildBy: (author: string) => `par ${author}`,
+    buildScore: (score: number) => `score ${n(score)}`,
+    buildFormas: (formas: number) => `${n(formas)} Forma`,
+    buildUpdated: (date: string) => `mis à jour le ${date}`,
+    buildsSource: 'Depuis Overframe, les meilleurs d’abord. Chaque build s’ouvre sur overframe.gg.',
   },
   units: {
     platinum: ' platine',
@@ -530,6 +539,8 @@ export const fr: Messages = {
     assistanceOther: 'Le catalogue et la référence des reliques restent disponibles. La lecture d’écran et l’overlay nécessitent l’accès Overlay ou Complet.',
     worldState: 'État du monde du jeu',
     worldStateNote: 'Tant que le tableau de bord est affiché, l’application lit l’état public du jeu sur api.warframe.com, au plus une fois par minute, et les noms de la carte stellaire chez WFCD sur GitHub, une fois par semaine. Rien sur vous ni sur votre compte n’est envoyé.',
+    builds: 'Builds des objets',
+    buildsNote: 'Ouvrir la fiche d’une Warframe, d’une arme ou d’un compagnon demande à overframe.gg ses cinq meilleurs builds, gardés jusqu’à la fermeture de l’application. Seul le nom de l’objet est envoyé.',
   },
   market: {
     failures: {

@@ -195,12 +195,18 @@ export interface ItemDetail {
   prime: boolean
   introduced?: { name: string; date?: string }
   wiki_url?: string
+  /** The English name Overframe lists this item's builds under; absent for what has none. */
+  builds_for?: string
   abilities: Array<{ name: string; description: string }>
   stats: Array<{ key: StatKey; value: number }>
   components: ComponentDetail[]
   drops: DropSource[]
 }
 export const getItemDetail = (itemId: string) => invoke<ItemDetail>('get_item_detail', { itemId })
+/** One of Overframe's best builds, in its order. `updated` is ISO 8601; `url` is the build's page
+ * on overframe.gg. */
+export interface Build { title: string; author: string | null; score: number; formas: number; updated: string; url: string }
+export const getItemBuilds = (itemName: string) => invoke<Build[]>('get_item_builds', { itemName })
 
 export type InstallKind = 'appimage' | 'system_linux' | 'portable_win' | 'system_win' | 'unknown'
 export interface VersionInfo { version: string; channel: string; kind: InstallKind; writable: boolean; updatable: boolean; manager: string | null; manager_command: string | null }

@@ -16,6 +16,13 @@ see the difference.
 
 ### Added
 
+- **An item sheet lists Overframe's best builds.** Opening a Warframe, weapon or companion (or a
+  Prime part or blueprint, which asks for the item it builds) shows its five best builds on
+  overframe.gg, best first: title, author, score, Forma count and last update, each opening the
+  build on Overframe in the browser. Only what points at a build is shown, never its mods.
+  The app asks `overframe.gg/api/v1/builds/` with the item's English name, once per item and
+  session while it answers; a sheet says when Overframe lists none or cannot be reached. Mods,
+  relics and resources ask nothing. Settings › About lists the new destination.
 - **The Market page ranks the day's trades while no item is open.** Four rankings of ten from
   the daily warframe.market summary the app already downloads, each named for the day it
   covers (the summary is published a day or two late): the most sold, the fastest selling

@@ -664,6 +664,17 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .sheet-drop-place { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .sheet-ability { display: grid; justify-content: stretch; gap: 2px; }
 .sheet-ability .prose { font-size: .75rem; }
+/* A build is a link out: its title over a faint line of who, score, Forma and age, an arrow at its end. */
+.sheet-build {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px;
+  width: 100%; padding: 10px 14px; border: 0; background: none; color: var(--text);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.sheet-build:hover { background: var(--fill); }
+.sheet-build:focus-visible { outline-offset: -2px; }
+.sheet-build-title { overflow-wrap: anywhere; }
+.sheet-build > .sheet-note { grid-column: 1; }
+.sheet-build > .icon { grid-row: 1 / span 2; grid-column: 2; width: 14px; height: 14px; color: var(--text-faint); }
 
 @media (pointer: coarse) {
   .sheet { top: 44px; }

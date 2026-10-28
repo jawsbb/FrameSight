@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { getItemDetail, type CollectionItem, type DropSource, type ItemDetail, type StatKey } from '../backend'
+import { getItemBuilds, getItemDetail, type Build, type CollectionItem, type DropSource, type ItemDetail, type StatKey } from '../backend'
 import { figure, masteryOrder } from '../collection'
 import { MetalMark } from '../MetalMark'
 import { SellForm } from '../SellForm'
@@ -157,6 +157,8 @@ export function ItemSheet({ item, index, total, onStep, onClose, ...context }: E
 
     {loaded && loaded.stats.length > 0 && <SheetGroup title={t.sheet.stats} rows={loaded.stats.map(({ key, value }) => ({ label: t.sheet.statNames[key], content: <span className="sheet-mono">{statValue(key, value, t)}</span> }))}/>}
 
+    {loaded?.builds_for && <Builds key={loaded.builds_for} name={loaded.builds_for}/>}
+
     {loaded && (loaded.introduced || loaded.wiki_url) && <SheetGroup>
       {loaded.introduced && <Row label={t.sheet.introduced}>
         {loaded.introduced.name}
@@ -167,6 +169,36 @@ export function ItemSheet({ item, index, total, onStep, onClose, ...context }: E
       </div>}
     </SheetGroup>}
   </aside>
+}
+
+/** Overframe's best builds for the item, each opening on Overframe. */
+function Builds({ name }: { name: string }) {
+  const t = useMessages()
+  // Undefined while Overframe is asked, null when it did not answer.
+  const [builds, setBuilds] = useState<Build[] | null>()
+  useEffect(() => {
+    let live = true
+    getItemBuilds(name).then(
+      value => { if (live) setBuilds(value) },
+      () => { if (live) setBuilds(null) },
+    )
+    return () => { live = false }
+  }, [name])
+  const state = builds === undefined ? t.sheet.buildsLoading : builds === null ? t.sheet.buildsUnavailable : builds.length ? null : t.sheet.noBuilds
+  return <SheetGroup title={t.sheet.builds} note={t.sheet.buildsSource}>
+    {state
+      ? <div className="sheet-row sheet-note">{state}</div>
+      : builds?.map(build => <button key={build.url} type="button" className="sheet-build" onClick={() => void openUrl(build.url)}>
+        <span className="sheet-build-title">{build.title}</span>
+        <span className="sheet-note">{[
+          build.author && t.sheet.buildBy(build.author),
+          t.sheet.buildScore(build.score),
+          t.sheet.buildFormas(build.formas),
+          t.sheet.buildUpdated(longDate(build.updated, t)),
+        ].filter(Boolean).join(' · ')}</span>
+        <Icon name="next"/>
+      </button>)}
+  </SheetGroup>
 }
 
 /** The wiki's render first, then WFCD's icon, then the category's letters: the next on each error. */
@@ -195,14 +227,15 @@ function rows(specs: Array<RowSpec | false>): RowSpec[] {
   return specs.filter((spec): spec is RowSpec => spec !== false)
 }
 
-/** A titled group: its label/value rows, then anything else it holds. */
-function SheetGroup({ title, rows = [], children }: { title?: string; rows?: RowSpec[]; children?: ReactNode }) {
+/** A titled group: its label/value rows, then anything else it holds, then its footnote. */
+function SheetGroup({ title, rows = [], note, children }: { title?: string; rows?: RowSpec[]; note?: string; children?: ReactNode }) {
   return <section className="sheet-section">
     {title && <h3 className="section-title">{title}</h3>}
     <div className="group">
       {rows.map(({ label, content }) => <Row key={label} label={label}>{content}</Row>)}
       {children}
     </div>
+    {note && <p className="band-note">{note}</p>}
   </section>
 }
 

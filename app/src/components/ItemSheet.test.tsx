@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AppView, CollectionItem, ItemDetail } from '../backend'
+import type { AppView, Build, CollectionItem, ItemDetail } from '../backend'
 
-const backend = vi.hoisted(() => ({ getItemDetail: vi.fn() }))
+const backend = vi.hoisted(() => ({ getItemDetail: vi.fn(), getItemBuilds: vi.fn() }))
 vi.mock('../backend', () => backend)
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn(() => Promise.resolve()) }))
 
@@ -25,6 +25,7 @@ const rhino: ItemDetail = {
   prime: true,
   introduced: { name: 'Update 12.4', date: '2014-03-05' },
   wiki_url: 'https://wiki.warframe.com/w/Rhino%2FPrime',
+  builds_for: 'Rhino Prime',
   abilities: [{ name: 'Rhino Charge', description: 'Rhino charges towards a target.' }],
   stats: [{ key: 'health', value: 270 }, { key: 'critical_chance', value: 0.3 }],
   components: [
@@ -40,7 +41,13 @@ const rhino: ItemDetail = {
 
 const detail = (id: string): ItemDetail => id === 'rhino-prime'
   ? rhino
-  : { prime: false, abilities: [], stats: [], components: [], drops: [] }
+  : { prime: false, builds_for: id === 'soma-prime' ? 'Soma Prime' : undefined, abilities: [], stats: [], components: [], drops: [] }
+
+/** Two of Overframe's five best Rhino Prime builds on 2026-10-28, as the backend passes them on. */
+const rhinoBuilds: Build[] = [
+  { title: 'Shield of Iron | Parasitic Armor Rhino (Meme Iron Skin)', author: 'ninjase', score: 1520, formas: 5, updated: '2026-06-03T10:29:17.766326Z', url: 'https://overframe.gg/build/198760/rhino-prime/shield-of-iron-parasitic-armor-rhino-meme-iron-skin/' },
+  { title: 'Umbral Index Carrier [A]', author: 'moxidize1', score: 159, formas: 6, updated: '2019-12-26T23:21:52.871691Z', url: 'https://overframe.gg/build/1666/rhino-prime/umbral-index-carrier-a/' },
+]
 
 const ready = { state: 'ready', message: 'ok', last_success: null } as const
 const view: AppView = {
@@ -70,6 +77,7 @@ function card(name: string) {
 
 beforeEach(() => {
   backend.getItemDetail.mockImplementation((id: string) => Promise.resolve(detail(id)))
+  backend.getItemBuilds.mockImplementation((name: string) => Promise.resolve(name === 'Rhino Prime' ? rhinoBuilds : []))
 })
 afterEach(() => {
   cleanup()
@@ -206,5 +214,55 @@ describe('the item sheet', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'Open on the wiki' }))
     expect(openUrl).toHaveBeenCalledWith('https://wiki.warframe.com/w/Rhino%2FPrime')
+  })
+
+  it('lists Overframe’s best builds, each opening on Overframe', async () => {
+    const user = userEvent.setup()
+    page()
+    await user.click(within(card('Rhino Prime')).getByRole('button', { name: 'Rhino Prime' }))
+    const dialog = screen.getByRole('dialog', { name: 'Rhino Prime' })
+
+    const best = await within(dialog).findByRole('button', { name: /^Shield of Iron/ })
+    expect(backend.getItemBuilds).toHaveBeenCalledWith('Rhino Prime')
+    expect(best).toHaveTextContent('by ninjase · score 1,520 · 5 Forma · updated 3 June 2026')
+    expect(within(dialog).getByRole('button', { name: /^Umbral Index Carrier/ })).toHaveTextContent('by moxidize1 · score 159 · 6 Forma · updated 26 December 2019')
+    expect(within(dialog).getByText(/^From Overframe/)).toBeInTheDocument()
+
+    await user.click(best)
+    expect(openUrl).toHaveBeenCalledWith('https://overframe.gg/build/198760/rhino-prime/shield-of-iron-parasitic-armor-rhino-meme-iron-skin/')
+  })
+
+  it('says it is asking, then that Overframe has none', async () => {
+    const user = userEvent.setup()
+    let answer: (builds: Build[]) => void = () => {}
+    backend.getItemBuilds.mockImplementation(() => new Promise(resolve => { answer = resolve }))
+    page()
+    await user.click(within(card('Soma Prime')).getByRole('button', { name: 'Soma Prime' }))
+    const dialog = screen.getByRole('dialog', { name: 'Soma Prime' })
+
+    expect(await within(dialog).findByText('Asking Overframe for its best builds…')).toBeInTheDocument()
+    answer([])
+    expect(await within(dialog).findByText('Overframe lists no builds for this item.')).toBeInTheDocument()
+  })
+
+  it('says Overframe could not be reached and keeps the rest of the sheet', async () => {
+    const user = userEvent.setup()
+    backend.getItemBuilds.mockRejectedValue('Overframe could not be reached')
+    page()
+    await user.click(within(card('Rhino Prime')).getByRole('button', { name: 'Rhino Prime' }))
+    const dialog = screen.getByRole('dialog', { name: 'Rhino Prime' })
+
+    expect(await within(dialog).findByText(/^Overframe could not be reached\./)).toBeInTheDocument()
+    expect(within(dialog).getByText('Takes Rhino to the next level.')).toBeInTheDocument()
+  })
+
+  it('never asks Overframe about what has no builds', async () => {
+    const user = userEvent.setup()
+    page()
+    await user.click(within(card('Serration')).getByRole('button', { name: 'Serration' }))
+    await waitFor(() => expect(backend.getItemDetail).toHaveBeenCalledWith('serration'))
+
+    expect(screen.queryByRole('heading', { name: 'Builds' })).not.toBeInTheDocument()
+    expect(backend.getItemBuilds).not.toHaveBeenCalled()
   })
 })

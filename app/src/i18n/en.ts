@@ -395,6 +395,15 @@ export const en = {
     introduced: 'Introduced in',
     wiki: 'Open on the wiki',
     unavailable: 'The catalogue has no details for this item yet.',
+    builds: 'Builds',
+    buildsLoading: 'Asking Overframe for its best builds…',
+    noBuilds: 'Overframe lists no builds for this item.',
+    buildsUnavailable: 'Overframe could not be reached. The builds will be asked for again the next time this sheet opens.',
+    buildBy: (author: string) => `by ${author}`,
+    buildScore: (score: number) => `score ${n(score)}`,
+    buildFormas: (formas: number) => `${n(formas)} Forma`,
+    buildUpdated: (date: string) => `updated ${date}`,
+    buildsSource: 'From Overframe, best first. Each build opens on overframe.gg.',
   },
   units: {
     /** Spoken after a figure drawn with the platinum mark: `250 platinum`. */
@@ -537,6 +546,8 @@ export const en = {
     assistanceOther: 'The catalog and relic reference stay available. Screen reading and the overlay need Overlay or Full access.',
     worldState: 'Game world state',
     worldStateNote: 'While the Dashboard is on screen it reads the game’s public world state from api.warframe.com, at most once a minute, and star-chart names from WFCD on GitHub, once a week. Nothing about you or your account is sent.',
+    builds: 'Item builds',
+    buildsNote: 'Opening an item sheet on a Warframe, weapon or companion asks overframe.gg for its five best builds, kept until the app closes. Only the item’s name is sent.',
   },
   market: {
     failures: {
