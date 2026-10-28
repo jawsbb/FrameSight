@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
 use std::sync::Arc;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use warframe_domain::{CatalogItem, Category, DomainError, InventoryEntry, ItemId};
 
 use crate::item_facts::{Ability, Introduced, ItemFacts, WfcdDrop, facts_from};
+use crate::relic_base;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CatalogMetadata {
@@ -100,6 +101,17 @@ pub struct Recipe {
     pub parent_name: String,
     /// Blueprint first, then parts in foundry order, then whole-item ingredients last.
     pub components: Vec<RecipeComponent>,
+    /// What else the foundry asks for, Orokin Cells and the like, in path order. Never a slot:
+    /// no mastery mark counts them, and nobody trades them.
+    pub resources: Vec<RecipeResource>,
+}
+
+/// A common resource a build consumes: "Orokin Cell" ×15.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecipeResource {
+    pub path: String,
+    pub name: String,
+    pub per_build: u32,
 }
 
 /// One slot of a Prime recipe: a blueprint, a tradable part, or a whole item another Prime
@@ -116,11 +128,29 @@ pub struct RecipeComponent {
     /// never assumed to be 1.
     pub per_build: u32,
     pub kind: ComponentKind,
+    /// Where the current drop tables give this piece, refinement set aside and each place once:
+    /// "Axi B1 Relic". Empty when the catalogue lists none, as for a vaulted part.
+    pub drops: Vec<String>,
+}
+
+impl RecipeComponent {
+    /// The `…Blueprint` path a player may hold in place of this part. See [`blueprint_sibling`].
+    pub fn blueprint_sibling(&self) -> Option<String> {
+        blueprint_sibling(&self.path)
+    }
+}
+
+/// The `…Blueprint` path a player may hold in place of a `…Component` part: relics drop the
+/// blueprint, and the inventory keeps it under that path until it is built.
+pub(crate) fn blueprint_sibling(path: &str) -> Option<String> {
+    path.strip_suffix("Component")
+        .map(|stem| format!("{stem}Blueprint"))
 }
 
 /// Whether a recipe slot is the build's blueprint, one of its tradable parts, or a whole
 /// masterable item consumed by the build.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ComponentKind {
     Blueprint,
     Part,
@@ -320,6 +350,7 @@ impl CatalogIndex {
     fn index_recipe(&mut self, parent: &WfcdItem) -> Result<(), CatalogError> {
         let grouped = grouped_components(&parent.components);
         let mut slots = Vec::with_capacity(grouped.len());
+        let mut resources = Vec::new();
         for (path, (per_build, first)) in &grouped {
             let name = validated_name(&first.name)?;
             let kind = if name == "Blueprint" {
@@ -335,14 +366,33 @@ impl CatalogIndex {
             {
                 ComponentKind::Part
             } else {
+                resources.push(RecipeResource {
+                    path: (*path).to_owned(),
+                    name,
+                    per_build: (*per_build).max(1),
+                });
                 continue;
             };
+            let mut drops = first
+                .drops
+                .iter()
+                .flatten()
+                .map(|drop| {
+                    // A relic once, whatever the refinement: it changes the odds, not the relic.
+                    let location = drop.location.trim();
+                    relic_base(location).unwrap_or(location).to_owned()
+                })
+                .filter(|location| !location.is_empty())
+                .collect::<Vec<_>>();
+            drops.sort();
+            drops.dedup();
             slots.push(RecipeComponent {
                 path: (*path).to_owned(),
                 name,
                 image_name: first.image_name.clone(),
                 per_build: (*per_build).max(1),
                 kind,
+                drops,
             });
         }
         slots.sort_by(|a, b| {
@@ -371,11 +421,9 @@ impl CatalogIndex {
                         .insert(slot.path.clone(), (parent_path.clone(), slot_index));
                     // Relics drop the blueprint, and the player may hold either spelling. Key
                     // both at the same slot.
-                    if let Some(stem) = slot.path.strip_suffix("Component") {
-                        self.part_parents.insert(
-                            format!("{stem}Blueprint"),
-                            (parent_path.clone(), slot_index),
-                        );
+                    if let Some(sibling) = slot.blueprint_sibling() {
+                        self.part_parents
+                            .insert(sibling, (parent_path.clone(), slot_index));
                     }
                 }
                 ComponentKind::Ingredient => {
@@ -390,6 +438,7 @@ impl CatalogIndex {
             parent: parent_path.clone(),
             parent_name: validated_name(&parent.name)?,
             components: slots,
+            resources,
         };
         self.recipes.insert(parent_path, recipe);
         Ok(())
@@ -418,6 +467,11 @@ impl CatalogIndex {
             .filter(|(_, metadata)| metadata.name == name)
             .map(|(path, _)| path.clone())
             .collect()
+    }
+
+    /// Every Prime recipe the catalogue knows, by parent path.
+    pub fn recipes(&self) -> impl Iterator<Item = &Recipe> {
+        self.recipes.values()
     }
 
     /// The Prime recipe for a parent item's path, if the catalogue knows one.

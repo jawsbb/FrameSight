@@ -34,7 +34,7 @@ pub struct Ability {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct WfcdDrop {
-    location: String,
+    pub(crate) location: String,
     #[serde(default)]
     chance: Option<f64>,
     #[serde(default)]

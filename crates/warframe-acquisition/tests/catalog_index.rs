@@ -598,6 +598,40 @@ fn a_duplicated_ingredient_sums_into_one_slot_and_indexes_its_consumer() {
 }
 
 #[test]
+fn a_recipe_keeps_its_resources_and_where_each_piece_drops() {
+    let catalog = CatalogIndex::from_wfcd_json(
+        br#"[{"uniqueName":"/Lotus/Weapons/Tenno/Melee/Polearms/GuandaoPrime","name":"Guandao Prime",
+          "category":"Melee","type":"Melee","masterable":true,"components":[
+          {"uniqueName":"/Lotus/Types/Recipes/Weapons/WeaponParts/GuandaoPrimeBlade","name":"Blade",
+           "itemCount":2,"tradable":true,"ducats":15,"drops":[
+             {"location":"Axi S10 Relic (Radiant)"},{"location":"Axi S10 Relic (Intact)"},
+             {"location":"Axi S9 Relic (Flawless)"}]},
+          {"uniqueName":"/Lotus/Types/Recipes/Weapons/GuandaoPrimeBlueprint","name":"Blueprint",
+           "tradable":true,"ducats":45},
+          {"uniqueName":"/Lotus/Types/Items/MiscItems/OrokinCell","name":"Orokin Cell",
+           "itemCount":15,"tradable":false,"imageName":"ComponentCell.png"}]}]"#,
+    )
+    .unwrap();
+    let recipe = catalog
+        .recipe("/Lotus/Weapons/Tenno/Melee/Polearms/GuandaoPrime")
+        .unwrap();
+    let blade = &recipe.components[1];
+    assert_eq!(blade.name, "Blade");
+    assert_eq!(
+        blade.drops,
+        vec!["Axi S10 Relic", "Axi S9 Relic"],
+        "one entry per relic, whatever the refinement"
+    );
+    assert!(recipe.components[0].drops.is_empty());
+    let resources: Vec<_> = recipe
+        .resources
+        .iter()
+        .map(|resource| (resource.name.as_str(), resource.per_build))
+        .collect();
+    assert_eq!(resources, vec![("Orokin Cell", 15)]);
+}
+
+#[test]
 fn resources_and_non_prime_items_have_no_recipe_relation() {
     let catalog = catalog();
     assert!(catalog.part_parent(OROKIN_CELL).is_none());

@@ -39,6 +39,7 @@ mod kiosk_view;
 #[cfg(target_os = "linux")]
 pub mod linux_renderer;
 pub mod market_account;
+mod market_lookup;
 pub mod monitor;
 mod overlay_window;
 mod preferences;
@@ -597,6 +598,57 @@ async fn get_item_detail(
     })
     .await
     .map_err(|_| "item details task failed".to_owned())?
+}
+
+/// The Relics page. WFCD's relic tables come from the disk cache the game monitor keeps, read on
+/// first use, so the page answers in Companion too and never asks the network.
+#[tauri::command]
+async fn get_relics(state: State<'_, SharedRuntime>) -> Result<app_core::RelicsView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let unavailable = |_| "application state is unavailable".to_owned();
+        let app_data = {
+            let runtime = shared.lock().map_err(unavailable)?;
+            (!runtime.core.has_relic_index()).then(|| runtime.app_data.clone())
+        };
+        // Parsed outside the lock: the cache is megabytes, and the 2.5s view poll needs the lock.
+        if let Some(app_data) = app_data
+            && let Ok(load) =
+                warframe_acquisition::RelicCatalogCache::new(app_data.join("catalog")).load_cached()
+        {
+            let index = Arc::new(load.index().clone());
+            shared
+                .lock()
+                .map_err(unavailable)?
+                .core
+                .set_relic_index(index);
+        }
+        shared
+            .lock()
+            .map_err(unavailable)?
+            .core
+            .relics_view()
+            .map_err(|_| "relics view is unavailable".to_owned())
+    })
+    .await
+    .map_err(|_| "relics view task failed".to_owned())?
+}
+
+/// The Foundry page: built from the collection, catalogue and prices already in memory.
+#[tauri::command]
+async fn get_foundry(state: State<'_, SharedRuntime>) -> Result<app_core::FoundryView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let runtime = shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?;
+        runtime
+            .core
+            .foundry_view()
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|_| "foundry view task failed".to_owned())?
 }
 
 /// Assemble the GitHub-safe report text only (used by "Copy diagnostics").
@@ -2224,6 +2276,8 @@ pub fn run() {
             // The kiosk window's whole IPC surface: `get_kiosk_view` pulls whatever the poller
             // last published, so the cell exists from the start, empty until a kiosk opens.
             app.manage(kiosk_view::KioskState::default());
+            // The Market page's short cache of live orders.
+            app.manage(market_lookup::MarketLookup::default());
             if let Some(access_mode) = startup.access_mode {
                 start_collection_prices(Arc::clone(app.state::<SharedRuntime>().inner()));
                 // The stored mode is installed here without a transition, so the switch a
@@ -2260,6 +2314,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_view,
+            get_relics,
+            get_foundry,
             get_setup_status,
             get_preferences,
             set_mastery_marks,
@@ -2285,6 +2341,8 @@ pub fn run() {
             set_order_quantity,
             update_order,
             get_item_detail,
+            market_lookup::market_search,
+            market_lookup::market_item_orders,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             update::get_version_info,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]

@@ -25,7 +25,8 @@ mod windows_proc;
 pub use authorization::AuthorizationScanner;
 pub use catalog::{
     CatalogError, CatalogIndex, CatalogMetadata, ComponentKind, DucatTable, Recipe,
-    RecipeComponent, RewardCatalogEntry, holding_matches_reward, reward_name_matches,
+    RecipeComponent, RecipeResource, RewardCatalogEntry, holding_matches_reward,
+    reward_name_matches,
 };
 pub use catalog_cache::{
     CatalogCache, CatalogCacheError, CatalogFetch, CatalogLoad, CatalogLoadSource, CatalogSource,
@@ -52,7 +53,7 @@ pub use market::{
 };
 pub use mastery::{Holdings, MasteryEvidence, MasteryLedger};
 pub use orchestrator::{AcquisitionFailure, InventoryAcquirer};
-pub use relic_catalog::RelicRewardIndex;
+pub use relic_catalog::{Relic, RelicDrop, RelicRewardIndex};
 pub use reward_memory::{
     RewardFingerprint, RewardHeapAddressOrder, RewardHit, RewardMemoryScanner, RewardNeedle,
     RewardRecordEvidence, RewardRecordPolicy, RewardRecordQuery, RewardRepresentation,

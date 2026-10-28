@@ -29,6 +29,9 @@ struct ItemsResponse {
 #[serde(rename_all = "camelCase")]
 struct ItemRecord {
     id: String,
+    /// The URL name, what `/v2/orders/item/{slug}` addresses.
+    #[serde(default)]
+    slug: String,
     /// The `/Lotus/` path. Absent for retired items that no longer exist in the game.
     #[serde(default)]
     game_ref: Option<String>,
@@ -54,7 +57,13 @@ struct ItemRecord {
 struct ItemNames {
     #[serde(default)]
     name: String,
+    /// The 128px picture, relative to `ASSETS`.
+    #[serde(default)]
+    thumb: Option<String>,
 }
+
+/// Where warframe.market serves the item pictures its table names.
+const ASSETS: &str = "https://warframe.market/static/assets/";
 
 /// The listing one collection row becomes on warframe.market.
 ///
@@ -83,6 +92,8 @@ pub struct MarketItems {
 
 #[derive(Clone, Debug)]
 struct ItemEntry {
+    slug: String,
+    thumb: Option<String>,
     catalog_path: Option<String>,
     name: Option<String>,
     /// Whether this item's path can stand for one collection row. See `path_is_comparable`.
@@ -106,11 +117,11 @@ impl MarketItems {
             .data
             .into_iter()
             .map(|record| {
-                let name = record
-                    .i18n
-                    .get("en")
+                let english = record.i18n.get("en");
+                let name = english
                     .map(|names| names.name.clone())
                     .filter(|name| !name.trim().is_empty());
+                let thumb = english.and_then(|names| names.thumb.clone());
                 // Read before `game_ref` is moved out below.
                 let star_counted =
                     record.max_amber_stars.is_some() || record.max_cyan_stars.is_some();
@@ -124,6 +135,8 @@ impl MarketItems {
                 (
                     record.id,
                     ItemEntry {
+                        slug: record.slug,
+                        thumb,
                         catalog_path,
                         name,
                         comparable,
@@ -300,6 +313,70 @@ impl MarketItems {
         }
     }
 
+    /// Up to `limit` items whose English name holds every word of `query`, best first: names that
+    /// start with the query, then names whose words start with its words, then the shorter name.
+    ///
+    /// ponytail: a scan of a few thousand names per keystroke, well under a millisecond. An index
+    /// if the table ever grows by an order of magnitude.
+    pub fn search(&self, query: &str, limit: usize) -> Vec<ItemSummary> {
+        let query = query.trim().to_lowercase();
+        let words: Vec<&str> = query.split_whitespace().collect();
+        if words.is_empty() {
+            return Vec::new();
+        }
+        let mut hits: Vec<_> = self
+            .entries
+            .iter()
+            .filter(|(_, entry)| !entry.slug.is_empty())
+            .filter_map(|(id, entry)| {
+                let lower = entry.name.as_deref()?.to_lowercase();
+                if !words.iter().all(|word| lower.contains(word)) {
+                    return None;
+                }
+                let word_starts = words.iter().all(|word| {
+                    lower
+                        .split(|c: char| !c.is_alphanumeric())
+                        .any(|part| part.starts_with(word))
+                });
+                let rank = (!lower.starts_with(&query), !word_starts, lower.len(), lower);
+                Some((rank, id.as_str(), entry))
+            })
+            .collect();
+        hits.sort_by(|left, right| left.0.cmp(&right.0));
+        hits.into_iter()
+            .take(limit)
+            .filter_map(|(_, id, entry)| entry.summary(id))
+            .collect()
+    }
+
+    /// The item a URL name addresses, if the table publishes one.
+    pub fn by_slug(&self, slug: &str) -> Option<ItemSummary> {
+        let (id, entry) = self.entries.iter().find(|(_, entry)| entry.slug == slug)?;
+        entry.summary(id)
+    }
+
+    /// Which of these collection rows hold the item: its own path, a ranked copy of it
+    /// (`path#rank`), or a relic refinement of it (the tier-suffixed path).
+    pub fn rows_of<'a>(
+        &self,
+        item_id: &str,
+        rows: impl IntoIterator<Item = &'a str>,
+    ) -> Vec<&'a str> {
+        let Some(path) = self
+            .entries
+            .get(item_id)
+            .and_then(|entry| entry.catalog_path.as_deref())
+        else {
+            return Vec::new();
+        };
+        rows.into_iter()
+            .filter(|row| {
+                let base = row.split_once('#').map_or(*row, |(base, _)| base);
+                base == path || refinement_of(base).is_some_and(|(relic, _)| relic == path)
+            })
+            .collect()
+    }
+
     pub fn name(&self, item_id: &str) -> Option<&str> {
         self.entries.get(item_id)?.name.as_deref()
     }
@@ -313,7 +390,28 @@ impl MarketItems {
     }
 }
 
+/// One item as a search shows it.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct ItemSummary {
+    pub id: String,
+    pub slug: String,
+    pub name: String,
+    pub thumb_url: Option<String>,
+    /// The fusion ceiling, for a mod or an arcane.
+    pub max_rank: Option<u32>,
+}
+
 impl ItemEntry {
+    fn summary(&self, id: &str) -> Option<ItemSummary> {
+        Some(ItemSummary {
+            id: id.to_owned(),
+            slug: self.slug.clone(),
+            name: self.name.clone()?,
+            thumb_url: self.thumb.as_ref().map(|thumb| format!("{ASSETS}{thumb}")),
+            max_rank: self.max_rank,
+        })
+    }
+
     /// The listing for a row whose path is this entry's own `gameRef`.
     fn listing<'a>(
         &self,

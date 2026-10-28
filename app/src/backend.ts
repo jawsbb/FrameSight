@@ -87,6 +87,17 @@ export interface KioskView {
 }
 
 export const getView = () => invoke<AppView>('get_view')
+
+export type Refinement = 'intact' | 'exceptional' | 'flawless' | 'radiant'
+export type RelicRarity = 'common' | 'uncommon' | 'rare'
+/** One reward of a relic at its refinement. `ducats` absent: Baro does not take it, or the values have not loaded. */
+export interface RelicReward { name: string; rarity: RelicRarity | null; chance: number | null; platinum: number | null; ducats: number | null; owned: number; mastery?: MasteryMark }
+/** What one opening returns on average: chance × price over the priced rewards. `unpriced` rewards are left out, so it is a floor. */
+export interface RelicOpening { platinum: number; ducats: number | null; unpriced: number; unpriced_chance: number }
+export interface Relic { id: string; name: string; era: string; refinement: Refinement | null; quantity: number; vaulted: boolean | null; platinum: number | null; monthly_trades: number | null; opening: RelicOpening | null; rewards: RelicReward[] }
+/** `catalog` false: WFCD's relic tables are not loaded. `prices_date` null: no price table yet. */
+export interface RelicsView { catalog: boolean; prices_date: string | null; ducats: boolean; relics: Relic[] }
+export const getRelics = () => invoke<RelicsView>('get_relics')
 export const getKioskView = () => invoke<KioskView | null>('get_kiosk_view')
 export const refreshInventory = () => invoke<AppView>('refresh_inventory')
 export const refreshPrices = (ids: string[]) => invoke<AppView>('refresh_prices', { itemIds: ids })
@@ -173,3 +184,36 @@ export const getVersionInfo = () => invoke<VersionInfo>('get_version_info')
 export const updateCheck = (feed: string) => invoke<CheckResult>('update_check', { feed })
 export const updateDownloadAndInstall = (feed: string, expectedVersion: string) =>
   invoke<UpdateSummary>('update_download_and_install', { feed, expectedVersion })
+
+/** One Market search suggestion. The figures come from the daily summary; `held` names the
+ * collection rows that hold the item. */
+export interface MarketHit {
+  id: string
+  slug: string
+  name: string
+  thumb_url: string | null
+  max_rank: number | null
+  median: number | null
+  median_max_rank: number | null
+  checked_live: boolean
+  monthly_trades: number | null
+  held: string[]
+}
+/** `dump_date` is the day the daily summary describes, null until it has loaded. */
+export interface MarketSearch { hits: MarketHit[]; dump_date: string | null }
+export type TraderStatus = 'ingame' | 'online'
+/** `platinum` buys one trade of `per_trade` units. */
+export interface LiveOrder { user: string; status: TraderStatus; platinum: number; quantity: number; per_trade: number; rank: number | null; subtype: string | null }
+/** `fetched_at` is when warframe.market answered, in Unix seconds; a cached answer keeps it. */
+export interface MarketItemOrders { sell: LiveOrder[]; buy: LiveOrder[]; fetched_at: number }
+export const marketSearch = (query: string) => invoke<MarketSearch>('market_search', { query })
+export const marketItemOrders = (slug: string) => invoke<MarketItemOrders>('market_item_orders', { slug })
+/** The Foundry page, built from what the backend already holds. `status` names what it waits for. */
+export type FoundryStage = 'ready' | 'almost' | 'set'
+/** One recipe slot. A part counts its blueprint too; builds already in the foundry are not in hand. */
+export interface FoundryPiece { name: string; image: string | null; kind: 'blueprint' | 'part' | 'ingredient'; uses: number; held: number; platinum?: number; drops: string[] }
+/** Only resources the inventory can count are sent. */
+export interface FoundryResource { name: string; uses: number; held: number }
+export interface FoundryItem { id: string; name: string; category?: ItemCategory; image_url?: string; masterable: boolean; mastered: boolean; stage: FoundryStage; missing: number; pieces: FoundryPiece[]; resources: FoundryResource[]; set_platinum?: number; pieces_platinum?: number }
+export interface FoundryView { status: 'no_catalog' | 'no_inventory' | 'ready'; items: FoundryItem[] }
+export const getFoundry = () => invoke<FoundryView>('get_foundry')

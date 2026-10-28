@@ -352,3 +352,86 @@ fn what_no_row_can_be_named_for_resolves_to_nothing() {
         None
     );
 }
+
+/// Real `/v2/items` entries (2026-10-28) with the URL name and picture a search shows.
+const SEARCHABLE: &str = r#"{"data":[
+    {"id":"54a74454e779892d5e515596","slug":"serration",
+     "gameRef":"/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod","maxRank":10,
+     "i18n":{"en":{"name":"Serration","thumb":"items/images/en/thumbs/serration.png"}}},
+    {"id":"5a2feeb1c2c9e90cbdaa23d2","slug":"sweeping_serration",
+     "gameRef":"/Lotus/Upgrades/Mods/Shotgun/WeaponDamageAmountMod","maxRank":10,
+     "i18n":{"en":{"name":"Sweeping Serration"}}},
+    {"id":"56783f24cbfa8f0432dd8993","slug":"braton_prime_set",
+     "gameRef":"/Lotus/Weapons/Tenno/Rifle/BratonPrime",
+     "i18n":{"en":{"name":"Braton Prime Set"}}},
+    {"id":"54a73e65e779893a797fff32","slug":"braton_prime_barrel",
+     "gameRef":"/Lotus/Types/Recipes/Weapons/WeaponParts/BratonPrimeBarrel",
+     "i18n":{"en":{"name":"Braton Prime Barrel"}}},
+    {"id":"5cfa3b1e7d2c1b0012a3f1aa","slug":"axi_a1_relic",
+     "gameRef":"/Lotus/Types/Game/Projections/T4VoidProjectionE",
+     "subtypes":["intact","exceptional","flawless","radiant"],
+     "i18n":{"en":{"name":"Axi A1 Relic"}}}
+]}"#;
+
+#[test]
+fn a_search_puts_names_that_start_with_the_query_first() {
+    let items = MarketItems::from_response(SEARCHABLE.as_bytes()).expect("items parse");
+
+    let names = |query| {
+        items
+            .search(query, 10)
+            .into_iter()
+            .map(|hit| hit.name)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(names("serr"), ["Serration", "Sweeping Serration"]);
+    // Every word must appear, in any order.
+    assert_eq!(
+        names("prime bra"),
+        ["Braton Prime Set", "Braton Prime Barrel"]
+    );
+    assert_eq!(names("BARREL"), ["Braton Prime Barrel"]);
+    assert!(names("   ").is_empty());
+    assert!(names("zzz").is_empty());
+    assert_eq!(items.search("braton", 1).len(), 1);
+}
+
+#[test]
+fn a_hit_carries_what_the_market_page_needs() {
+    let items = MarketItems::from_response(SEARCHABLE.as_bytes()).expect("items parse");
+
+    let hit = items.by_slug("serration").expect("known slug");
+    assert_eq!(hit.id, "54a74454e779892d5e515596");
+    assert_eq!(hit.max_rank, Some(10));
+    assert_eq!(
+        hit.thumb_url.as_deref(),
+        Some("https://warframe.market/static/assets/items/images/en/thumbs/serration.png")
+    );
+    assert_eq!(
+        items
+            .by_slug("sweeping_serration")
+            .expect("known slug")
+            .thumb_url,
+        None
+    );
+    assert_eq!(items.by_slug("nope"), None);
+}
+
+#[test]
+fn an_item_is_held_by_its_path_its_ranked_copies_and_its_refinements() {
+    let items = MarketItems::from_response(SEARCHABLE.as_bytes()).expect("items parse");
+    let rows = [
+        "/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod",
+        "/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod#10",
+        "/Lotus/Upgrades/Mods/Shotgun/WeaponDamageAmountMod",
+        "/Lotus/Types/Game/Projections/T4VoidProjectionEBronze",
+        "/Lotus/Types/Game/Projections/T4VoidProjectionERadiantish",
+    ];
+
+    assert_eq!(
+        items.rows_of("54a74454e779892d5e515596", rows),
+        [rows[0], rows[1]]
+    );
+    assert_eq!(items.rows_of("5cfa3b1e7d2c1b0012a3f1aa", rows), [rows[3]]);
+    assert!(items.rows_of("unknown", rows).is_empty());
+}

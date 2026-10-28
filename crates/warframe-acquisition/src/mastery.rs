@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use warframe_domain::{InventoryEntry, KioskMastery, MasteryMark, SetPart};
 
+use crate::catalog::blueprint_sibling;
 use crate::{CatalogIndex, ComponentKind, MasteryFacts, Recipe, RecipeComponent, mastery_rank};
 
 /// Whether the marks may speak from this run's inventory, from a saved collection, or not
@@ -52,10 +53,7 @@ impl Holdings {
     /// Copies of a recipe slot: a part (`…Component`) counts its blueprint (`…Blueprint`) too,
     /// since either fills the slot once built.
     pub fn slot_quantity(&self, path: &str) -> u32 {
-        let blueprint = path
-            .strip_suffix("Component")
-            .map_or(0, |stem| self.quantity(&format!("{stem}Blueprint")));
-        self.quantity(path) + blueprint
+        self.quantity(path) + blueprint_sibling(path).map_or(0, |sibling| self.quantity(&sibling))
     }
 
     /// True once the game marks the item mastered, and still true after the item is sold.
@@ -310,10 +308,7 @@ impl<'a> MasteryLedger<'a> {
                 self.holdings.quantity(&slot.path) + self.pending_path(&slot.path)
             }
             ComponentKind::Part => {
-                let sibling = slot
-                    .path
-                    .strip_suffix("Component")
-                    .map(|stem| format!("{stem}Blueprint"));
+                let sibling = slot.blueprint_sibling();
                 self.holdings.slot_quantity(&slot.path)
                     + sibling
                         .as_deref()
