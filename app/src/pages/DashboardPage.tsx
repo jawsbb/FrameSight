@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
-import { getWorldState, type CycleState, type Fissure, type Sortie, type WorldNode, type WorldView } from '../backend'
+import { getWorldState, type Cycle, type CycleState, type Era, type Fissure, type Sortie, type WorldNode, type WorldView } from '../backend'
 import { Icon, type IconName } from '../components/Icon'
 import { useMessages, type Messages } from '../i18n'
 import { readFissureAlerts, readFissureFilters, writeFissureAlerts, writeFissureFilters } from '../settings'
@@ -11,6 +11,46 @@ import './DashboardPage.css'
 const REFRESH_MS = 60_000
 
 const stateIcons: Record<CycleState, IconName> = { day: 'sun', fass: 'sun', night: 'moon', vome: 'moon', warm: 'warm', cold: 'cold' }
+
+/** Pictures from the Warframe wiki, the source the item sheet already draws from. */
+function wikiImage(file: string, width: number): string {
+  return `https://wiki.warframe.com/w/Special:FilePath/${encodeURIComponent(file)}?width=${width}`
+}
+
+const eraImages: Record<Era, string> = {
+  lith: 'LithRelicIntact.png', meso: 'MesoRelicIntact.png', neo: 'NeoRelicIntact.png',
+  axi: 'AxiRelicIntact.png', requiem: 'RequiemRelicIntact.png', omnia: 'VoidRelicGoldIcon64.png',
+}
+
+/** Keyed by the faction names the node and sortie catalogs use; a faction missing here shows no mark. */
+const factionImages: Record<string, string> = {
+  Grineer: 'GrineerIconColor.png', Corpus: 'CorpusIconColor.png',
+  Infested: 'InfestedIconColor.png', Infestation: 'InfestedIconColor.png',
+  Orokin: 'OrokinIconColor.png', Corrupted: 'OrokinIconColor.png',
+  Sentient: 'SentientFactionIcon(xWhite).png', 'The Murmur': 'MurmurIcon(xWhite).png',
+  Narmer: 'NarmerEyeSigil(SxWhite).png',
+}
+
+function cycleImage(cycle: Cycle): string {
+  switch (cycle.place) {
+    case 'earth': return cycle.state === 'night' ? 'EarthTileNight1.png' : 'EarthTileDay1.png'
+    case 'cetus': return 'PlainsofEidolonScene.png'
+    case 'vallis': return 'OrbVallisScene.png'
+    case 'cambion': return 'DeimosCambionDriftScene.png'
+  }
+}
+
+/** A decorative wiki picture that steps aside when it does not load, offline for one. */
+function WikiArt({ file, width, className }: { file: string; width: number; className: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return null
+  return <img className={className} src={wikiImage(file, width)} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)}/>
+}
+
+function FactionMark({ faction }: { faction: string | null }) {
+  const file = faction ? factionImages[faction] : undefined
+  return file ? <WikiArt key={file} file={file} width={32} className="faction-mark"/> : null
+}
 
 function nodeLabel(node: WorldNode): string {
   return node.planet ? `${node.name} (${node.planet})` : node.name
@@ -82,7 +122,8 @@ function Cycles({ world, now }: { world: WorldView; now: number }) {
   return <section className="world-section" aria-labelledby="world-cycles">
     <h2 id="world-cycles" className="section-title">{d.cycles}</h2>
     <ul className="world-cycles">
-      {world.cycles.map(cycle => <li key={cycle.place} className="world-cycle">
+      {world.cycles.map(cycle => <li key={cycle.place} className="world-cycle" data-state={cycle.state}>
+        <WikiArt key={cycleImage(cycle)} file={cycleImage(cycle)} width={480} className="cycle-art"/>
         <span className="cycle-place">{d.places[cycle.place]}</span>
         <span className="cycle-state"><Icon name={stateIcons[cycle.state]}/>{d.states[cycle.state]}</span>
         <span className="cycle-left">{duration(cycle.expiry - now, units)}</span>
@@ -169,10 +210,10 @@ function Fissures({ world, now, filters, onFilters, alerts, onAlerts, denied }: 
     <ul className="group fissure-list" aria-label={d.tabs[tab]}>
       {shown.length === 0 && <li className="world-empty">{d.noFissures}</li>}
       {shown.map(fissure => <li key={fissure.id} className="fissure-row">
-        <span className="fissure-era"><Icon name="relics"/>{d.eras[fissure.era]}</span>
+        <span className="fissure-era"><WikiArt key={fissure.era} file={eraImages[fissure.era]} width={64} className="relic-art"/>{d.eras[fissure.era]}</span>
         <span className="world-label">
           {missionName(fissure.mission_type, t)}
-          <span className="band-note">{[nodeLabel(fissure.node), fissure.node.enemy].filter(Boolean).join(' · ')}</span>
+          <span className="band-note world-where"><FactionMark faction={fissure.node.enemy}/>{[nodeLabel(fissure.node), fissure.node.enemy].filter(Boolean).join(' · ')}</span>
         </span>
         <span className="world-figure">{duration(fissure.expiry - now, d.units)}</span>
       </li>)}
@@ -181,14 +222,16 @@ function Fissures({ world, now, filters, onFilters, alerts, onAlerts, denied }: 
 }
 
 /** A sortie or archon hunt: who, against whom, the three missions, and how long it stays. */
-function SortieRow({ title, sortie, now }: { title: string; sortie: Sortie | null; now: number }) {
+function SortieRow({ title, art, sortie, now }: { title: string; art: string; sortie: Sortie | null; now: number }) {
   const t = useMessages()
   const d = t.dashboard
-  if (!sortie) return <div className="world-row"><span className="world-label">{title}<span className="band-note">{d.none}</span></span></div>
+  const badge = <span className="world-badge"><WikiArt file={art} width={64} className="badge-art"/></span>
+  if (!sortie) return <div className="world-row">{badge}<span className="world-label">{title}<span className="band-note">{d.none}</span></span></div>
   return <div className="world-row">
+    {badge}
     <span className="world-label">
       {title}
-      <span className="band-note">{[sortie.boss, sortie.faction].filter(Boolean).join(' · ')}</span>
+      <span className="band-note world-where"><FactionMark faction={sortie.faction}/>{[sortie.boss, sortie.faction].filter(Boolean).join(' · ')}</span>
       <ol className="world-missions">
         {sortie.missions.map((mission, index) => <li key={index}>{missionName(mission.mission_type, t)} <span className="band-note">{nodeLabel(mission.node)}</span></li>)}
       </ol>
@@ -203,15 +246,17 @@ function Today({ world, now }: { world: WorldView; now: number }) {
   return <section className="world-section" aria-labelledby="world-today">
     <h2 id="world-today" className="section-title">{d.today}</h2>
     <div className="group">
-      <SortieRow title={d.sortie} sortie={world.sortie} now={now}/>
-      <SortieRow title={d.archonHunt} sortie={world.archon_hunt} now={now}/>
+      <SortieRow title={d.sortie} art="Sortie(xWhite).png" sortie={world.sortie} now={now}/>
+      <SortieRow title={d.archonHunt} art="ArchonHunter(xWhite).png" sortie={world.archon_hunt} now={now}/>
       <div className="world-row">
+        <span className="world-badge"><WikiArt file="BaroKi'TeerGlyph.png" width={96} className="badge-art portrait"/></span>
         <span className="world-label">{d.baro}<span className="band-note">{baro ? nodeLabel(baro.relay) : d.none}</span></span>
         {baro && <span className="world-figure">{now < baro.activation
           ? d.baroArrives(duration(baro.activation - now, d.units))
           : d.baroLeaves(duration(baro.expiry - now, d.units))}</span>}
       </div>
       <div className="world-row">
+        <span className="world-badge"><Icon name="refresh"/></span>
         <span className="world-label">{d.dailyReset}<span className="band-note">{d.dailyResetNote}</span></span>
         <span className="world-figure">{duration(nextDailyReset(now) - now, d.units)}</span>
       </div>

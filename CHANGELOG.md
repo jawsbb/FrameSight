@@ -28,8 +28,11 @@ see the difference.
   GitHub, cached on disk for a week; when the game does not answer, the last state shows with its
   age. Cetus and the Drift are read from the Ostron bounty cycle, Earth and the Vallis computed with
   the rules of WFCD's worldstate parser; Zariman and Duviri are left out, having no rule that could
-  be checked. The collection, relic, foundry, order and reward summaries the Dashboard held are
-  gone from it; their own pages keep them.
+  be checked. Each cycle shows its place's scene, each fissure its relic and the enemy's faction
+  mark, and Today the sortie, archon and Baro marks, all pictures from the Warframe wiki
+  (`wiki.warframe.com`) that simply stay out when it does not answer. The collection, relic,
+  foundry, order and reward summaries the Dashboard held are gone from it; their own pages keep
+  them.
 - **A Mastery tab lists every masterable item the account has yet to master.** Under Full
   access, once an inventory has been read and the item catalog has loaded, the tab shows
   mastery-eligible equipment the account has never mastered. What it holds but has not ranked,
