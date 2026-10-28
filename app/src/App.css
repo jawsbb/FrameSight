@@ -15,7 +15,7 @@
 
 /* The window has no compositor decorations, so this bar is its titlebar. */
 .titlebar {
-  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; height: 36px;
   padding-left: var(--step); border-bottom: 1px solid var(--line); background: var(--bg-0);
 }
 .wordmark { font-size: .9375rem; font-weight: 700; letter-spacing: -.01em; color: var(--text); }
@@ -382,9 +382,9 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 
 /* setup and access */
 
-.setup { min-height: 100vh; padding: 24px; }
+.setup-shell { display: grid; grid-template-rows: 36px minmax(0, 1fr); height: 100vh; }
+.setup { min-height: 0; overflow-y: auto; padding: 24px; }
 .setup-panel { display: grid; gap: 12px; width: 100%; max-width: 60rem; margin: 0 auto; }
-.setup-brand { display: flex; align-items: baseline; gap: 10px; margin: 0 0 12px; color: var(--text-faint); font-size: .8125rem; }
 .setup-confirm { position: sticky; z-index: 2; bottom: var(--step); width: 100%; min-height: 44px; box-shadow: 0 -12px 24px var(--bg-1); }
 
 /* The selector is one bordered panel: status, rail, detail and prohibitions are its rows. */
@@ -429,13 +429,14 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 .access-mode-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--text); }
 .access-pending { color: var(--warn); }
 .access-detail.review { background: color-mix(in srgb, var(--warn) 5%, var(--bg-2)); }
-.access-detail-head { display: grid; gap: 2px; padding: 12px; }
-.access-eyebrow { margin: 0; color: var(--warn); font-size: .8125rem; }
+.access-detail-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 12px; }
+.access-proposed { margin: 0; color: var(--warn); font-size: .8125rem; }
 .access-detail-head h3 { margin: 0; font-size: 1.125rem; font-weight: 600; }
 .access-detail-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 12px; }
 .access-detail > * + .access-detail-body { border-top: 1px solid var(--line); }
 .access-detail-body section { min-width: 0; }
 .access-observation h3 { margin: 0 0 6px; color: var(--text-dim); font-size: .8125rem; font-weight: 600; }
+.access-caution { max-width: 70ch; margin: 10px 0 0; color: var(--text); font-size: .8125rem; line-height: 1.5; }
 .access-detail ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .access-detail li { position: relative; padding-left: 14px; color: var(--text-dim); font-size: .8125rem; }
 .access-detail li::before { position: absolute; top: .6em; left: 2px; width: 5px; height: 5px; content: ''; border-radius: 50%; background: var(--accent); }

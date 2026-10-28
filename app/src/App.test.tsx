@@ -160,21 +160,40 @@ describe('MVP desktop interface', () => {
     windowApi.watchWindowResized.mockResolvedValue(() => {})
   })
 
-  it('preselects Full on first run but waits for affirmative confirmation', async () => {
+  it('chooses nothing on first run and keeps Confirm off until a level is picked', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: false, access_mode: null, desktop_capture_action_available: false })
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Choose Warframe access' })).toBeInTheDocument()
+    for (const radio of screen.getAllByRole('radio')) expect(radio).not.toBeChecked()
+    expect(document.querySelectorAll('.access-node.included')).toHaveLength(0)
+    expect(screen.queryByRole('region', { name: /adds$/ })).not.toBeInTheDocument()
+    const confirm = screen.getByRole('button', { name: 'Choose an access level' })
+    expect(confirm).toBeDisabled()
+    await userEvent.click(confirm)
+    expect(backend.setAccessMode).not.toHaveBeenCalled()
+    // The setup screen has the same drag bar and window controls as the main window.
+    expect(screen.getByRole('group', { name: 'Window' })).toBeInTheDocument()
+  })
+
+  it('waits for affirmative confirmation of the level the player picked', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: false, access_mode: null, desktop_capture_action_available: false })
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Choose Warframe access' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'What may TennoScope observe?' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: /Full/ }))
     expect(screen.getByRole('radio', { name: /Full/ })).toBeChecked()
     expect(backend.setAccessMode).not.toHaveBeenCalled()
     expect(screen.getByText('Each level includes the previous level. Nothing starts until you confirm.')).toBeInTheDocument()
     expect(screen.queryByText(/Effective mode:/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Pending:/)).not.toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Companion/ }).closest('label')).toHaveTextContent('No Warframe reads')
-    expect(screen.getByRole('radio', { name: /Overlay/ }).closest('label')).toHaveTextContent('Adds EE.log')
+    expect(screen.getByRole('radio', { name: /Overlay/ }).closest('label')).toHaveTextContent("Adds the game's log and the reward screen")
     expect(screen.getByRole('radio', { name: /Full/ }).closest('label')).toHaveTextContent('Adds read-only memory')
     expect(screen.getByRole('region', { name: 'What Full adds' })).toHaveTextContent(/Read-only process memory.*Inventory acquisition/i)
+    // Where the data goes and what it may cost are said where Full is chosen.
+    expect(screen.getByRole('region', { name: 'What Full adds' })).toHaveTextContent(/account ID and a nonce to mobile\.warframe\.com, and nowhere else.*account-policy or anti-cheat risk/)
     expect(screen.getByRole('region', { name: 'Always prohibited' })).toHaveTextContent(/memory writes.*game-file writes.*automated input.*traffic redirection.*telemetry/i)
 
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Full' }))
@@ -187,6 +206,7 @@ describe('MVP desktop interface', () => {
     render(<App />)
 
     const full = await screen.findByRole('radio', { name: /Full/ })
+    await userEvent.click(full)
     expect(document.querySelectorAll('.access-node.included')).toHaveLength(3)
     expect(screen.getByRole('region', { name: 'What Full adds' })).toBeInTheDocument()
 
@@ -209,11 +229,12 @@ describe('MVP desktop interface', () => {
   it('shows only the selected stop’s additions and swaps them on selection', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: false, access_mode: null, desktop_capture_action_available: false })
     render(<App />)
+    await userEvent.click(await screen.findByRole('radio', { name: /Full/ }))
     expect(await screen.findByRole('region', { name: 'What Full adds' })).toHaveTextContent(/Read-only process memory.*Inventory acquisition/i)
-    expect(screen.queryByText(/Visible-pixel OCR/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Text on the reward screen/i)).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('radio', { name: /Overlay/ }))
-    expect(await screen.findByRole('region', { name: 'What Overlay adds' })).toHaveTextContent(/Warframe process presence.*EE.log.*Visible-pixel OCR.*Click-through overlay/i)
+    expect(await screen.findByRole('region', { name: 'What Overlay adds' })).toHaveTextContent(/Warframe process presence.*game's log \(EE.log\).*Text on the reward screen.*Click-through overlay/i)
     expect(screen.queryByText(/Inventory acquisition/i)).not.toBeInTheDocument()
   })
 
@@ -252,8 +273,8 @@ describe('MVP desktop interface', () => {
 
     await userEvent.click(screen.getByRole('radio', { name: /Overlay/ }))
     expect(screen.getByText('Pending: Overlay')).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: /Overlay/ }).closest('label')).toHaveTextContent('Adds EE.log')
-    expect(screen.getByRole('region', { name: 'New observation to grant' })).toHaveTextContent(/Warframe process presence.*EE\.log.*visible-pixel OCR.*click-through overlay/i)
+    expect(screen.getByRole('radio', { name: /Overlay/ }).closest('label')).toHaveTextContent("Adds the game's log and the reward screen")
+    expect(screen.getByRole('region', { name: 'New observation to grant' })).toHaveTextContent(/Warframe process presence.*EE\.log.*text on the reward screen.*click-through overlay/i)
     expect(backend.setAccessMode).toHaveBeenCalledTimes(1)
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Overlay' }))
     expect(backend.setAccessMode).toHaveBeenLastCalledWith('overlay')
@@ -267,7 +288,8 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('radio', { name: /Full/ }))
 
     expect(screen.getByText('Pending: Full')).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'New observation to grant' })).toHaveTextContent(/Warframe process presence.*EE\.log.*visible-pixel OCR.*click-through overlay.*read-only process memory.*inventory acquisition/i)
+    expect(screen.getByRole('region', { name: 'New observation to grant' })).toHaveTextContent(/Warframe process presence.*EE\.log.*text on the reward screen.*click-through overlay.*read-only process memory.*inventory acquisition.*mobile\.warframe\.com/i)
+    expect(screen.getByText('Proposed. Not yet effective.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Confirm Full' })).toBeEnabled()
   })
 

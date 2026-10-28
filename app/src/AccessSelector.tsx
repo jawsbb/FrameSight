@@ -3,7 +3,8 @@ import type { AccessMode } from './backend'
 import { ACCESS_MODES, ALWAYS_OFF, accessGrantedBetween, accessLevel, accessMode } from './access'
 
 interface AccessSelectorProps {
-  value: AccessMode
+  /** Null on first run until the player picks a level: nothing is chosen for them. */
+  value: AccessMode | null
   onChange: (mode: AccessMode) => void
   effectiveMode?: AccessMode | null
   onConfirmUpgrade?: () => void
@@ -13,15 +14,15 @@ interface AccessSelectorProps {
 
 export function AccessSelector({ value, onChange, effectiveMode = null, onConfirmUpgrade, applyingMode = null, disabled = false }: AccessSelectorProps) {
   const radios = useRef<Array<HTMLInputElement | null>>([])
-  const selectedIndex = accessLevel(value)
-  const selected = accessMode(value)
+  const selectedIndex = value ? accessLevel(value) : -1
+  const selected = value ? accessMode(value) : null
   const effective = effectiveMode ? accessMode(effectiveMode) : null
   const reviewingUpgrade = effectiveMode !== null && selectedIndex > accessLevel(effectiveMode)
   const reviewingDowngrade = effectiveMode !== null && selectedIndex < accessLevel(effectiveMode)
   const isFirstRun = effectiveMode === null
   const pending = effectiveMode !== null && value !== effectiveMode
-  const newlyGranted = reviewingUpgrade && effectiveMode ? accessGrantedBetween(effectiveMode, value) : []
-  const retiring = reviewingDowngrade && effectiveMode ? accessGrantedBetween(value, effectiveMode) : []
+  const newlyGranted = reviewingUpgrade && effectiveMode && value ? accessGrantedBetween(effectiveMode, value) : []
+  const retiring = reviewingDowngrade && effectiveMode && value ? accessGrantedBetween(value, effectiveMode) : []
   const choose = (index: number) => {
     const next = ACCESS_MODES[index]
     if (!next || disabled) return
@@ -44,15 +45,15 @@ export function AccessSelector({ value, onChange, effectiveMode = null, onConfir
       <span><i aria-hidden="true"/>Effective mode: {effective.name}</span>
       {applyingMode
         ? <span className="access-pending" role="status" aria-label={`Applying ${accessMode(applyingMode).name}`}>Applying {accessMode(applyingMode).name}…</span>
-        : pending && <span className="access-pending">Pending: {selected.name}</span>}
+        : pending && selected && <span className="access-pending">Pending: {selected.name}</span>}
     </div>}
     <fieldset className="access-rail" disabled={disabled} aria-label="What may TennoScope observe?">
       <div className="access-stepper">
       <div className="access-track" aria-hidden="true">
         <span className="access-track-line"/>
-        <span className="access-track-progress" style={{ transform: `scaleX(${selectedIndex / 2})` }}/>
+        <span className="access-track-progress" style={{ transform: `scaleX(${Math.max(selectedIndex, 0) / 2})` }}/>
         {ACCESS_MODES.map((mode, index) => <span key={mode.id} onClick={() => choose(index)} className={`access-node${index <= selectedIndex ? ' included' : ''}${mode.id === effectiveMode ? ' active' : ''}`}/>) }
-        <span className="access-thumb" style={{ transform: `translateX(${selectedIndex * 100}%)` }}><span/></span>
+        {selected && <span className="access-thumb" style={{ transform: `translateX(${selectedIndex * 100}%)` }}><span/></span>}
       </div>
         <div className="access-stops">
           {ACCESS_MODES.map((mode, index) => <label key={mode.id} className={`access-stop${mode.id === value ? ' selected' : ''}${mode.id === effectiveMode ? ' active' : ''}`}>
@@ -64,20 +65,22 @@ export function AccessSelector({ value, onChange, effectiveMode = null, onConfir
       </div>
     </fieldset>
 
-    <article className={`access-detail${pending && !isFirstRun ? ' review' : ''}`} role="region" aria-label={reviewingUpgrade ? 'New observation to grant' : reviewingDowngrade ? 'Observation to retire' : `What ${selected.name} adds`} aria-live="polite">
+    {selected && <article className={`access-detail${pending && !isFirstRun ? ' review' : ''}`} role="region" aria-label={reviewingUpgrade ? 'New observation to grant' : reviewingDowngrade ? 'Observation to retire' : `What ${selected.name} adds`} aria-live="polite">
       {pending && !isFirstRun ? <header className="access-detail-head">
-        <p className="access-eyebrow">Proposed. Not yet effective.</p>
         <h3>{selected.name}</h3>
+        <p className="access-proposed">Proposed. Not yet effective.</p>
       </header> : <div className="access-detail-body">
         <section className="access-observation">
           <h3>What {selected.name} adds</h3>
           <ul>{selected.added.map(item => <li key={item}>{item}</li>)}</ul>
+          {selected.caution && <p className="access-caution">{selected.caution}</p>}
         </section>
       </div>}
       {reviewingUpgrade && <div className="access-detail-body">
         <section className="access-observation">
           <h3>New observation to grant</h3>
           <ul>{newlyGranted.map(item => <li key={item}>{item}</li>)}</ul>
+          {selected.caution && <p className="access-caution">{selected.caution}</p>}
         </section>
         {onConfirmUpgrade && <button type="button" className="stamp" onClick={onConfirmUpgrade} disabled={disabled} aria-busy={disabled}>{disabled ? `Applying ${selected.name}…` : `Confirm ${selected.name}`}</button>}
       </div>}
@@ -88,7 +91,7 @@ export function AccessSelector({ value, onChange, effectiveMode = null, onConfir
         </section>
         {onConfirmUpgrade && <button type="button" className="stamp" onClick={onConfirmUpgrade} disabled={disabled} aria-busy={disabled}>{disabled ? `Applying ${selected.name}…` : `Confirm ${selected.name}`}</button>}
       </div>}
-    </article>
+    </article>}
 
     <section className="access-always-off" aria-label="Always prohibited">
       <h3>Always prohibited, at every level</h3>

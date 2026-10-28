@@ -181,9 +181,19 @@ function WindowControls() {
   </div>
 }
 
+/** The window has no compositor decorations: this bar is its titlebar. `deep` makes every part of
+ * it a grab handle except the controls standing on it. */
+function TitleBar() {
+  return <header className="titlebar" data-tauri-drag-region="deep">
+    <span className="wordmark">TennoScope</span>
+    <WindowControls/>
+  </header>
+}
+
 function App() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null)
-  const [selectedMode, setSelectedMode] = useState<AccessMode>('full')
+  // Nothing is chosen for the player on first run; the effective mode fills this once there is one.
+  const [selectedMode, setSelectedMode] = useState<AccessMode | null>(null)
   const [modeBusy, setModeBusy] = useState(false)
   const [modeError, setModeError] = useState<string | null>(null)
   const [view, setView] = useState<AppView | null>(null)
@@ -468,7 +478,7 @@ function App() {
   }, [page])
 
   if (setupStatus === null && !error) return <main className="holding"><div className="streak" aria-hidden="true"/><p>Starting TennoScope…</p></main>
-  if (!setupStatus?.setup_complete) return <SetupScreen selected={selectedMode} busy={modeBusy} error={modeError ?? error} onSelect={setSelectedMode} onContinue={() => { void changeAccessMode(selectedMode) }}/>
+  if (!setupStatus?.setup_complete) return <SetupScreen selected={selectedMode} busy={modeBusy} error={modeError ?? error} onSelect={setSelectedMode} onContinue={mode => { void changeAccessMode(mode) }}/>
 
   const effectiveMode = setupStatus.access_mode ?? 'companion'
   const liveState = view?.health.game_reader.state ?? 'degraded'
@@ -476,13 +486,9 @@ function App() {
   const readerState: HealthState = effectiveMode === 'companion' ? 'idle' : liveState
   const readerDetail = effectiveMode === 'companion' ? 'Using saved and reference data' : view?.health.game_reader.message ?? 'Connecting to local backend'
   const navCount: Partial<Record<Page, number>> = { rewards: view?.reward.cards.length, orders: view?.market_account.flagged }
+  const settingsMode = selectedMode ?? effectiveMode
   return <div className="shell">
-    {/* The window has no compositor decorations: this bar is its titlebar. `deep` makes every part
-        of it a grab handle except the controls standing on it. */}
-    <header className="titlebar" data-tauri-drag-region="deep">
-      <span className="wordmark">TennoScope</span>
-      <WindowControls/>
-    </header>
+    <TitleBar/>
 
     <aside className="sidebar">
       <nav className="nav" aria-label="Primary">
@@ -551,10 +557,10 @@ function App() {
           error={ordersError}
         />}
         {page === 'diagnostics' && <DiagnosticsPage view={view} effectiveMode={effectiveMode}/>}
-        {page === 'settings' && <SettingsPage view={view} priceFloor={priceFloor} effectiveMode={effectiveMode} selectedMode={selectedMode} modeBusy={modeBusy} modeError={modeError} onSelectMode={mode => {
+        {page === 'settings' && <SettingsPage view={view} priceFloor={priceFloor} effectiveMode={effectiveMode} selectedMode={settingsMode} modeBusy={modeBusy} modeError={modeError} onSelectMode={mode => {
           setSelectedMode(mode)
           setModeError(null)
-        }} onConfirmMode={() => { void changeAccessMode(selectedMode) }} desktopCaptureActionAvailable={setupStatus?.desktop_capture_action_available ?? false} captureAuthorizationBusy={captureAuthorizationBusy} captureNote={captureNote} onCaptureNote={setCaptureNote} onAuthorizeCapture={authorizeCapture} onPriceFloor={floor => {
+        }} onConfirmMode={() => { void changeAccessMode(settingsMode) }} desktopCaptureActionAvailable={setupStatus?.desktop_capture_action_available ?? false} captureAuthorizationBusy={captureAuthorizationBusy} captureNote={captureNote} onCaptureNote={setCaptureNote} onAuthorizeCapture={authorizeCapture} onPriceFloor={floor => {
           setPriceFloor(floor)
           writePriceFloor(floor)
         }}/>}
@@ -563,19 +569,21 @@ function App() {
   </div>
 }
 
-function SetupScreen({ selected, busy, error, onSelect, onContinue }: { selected: AccessMode; busy: boolean; error: string | null; onSelect: (mode: AccessMode) => void; onContinue: () => void }) {
-  return <main className="setup">
-    <section className="setup-panel" aria-labelledby="setup-title">
-      <p className="setup-brand"><span className="wordmark">TennoScope</span><span>One-time setup</span></p>
-      <h1 id="setup-title" className="page-title">Choose Warframe access</h1>
-      <p className="prose">Each level includes the previous level. Nothing starts until you confirm.</p>
-      <AccessSelector value={selected} onChange={onSelect} applyingMode={busy ? selected : null} disabled={busy}/>
-      {error && <p className="error-banner" role="alert">{error}</p>}
-      <button type="button" className="stamp primary setup-confirm" onClick={onContinue} disabled={busy} aria-busy={busy}>
-        {busy ? `Applying ${accessMode(selected).name}…` : `Confirm ${accessMode(selected).name}`}
-      </button>
-    </section>
-  </main>
+function SetupScreen({ selected, busy, error, onSelect, onContinue }: { selected: AccessMode | null; busy: boolean; error: string | null; onSelect: (mode: AccessMode) => void; onContinue: (mode: AccessMode) => void }) {
+  return <div className="setup-shell">
+    <TitleBar/>
+    <main className="setup">
+      <section className="setup-panel" aria-labelledby="setup-title">
+        <h1 id="setup-title" className="page-title">Choose Warframe access</h1>
+        <p className="prose">Each level includes the previous level. Nothing starts until you confirm.</p>
+        <AccessSelector value={selected} onChange={onSelect} applyingMode={busy ? selected : null} disabled={busy}/>
+        {error && <p className="error-banner" role="alert">{error}</p>}
+        <button type="button" className="stamp primary setup-confirm" onClick={() => { if (selected) onContinue(selected) }} disabled={busy || !selected} aria-busy={busy}>
+          {!selected ? 'Choose an access level' : busy ? `Applying ${accessMode(selected).name}…` : `Confirm ${accessMode(selected).name}`}
+        </button>
+      </section>
+    </main>
+  </div>
 }
 
 function LoadingView() {
