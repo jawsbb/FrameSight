@@ -1,6 +1,13 @@
 # Farm & vente : une page d'analyse pour faire du platine
 
-Date : 2026-10-28. Statut : décisions prises en conversation avec le propriétaire ; relu par un builder ; en attente de validation du document.
+Date : 2026-10-28. Statut : implémentée (2026-10-28).
+
+Écarts de l'implémentation : la page est sur le rail après Marché (pas entre Maîtrise et Récompenses) ;
+les barres sont horizontales (les libellés de lieu sont longs) ; aucun dégradé, la carte Tendance
+suit le système plat de `DESIGN.md` ; les drops d'ennemis et autres sources sans rotation ne sont
+pas affichés du tout (ni classés, ni listés « par kill ») ; le tableau Vendre ignore le plancher de
+prix des Réglages (`sellableValue` à plancher 0) ; le sélecteur de période ne s'applique qu'à la
+courbe d'un objet choisi, le carrousel reste sur 7 jours.
 
 ## Intention
 

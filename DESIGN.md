@@ -197,7 +197,7 @@ Warm greys with a hint of brown, one soft blue, two currency metals and three st
 **Character:** One plain native face at small sizes and moderate weights, so the item art and the figures carry the screen. Hierarchy comes from weight and from the three text tones, not from size jumps.
 
 ### Hierarchy
-- **Display** (700, 28px at the overlay's 1080p design pixel, line-height 1, -0.02em): the platinum and ducat figures on a reward slip. Scales with `--u` over the game.
+- **Display** (700, 28px at the overlay's 1080p design pixel, line-height 1, -0.02em): the platinum and ducat figures on a reward slip. Scales with `--u` over the game. In the main window it sets one figure per card on Farm & sales (the trend's change, the best platinum per run) and nothing else.
 - **Headline** (600, 1.25rem, 1.3, -0.01em): the one page title per page. Nothing larger in the main window.
 - **Body** (400, 0.8125rem / 13px, 1.45): the base of the main window: controls, rows, nav, card names (600), prose (70ch, 1.5).
 - **Value** (600, 0.9375rem, tabular): the price figure on an item card.
@@ -213,7 +213,7 @@ Warm greys with a hint of brown, one soft blue, two currency metals and three st
 
 ## Layout
 
-The main window is a two-by-two grid: a 36px title bar (44px under a coarse pointer) across the top, the icon rail on the left, and the content panel (margin 0 8px 8px 0, padding 22px 28px 48px, page capped at 120rem). The rail is its own panel (`bg-1`, hairline edge, 10px corner, 6px padding, margin 0 8px 8px): the pages at the top (Collection, Mastery, Rewards, Orders; Relics, Foundry, Market and Farm & sales will join between Mastery and Rewards), Diagnostics and Settings at its foot, then under a hairline the reader state, Refresh inventory and the update mark. The title bar carries the TennoScope mark over the rail's centre line, and on its right the warframe.market status before the window controls.
+The main window is a two-by-two grid: a 36px title bar (44px under a coarse pointer) across the top, the icon rail on the left, and the content panel (margin 0 8px 8px 0, padding 22px 28px 48px, page capped at 120rem). The rail is its own panel (`bg-1`, hairline edge, 10px corner, 6px padding, margin 0 8px 8px): the pages at the top (Collection, Mastery, Relics, Foundry, Market, Farm & sales, Rewards, Orders), Diagnostics and Settings at its foot, then under a hairline the reader state, Refresh inventory and the update mark. The title bar carries the TennoScope mark over the rail's centre line, and on its right the warframe.market status before the window controls.
 
 A page is a vertical stack with 12px gaps. The page head puts the title and, on its right, its tabs (the ownership filter) or its actions (Refresh orders, Unlink); under them one line of figures in dim text separated by middle dots; then the page note. Collection and Mastery follow with one toolbar row (search, sort, ducat switch), one row of category words with the price state and action on its right, and the grid: auto-fill, 14.5rem minimum, 8px gap. Settings, Diagnostics and Orders are made of groups: a 12px grey title, the group, an optional footnote, 16px between sections.
 
@@ -264,6 +264,12 @@ Quiet and compact; a button is a label on a translucent fill.
 - **Item card:** borderless `bg-2` tile, 10px corner, 10px padding; 56px art well (black at 16%, 6px) beside the name (two lines max), category, tags and the values line with Sell at its end. Hover shows a strong hairline. A card the account does not hold greys its art and dims its name, and its tag says so.
 - **Empty state:** one tile (22rem max, centred): the page's 20px icon, a 13px title, a 12px faint line, an optional action.
 - **Order list:** one group, an order per row in fixed columns (mark, name, price × count, value, claim, actions); a flagged row adds a danger dot, a danger sentence and a 6% danger tint.
+
+### Cards and Bars (Farm & sales)
+- **Card:** a group-toned tile (`bg-2`, 10px, 12px 14px padding) with a 13px semibold title and, on its right, a segmented control. Two sit side by side above the page's table, one column under 1100px. No gradient and no glow: the reference's lit trend card is translated to tone, like everything else here.
+- **Trend figure:** the Display size, `ok` for a rise and `danger` for a fall, always with its sign; a line under it says over what it was observed. Carousel dots are 3px rules in 28px buttons, the current one in text colour.
+- **Bar chart:** horizontal, one row per entry (label, 10px bar, figure with its metal). Pace is a fill and a shape: fast a full `ok` bar, steady a `text-faint` bar, slow an outline in control edge only; a legend under the chart names all three, and each row speaks its pace to a screen reader.
+- **Sparkline:** one 1.5px `text-dim` line, no axes, no fill; its accessible name states the first and last figure and the period.
 
 ### Inputs / Fields
 - **Field:** 30px, black at 16% over the ground, control-edge border, 6px, 10px inline padding (30px with a search icon), 13px. Hover lightens the edge to faint text; focus draws the 2px soft-blue outline.
