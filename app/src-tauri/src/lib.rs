@@ -577,6 +577,28 @@ async fn get_view(state: State<'_, SharedRuntime>) -> Result<AppView, String> {
     .map_err(|_| "application view task failed".to_owned())?
 }
 
+/// The item sheet for one collection or Mastery row, from the catalogue and collection already in
+/// memory: nothing is fetched to answer it.
+#[tauri::command]
+async fn get_item_detail(
+    state: State<'_, SharedRuntime>,
+    item_id: String,
+) -> Result<app_core::ItemDetailView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let runtime = shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?;
+        runtime
+            .core
+            .item_detail(&item_id)
+            .map_err(|_| "item details are unavailable".to_owned())?
+            .ok_or_else(|| "item is not in the collection".to_owned())
+    })
+    .await
+    .map_err(|_| "item details task failed".to_owned())?
+}
+
 /// Assemble the GitHub-safe report text only (used by "Copy diagnostics").
 #[tauri::command]
 async fn collect_report_text(
@@ -2262,6 +2284,7 @@ pub fn run() {
             create_order,
             set_order_quantity,
             update_order,
+            get_item_detail,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             update::get_version_info,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]

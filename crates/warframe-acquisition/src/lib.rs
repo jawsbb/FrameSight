@@ -10,6 +10,7 @@ mod catalog;
 mod catalog_cache;
 mod collection_prices;
 mod inventory;
+mod item_facts;
 #[cfg(target_os = "linux")]
 mod linux_proc;
 mod market;
@@ -39,6 +40,9 @@ pub use collection_prices::{
 pub use inventory::{
     INVENTORY_ENDPOINT, InventoryHttpTransport, InventoryJsonDecoder, MAX_INVENTORY_RESPONSE_BYTES,
     MasteryFacts, mastery_rank,
+};
+pub use item_facts::{
+    Ability, ComponentSlot, DropSource, Introduced, ItemFacts, Rarity, StatKey, StatValue,
 };
 #[cfg(target_os = "linux")]
 pub use linux_proc::LinuxProc;

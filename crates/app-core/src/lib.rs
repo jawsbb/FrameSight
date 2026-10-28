@@ -1,10 +1,13 @@
 #![forbid(unsafe_code)]
 
 mod fake_session;
+mod item_detail;
 
 use std::path::Path;
 use std::sync::Arc;
 
+pub use item_detail::ItemDetailView;
+use item_detail::{entry_image_name, item_detail, wfcd_image_url};
 use local_store::{SnapshotMeta, SqliteStore, StoreError};
 use serde::Serialize;
 use thiserror::Error;
@@ -14,7 +17,7 @@ use warframe_acquisition::{
     MasteryLedger, PriceTable, StageState,
 };
 use warframe_domain::{
-    CatalogItem, Category, Collection, DomainError, InventoryEntry, InventorySnapshot,
+    CatalogItem, Category, Collection, DomainError, InventoryEntry, InventorySnapshot, ItemId,
     KioskMastery, MasteryMark, RewardAdvisor, RewardCandidate, RewardView,
 };
 use warframe_market::{CredentialBacking, MarketItems, MarketOrder, OrderKind};
@@ -487,6 +490,34 @@ impl AppCore {
             .and_then(|table| table.get(entry.item.id.catalog_path()))
     }
 
+    /// The item sheet for a collection or Mastery row, by the row's id. None when no row of
+    /// either list has that id.
+    pub fn item_detail(&self, id: &str) -> Result<Option<ItemDetailView>, AppError> {
+        let collection = self.store.load_collection()?;
+        let path = ItemId::new(id)?.catalog_path().to_owned();
+        let catalog = self.mastery_catalog.as_deref();
+        let entry = collection
+            .entries()
+            .find(|entry| entry.item.id.as_str() == id);
+        // A Mastery row the account never held lives in the catalogue, not the store.
+        let catalogued = catalog.is_some_and(|catalog| catalog.resolve(&path).is_some());
+        if entry.is_none() && !(id == path && catalogued) {
+            return Ok(None);
+        }
+        // What the card draws, else, for a row the store never held, the catalogue's art.
+        let image_name = entry
+            .and_then(entry_image_name)
+            .or_else(|| catalog?.image_name(&path));
+        let holdings = (collection.entries().next().is_some())
+            .then(|| Holdings::from_entries(collection.entries()));
+        Ok(Some(item_detail(
+            &path,
+            image_name,
+            catalog,
+            holdings.as_ref(),
+        )))
+    }
+
     pub fn enrich_collection_from_catalog(
         &mut self,
         catalog: &CatalogIndex,
@@ -498,15 +529,21 @@ impl AppCore {
                 // By path, not by id: a ranked row's id carries its rank, and the catalogue has
                 // never heard of it. Resolving on the raw id left every ranked mod holding the
                 // decoder's fallback label and no artwork.
-                let Some(metadata) = catalog.resolve(entry.item.id.catalog_path()) else {
-                    return Ok(entry.clone());
+                let path = entry.item.id.catalog_path();
+                let Some(metadata) = catalog.resolve(path) else {
+                    // Only in a recipe (a Warframe's Neuroptics): no name to give it, but art.
+                    let mut entry = entry.clone();
+                    if let Some(image_name) = catalog.image_name(path) {
+                        entry.item = entry.item.with_image_name(image_name)?;
+                    }
+                    return Ok(entry);
                 };
                 let mut item = CatalogItem::new(
                     entry.item.id.clone(),
                     metadata.name(),
                     metadata.category().unwrap_or(entry.item.category),
                 )?;
-                if let Some(image_name) = metadata.image_name() {
+                if let Some(image_name) = catalog.image_name(path) {
                     item = item.with_image_name(image_name)?;
                 }
                 let enriched =
@@ -1079,11 +1116,7 @@ impl From<&warframe_domain::InventoryEntry> for CollectionItemView {
             category: entry.item.category,
             quantity: entry.quantity,
             mastered: entry.mastered,
-            image_url: entry.item.image_name.as_ref().map(|name| {
-                format!(
-                    "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/img/{name}"
-                )
-            }),
+            image_url: entry_image_name(entry).map(wfcd_image_url),
             platinum: None,
             platinum_ceiling: None,
             ducats: None,

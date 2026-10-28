@@ -1,8 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
+use std::sync::Arc;
 
 use serde::Deserialize;
 use thiserror::Error;
 use warframe_domain::{CatalogItem, Category, DomainError, InventoryEntry, ItemId};
+
+use crate::item_facts::{Ability, Introduced, ItemFacts, WfcdDrop, facts_from};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CatalogMetadata {
@@ -62,6 +65,8 @@ pub struct CatalogIndex {
     recipes: BTreeMap<String, Recipe>,
     part_parents: BTreeMap<String, (String, usize)>,
     consumers: BTreeMap<String, Vec<(String, u32)>>,
+    /// The item sheet's facts. Shared, so the runtime's clones of the index stay cheap.
+    facts: Arc<BTreeMap<String, ItemFacts>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -287,19 +292,33 @@ impl CatalogIndex {
             }
             index.index_recipe(parent)?;
         }
+        index.facts = Arc::new(facts_from(&raw, |image_name| {
+            validated_image_name(image_name).ok().flatten()
+        }));
         Ok(index)
+    }
+
+    /// What the item sheet shows for this path. A part's recipe (`…Blueprint`), which no recipe
+    /// lists, answers with the part (`…Component`) it builds.
+    pub fn facts(&self, path: &str) -> Option<&ItemFacts> {
+        self.facts.get(path).or_else(|| {
+            let stem = path.strip_suffix("Blueprint")?;
+            self.facts.get(&format!("{stem}Component"))
+        })
+    }
+
+    /// The art for a path: the item's own, or, for what only appears inside a recipe (a
+    /// Warframe's Neuroptics, a key's blueprint), the art the recipe draws it with.
+    pub fn image_name(&self, path: &str) -> Option<&str> {
+        self.resolve(path)
+            .and_then(CatalogMetadata::image_name)
+            .or_else(|| self.facts(path)?.image_name.as_deref())
     }
 
     /// The recipe behind one Prime parent: its blueprint, tradable parts and consumed whole
     /// items. Resources such as Orokin Cells are skipped, since no mastery mark needs them.
     fn index_recipe(&mut self, parent: &WfcdItem) -> Result<(), CatalogError> {
-        let mut grouped: BTreeMap<&str, (u32, &WfcdComponent)> = BTreeMap::new();
-        for component in &parent.components {
-            grouped
-                .entry(component.unique_name.as_str())
-                .and_modify(|(count, _)| *count += component.item_count.unwrap_or(1))
-                .or_insert((component.item_count.unwrap_or(1), component));
-        }
+        let grouped = grouped_components(&parent.components);
         let mut slots = Vec::with_capacity(grouped.len());
         for (path, (per_build, first)) in &grouped {
             let name = validated_name(&first.name)?;
@@ -521,43 +540,88 @@ impl CatalogIndex {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct WfcdItem {
-    unique_name: String,
-    name: String,
+pub(crate) struct WfcdItem {
+    pub(crate) unique_name: String,
+    pub(crate) name: String,
     #[serde(rename = "type", default)]
     item_type: String,
     #[serde(default)]
-    category: String,
+    pub(crate) category: String,
     #[serde(default)]
     masterable: bool,
     #[serde(default)]
-    components: Vec<WfcdComponent>,
+    pub(crate) components: Vec<WfcdComponent>,
     #[serde(default)]
-    image_name: Option<String>,
+    pub(crate) image_name: Option<String>,
     #[serde(default)]
     ducats: Option<u32>,
     /// The mod's own rank ceiling. Not `masterable` equipment's level cap.
     #[serde(default)]
     fusion_limit: Option<u32>,
+    // What the item sheet reads and nothing else does.
+    #[serde(default)]
+    pub(crate) description: Option<String>,
+    #[serde(default)]
+    pub(crate) mastery_req: Option<u32>,
+    #[serde(default)]
+    pub(crate) vaulted: Option<bool>,
+    #[serde(default)]
+    pub(crate) is_prime: bool,
+    #[serde(default)]
+    pub(crate) introduced: Option<Introduced>,
+    #[serde(default)]
+    pub(crate) wikia_url: Option<String>,
+    #[serde(default)]
+    pub(crate) abilities: Vec<Ability>,
+    #[serde(default)]
+    pub(crate) drops: Vec<WfcdDrop>,
+    #[serde(default)]
+    pub(crate) health: Option<f64>,
+    #[serde(default)]
+    pub(crate) shield: Option<f64>,
+    #[serde(default)]
+    pub(crate) armor: Option<f64>,
+    #[serde(default)]
+    pub(crate) power: Option<f64>,
+    #[serde(default)]
+    pub(crate) sprint_speed: Option<f64>,
+    #[serde(default)]
+    pub(crate) total_damage: Option<f64>,
+    #[serde(default)]
+    pub(crate) critical_chance: Option<f64>,
+    #[serde(default)]
+    pub(crate) critical_multiplier: Option<f64>,
+    #[serde(default)]
+    pub(crate) proc_chance: Option<f64>,
+    #[serde(default)]
+    pub(crate) fire_rate: Option<f64>,
+    #[serde(default)]
+    pub(crate) magazine_size: Option<f64>,
+    #[serde(default)]
+    pub(crate) reload_time: Option<f64>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct WfcdComponent {
-    unique_name: String,
-    name: String,
+pub(crate) struct WfcdComponent {
+    pub(crate) unique_name: String,
+    pub(crate) name: String,
     #[serde(default)]
-    tradable: bool,
+    pub(crate) tradable: bool,
     #[serde(default)]
     ducats: Option<u32>,
     #[serde(default)]
     prime_selling_price: Option<u32>,
     #[serde(default)]
-    image_name: Option<String>,
+    pub(crate) image_name: Option<String>,
     /// How many copies one build takes. WFCD repeats the entry instead for some ingredients
     /// (Akbronco lists Bronco Prime twice), so this is summed per path, never read raw.
     #[serde(default)]
-    item_count: Option<u32>,
+    pub(crate) item_count: Option<u32>,
+    #[serde(default)]
+    pub(crate) description: Option<String>,
+    #[serde(default)]
+    pub(crate) drops: Option<Vec<WfcdDrop>>,
 }
 
 fn classify_item(item: &WfcdItem) -> Option<Category> {
@@ -652,14 +716,29 @@ fn catalog_max_rank(name: &str) -> u32 {
     }
 }
 
-fn component_order(name: &str) -> usize {
+pub(crate) fn component_order(name: &str) -> usize {
     COMPONENT_ORDER
         .iter()
         .position(|known| *known == name)
         .unwrap_or(COMPONENT_ORDER.len())
 }
 
-fn is_prime_parent(name: &str) -> bool {
+/// A recipe's components, one per path with their copies summed: WFCD repeats an entry instead of
+/// counting it for some ingredients (Akbronco lists Bronco Prime twice).
+pub(crate) fn grouped_components(
+    components: &[WfcdComponent],
+) -> BTreeMap<&str, (u32, &WfcdComponent)> {
+    let mut grouped: BTreeMap<&str, (u32, &WfcdComponent)> = BTreeMap::new();
+    for component in components {
+        grouped
+            .entry(component.unique_name.as_str())
+            .and_modify(|(count, _)| *count += component.item_count.unwrap_or(1))
+            .or_insert((component.item_count.unwrap_or(1), component));
+    }
+    grouped
+}
+
+pub(crate) fn is_prime_parent(name: &str) -> bool {
     name.ends_with(" Prime") || name.contains(" Prime ")
 }
 

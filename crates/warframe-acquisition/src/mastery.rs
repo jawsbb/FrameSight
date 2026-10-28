@@ -49,6 +49,15 @@ impl Holdings {
         self.quantity.get(path).copied().unwrap_or(0)
     }
 
+    /// Copies of a recipe slot: a part (`…Component`) counts its blueprint (`…Blueprint`) too,
+    /// since either fills the slot once built.
+    pub fn slot_quantity(&self, path: &str) -> u32 {
+        let blueprint = path
+            .strip_suffix("Component")
+            .map_or(0, |stem| self.quantity(&format!("{stem}Blueprint")));
+        self.quantity(path) + blueprint
+    }
+
     /// True once the game marks the item mastered, and still true after the item is sold.
     pub fn mastered(&self, path: &str) -> bool {
         self.mastered.contains(path)
@@ -305,11 +314,7 @@ impl<'a> MasteryLedger<'a> {
                     .path
                     .strip_suffix("Component")
                     .map(|stem| format!("{stem}Blueprint"));
-                self.holdings.quantity(&slot.path)
-                    + sibling
-                        .as_deref()
-                        .map(|path| self.holdings.quantity(path))
-                        .unwrap_or(0)
+                self.holdings.slot_quantity(&slot.path)
                     + sibling
                         .as_deref()
                         .map(|path| self.pending_path(path))
