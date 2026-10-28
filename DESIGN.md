@@ -103,12 +103,12 @@ components:
   chip-selected:
     backgroundColor: "{colors.fill-strong}"
     textColor: "{colors.text}"
-  nav-item:
+  rail-item:
     textColor: "{colors.text-dim}"
     rounded: "{rounded.radius-sm}"
-    padding: "0 8px"
-    height: "30px"
-  nav-item-current:
+    width: "40px"
+    height: "40px"
+  rail-item-current:
     backgroundColor: "{colors.fill}"
     textColor: "{colors.text}"
   group:
@@ -143,7 +143,7 @@ components:
 
 **Creative North Star: "A Quiet Desktop Tool"**
 
-TennoScope is a companion read between missions and glanced at during them. The main window is drawn like a recent dark desktop app: the title bar and the sidebar sit on the window's own ground, and the page is one lighter panel, inset by 8px with a 10px corner, whose ground warms faintly toward its foot. What the page holds comes in raised groups made of rows (what a row is on the left, its value or control on the right) split by hairlines that are barely there, each group named by a small grey title above it. The item grid stays the screen on Collection and Mastery: dense, but its cards are borderless raised tiles.
+TennoScope is a companion read between missions and glanced at during them. The main window is drawn like a recent dark desktop app: the title bar and a floating icon rail sit on the window's own ground, and the page is one lighter panel, inset by 8px with a 10px corner, whose ground warms faintly toward its foot. What the page holds comes in raised groups made of rows (what a row is on the left, its value or control on the right) split by hairlines that are barely there, each group named by a small grey title above it. The item grid stays the screen on Collection and Mastery: dense, but its cards are borderless raised tiles.
 
 The world is warm grey and almost colourless. Neutral greys carry the structure; one soft blue marks a switch that is on, keyboard focus, the selected segment of a tab control and the one primary action on a screen. The two currencies, platinum and gold, colour currency values and nothing else; ok, warn and danger say state, always next to a word or a shape. Type is the system sans at a 13px base with 20px semibold page titles; versions and shell commands are set in monospace.
 
@@ -169,7 +169,7 @@ Warm greys with a hint of brown, one soft blue, two currency metals and three st
 - **Ducat Gold** (`gold`, #d8b04a): ducat figures, and the "Top ducats" crown on the slip that wins in ducats.
 
 ### Neutral
-- **Window** (`bg-0`, #1b1a19): title bar, sidebar, the setup screen's frame; the ink on a platinum or gold crown; the overlay slip's ground at 94%.
+- **Window** (`bg-0`, #1b1a19): title bar, the ground round the rail, the setup screen's frame; the ink on a platinum or gold crown; the overlay slip's ground at 94%.
 - **Panel** (`bg-1` #242321 to `bg-1-low` #2a2624): the content panel, a top-to-bottom gradient from 35% down.
 - **Raised** (`bg-2`, #2e2c2a): groups, item cards, empty-state tiles, link forms, reward slips.
 - **Fill** (`fill`, white at 7%) and **Strong Fill** (`fill-strong`, white at 12%): neutral buttons, hovers, the current nav item, a segmented track, tags; their hover state, a pressed chip, the current page number.
@@ -213,11 +213,11 @@ Warm greys with a hint of brown, one soft blue, two currency metals and three st
 
 ## Layout
 
-The main window is a two-by-two grid: a 36px title bar (44px under a coarse pointer) across the top, a 212px sidebar on the left, and the content panel (margin 0 8px 8px 0, padding 22px 28px 48px, page capped at 120rem). The sidebar is a text list (30px rows, 1px gaps, 16px icons at a 1.5 stroke), and at its foot the reader state, the snapshot age and the Refresh row.
+The main window is a two-by-two grid: a 36px title bar (44px under a coarse pointer) across the top, the icon rail on the left, and the content panel (margin 0 8px 8px 0, padding 22px 28px 48px, page capped at 120rem). The rail is its own panel (`bg-1`, hairline edge, 10px corner, 6px padding, margin 0 8px 8px): the pages at the top (Collection, Mastery, Rewards, Orders; Relics, Foundry, Market and Farm & sales will join between Mastery and Rewards), Diagnostics and Settings at its foot, then under a hairline the reader state, Refresh inventory and the update mark. The title bar carries the TennoScope mark over the rail's centre line, and on its right the warframe.market status before the window controls.
 
 A page is a vertical stack with 12px gaps. The page head puts the title and, on its right, its tabs (the ownership filter) or its actions (Refresh orders, Unlink); under them one line of figures in dim text separated by middle dots; then the page note. Collection and Mastery follow with one toolbar row (search, sort, ducat switch), one row of category words with the price state and action on its right, and the grid: auto-fill, 14.5rem minimum, 8px gap. Settings, Diagnostics and Orders are made of groups: a 12px grey title, the group, an optional footnote, 16px between sections.
 
-Responsive behaviour: below 900px the sidebar keeps its icons in 64px (labels stay in the accessibility tree, count badges ride the icon's corner), order rows fold to two lines and paired forms stack. Below 640px the search takes a full row and the setup confirm stops being sticky. Under `pointer: coarse` (the Steam Deck) every control is at least 44px tall.
+Responsive behaviour: below 900px order rows fold to two lines and paired forms stack. Below 640px the search takes a full row and the setup confirm stops being sticky. Under `pointer: coarse` (the Steam Deck) every control is at least 44px tall.
 
 **The Grid First Rule.** Nothing above the item grid is taller than it needs to be: a title line, a figures line, one toolbar row, one row of categories. The grid starts near y=205 on a 1280×800 window.
 
@@ -246,7 +246,7 @@ Quiet and compact; a button is a label on a translucent fill.
 - **Default:** `fill`, text colour, no frame, 6px, 28px tall, 12px inline padding, 13px at weight 500. Hover: `fill-strong`.
 - **Primary:** the accent at 22% (32% on hover) with an `accent-text` label, never a solid blue block; one per screen (Price this page, the setup confirm, Confirm an access change). The mix is made over `--primary-under`, transparent by default; the sticky setup confirm sets it to the panel colour so text scrolling under it does not read through.
 - **Armed:** a destructive button awaiting its second click turns danger, on a 16% danger ground.
-- **Sidebar row:** Refresh inventory is a `nav-item`, not a button standing on the sidebar.
+- **Rail item:** Refresh inventory is an icon on the rail like the pages, not a button standing on it.
 - **Disabled:** 45% opacity; a disabled button that blocks a choice has its reason written next to it.
 - **Link:** `accent-text` with a 45% underline at 0.2em, full on hover.
 
@@ -257,7 +257,7 @@ Quiet and compact; a button is a label on a translucent fill.
 
 ### Chips and Tabs
 - **Category chip:** words at rest (dim, 26px, no frame); hover takes `fill`; pressed takes `fill-strong`, text colour and a control-edge ring. Counts in faint tabular 12px.
-- **Segmented tabs:** a `fill` track with 2px padding and 8px corners; 24px options; the selected one `accent-soft` with a 1px accent ring. Used for ownership, language and market status.
+- **Segmented tabs:** a `fill` track with 2px padding and 8px corners; 24px options; the selected one `accent-soft` with a 1px accent ring. Used for ownership and language.
 - **Tag:** `fill`, 4px, 18px line, dim 12px. Mastered in ok on an ok tint; absent dashed and faint; maxed rank and listed on `fill-strong` in text colour.
 
 ### Cards / Containers
@@ -271,7 +271,9 @@ Quiet and compact; a button is a label on a translucent fill.
 - **Slider:** 4px track, soft blue up to the value and control edge after; a 16px white thumb.
 
 ### Navigation
-- **Sidebar item:** 30px row, 16px icon, 13px dim label, 8px padding, 6px corner. Hover brightens the text; current takes `fill` and text colour, no border, no accent. A count sits right as a neutral 18px pill on `fill`.
+- **Rail item:** a 40px square (44px under a coarse pointer), 18px icon at a 1.5 stroke, dim, 6px corner, no label. Hover takes `fill` and text colour; current takes `fill`, a `line` inset ring and text colour, never the accent. A count rides the top-right corner inside the button: a 16px neutral pill on `bg-2`, carved from the icon by a 2px ring of the rail.
+- **Tip:** the name of a rail item, shown on hover and on keyboard focus, gone on Escape: `bg-2`, a `line-strong` inset ring, 6px, 12px text, 10px right of the item; the reader's tip adds its detail and the snapshot age in dim text. Never `title`.
+- **Market status:** a 24px pill on `fill` in the title bar: a 12px mark (dot online, ringed dot in game, dashed ring invisible, ring offline, warn triangle for a refused link), the status word, `· auto` when it follows the game, a chevron. It opens a 16rem popover on `bg-2` with a `line-strong` ring and a 10px corner: the four choices as rows (the one asked for in `accent-soft` with an accent ring), the Follow the game checkbox and the note. Unlinked, the pill says Not linked and opens Orders.
 - **Title bar:** 36px on the window ground, the 13px semibold wordmark in dim text, three 44px window controls.
 - **Pagination:** 28px buttons, bare at rest; the current page takes `fill-strong` and a control-edge ring.
 
