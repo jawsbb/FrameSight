@@ -125,6 +125,19 @@
 }
 .link-button:hover:not(:disabled) { color: var(--accent-hover); }
 .link-button:disabled { opacity: .5; cursor: not-allowed; }
+/* Every disclosure draws the same chevron in place of the native triangle. */
+summary {
+  display: flex; align-items: center; gap: var(--tight); min-height: 24px; padding: 4px 0;
+  color: var(--text-dim); font-size: .8125rem; cursor: pointer; list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  width: 6px; height: 6px; flex: none; content: '';
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform .15s ease;
+}
+details[open] > summary::before { transform: rotate(45deg); }
+summary:hover { color: var(--text); }
 .head-link { margin-left: 6px; text-decoration: none; }
 .head-link:hover { text-decoration: underline; }
 .head-actions { display: flex; flex-wrap: wrap; gap: var(--tight); margin-left: auto; }
@@ -387,7 +400,6 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 .command-chip input { flex: 1; min-width: 0; font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-size: .8125rem; }
 .check-row { display: flex; align-items: flex-start; gap: var(--tight); margin-top: var(--tight); font-size: .875rem; }
 .update-channel { margin-top: var(--tight); font-size: .875rem; }
-.update-channel summary { min-height: 24px; padding: 4px 0; color: var(--text-dim); cursor: pointer; }
 .update-channel .check-row { margin-top: 6px; }
 .check-row input, .sell-visible input, .presence-auto input { accent-color: var(--accent); }
 
@@ -471,18 +483,6 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 .clause-pair .dial-slot, .new-listing .dial-slot { flex: none; }
 .dial-slot > span:first-child { color: var(--text-dim); font-size: .8125rem; }
 
-.token-help summary {
-  display: flex; align-items: center; gap: var(--tight); color: var(--text-dim); font-size: .8125rem;
-  cursor: pointer; list-style: none;
-}
-.token-help summary::-webkit-details-marker { display: none; }
-.token-help summary::before {
-  width: 6px; height: 6px; flex: none; content: '';
-  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg); transition: transform .15s ease;
-}
-.token-help[open] summary::before { transform: rotate(45deg); }
-.token-help summary:hover { color: var(--text); }
 .token-help ol { margin: var(--tight) 0 0; padding-left: 1.2rem; color: var(--text-dim); font-size: .8125rem; line-height: 1.6; }
 .token-help ol b { color: var(--text); font-weight: 600; }
 .token-help kbd { padding: 0 4px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg-1); font: .75rem ui-monospace, monospace; }
@@ -602,7 +602,7 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
   .shell, .setup-shell { grid-template-rows: 44px minmax(0, 1fr); }
   .nav-item, .stamp, .chip, .segmented button, .display-switch, .update-mark,
   .link-button, .search input, .select select, .pagination button, .window-control,
-  .status-line .price-page, .line-fix .stamp, .token-help summary, .update-channel summary,
+  .status-line .price-page, .line-fix .stamp, summary,
   .presence-auto, .sell-visible, .check-row { min-height: 44px; }
   .check-row { align-items: center; }
   .pagination button { min-width: 44px; }
