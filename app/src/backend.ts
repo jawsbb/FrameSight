@@ -148,3 +148,13 @@ export const getVersionInfo = () => invoke<VersionInfo>('get_version_info')
 export const updateCheck = (feed: string) => invoke<CheckResult>('update_check', { feed })
 export const updateDownloadAndInstall = (feed: string, expectedVersion: string) =>
   invoke<UpdateSummary>('update_download_and_install', { feed, expectedVersion })
+
+/** The Foundry page, built from what the backend already holds. `status` names what it waits for. */
+export type FoundryStage = 'ready' | 'almost' | 'set'
+/** One recipe slot. A part counts its blueprint too; builds already in the foundry are not in hand. */
+export interface FoundryPiece { name: string; image: string | null; kind: 'blueprint' | 'part' | 'ingredient'; uses: number; held: number; platinum?: number; drops: string[] }
+/** Only resources the inventory can count are sent. */
+export interface FoundryResource { name: string; uses: number; held: number }
+export interface FoundryItem { id: string; name: string; category?: ItemCategory; image_url?: string; masterable: boolean; mastered: boolean; stage: FoundryStage; missing: number; pieces: FoundryPiece[]; resources: FoundryResource[]; set_platinum?: number; pieces_platinum?: number }
+export interface FoundryView { status: 'no_catalog' | 'no_inventory' | 'ready'; items: FoundryItem[] }
+export const getFoundry = () => invoke<FoundryView>('get_foundry')

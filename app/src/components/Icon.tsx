@@ -1,4 +1,4 @@
-export type IconName = 'collection' | 'mastery' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next'
+export type IconName = 'collection' | 'mastery' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'foundry'
 
 /** Line icons on a 24px grid, one round stroke throughout. */
 export function Icon({ name }: { name: IconName }) {
@@ -13,6 +13,8 @@ export function Icon({ name }: { name: IconName }) {
     search: <><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></>,
     previous: <path d="m14.5 6-6 6 6 6"/>,
     next: <path d="m9.5 6 6 6-6 6"/>,
+    // An anvil: the horn on the left, the face, the waist and a flared foot.
+    foundry: <path d="M5.5 6h15v4h-6v3c0 1.4 1.3 2.6 3.5 3.1V19H6v-2.9c2.2-.5 3.5-1.7 3.5-3.1v-3H9C6.4 10 4.3 9 2.5 7.2 3.6 6.4 4.6 6 5.5 6z"/>,
   }
   return <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>
 }
