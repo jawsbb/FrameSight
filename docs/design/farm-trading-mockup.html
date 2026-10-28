@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<style>
+:root{--accent:#5f9fdb;--accent-soft:#5f9fdb29;--plat:#e8ebef;--gold:#d8b04a;--bg0:#0f1114;--bg1:#15181c;--bg2:#1c2026;--line:#2c313a;--ls:#3d434d;--lc:#6a727e;--text:#e8ebef;--dim:#a9b0ba;--faint:#8c939d;--ok:#6cc28d;--warn:#e69a52;--danger:#ec7b6b}
+*{box-sizing:border-box}body{margin:0;background:#0a0b0d;color:var(--text);font:400 14px/1.45 ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;padding:24px}
+h1{font-size:20px;margin:0 0 4px}p.q{color:var(--dim);margin:0 0 18px;max-width:84ch}
+.win{display:grid;grid-template-columns:212px 1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden;max-width:1280px}
+.side{background:var(--bg0);padding:12px 8px;display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--line)}
+.nav{height:36px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:6px;color:var(--dim);font-size:14px}
+.nav i{width:16px;height:16px;border:1.5px solid currentColor;border-radius:4px;opacity:.8}
+.nav.cur{background:var(--accent-soft);box-shadow:inset 0 0 0 1px #5f9fdb66;color:var(--text)}.nav.cur i{color:var(--accent)}
+.nav .b{margin-left:auto;font-size:12px;font-weight:700;border:1px solid var(--ls);border-radius:10px;padding:0 7px}
+.sep{height:1px;background:var(--line);margin:8px 4px}
+.page{background:var(--bg1);padding:20px 24px 32px;display:flex;flex-direction:column;gap:12px}
+.head{display:flex;align-items:center;gap:10px}.head b{font-size:20px}.head .r{margin-left:auto;display:flex;gap:8px}
+.btn{height:34px;padding:0 12px;border:1px solid var(--lc);border-radius:6px;background:var(--bg2);display:flex;align-items:center;font-size:13px}
+.pill{height:30px;padding:0 12px;border:1px solid var(--lc);border-radius:15px;display:flex;align-items:center;font-size:12.5px;color:var(--dim)}
+.row1{display:grid;grid-template-columns:1fr 1.25fr;gap:12px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden}
+.card .h{display:flex;align-items:center;gap:10px}.card .h b{font-size:15px}.card .h .r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.ico{width:26px;height:26px;border-radius:7px;background:var(--bg1);border:1px solid var(--ls);display:grid;place-items:center;font-size:13px}
+.insight{min-height:290px;display:flex;flex-direction:column;background:
+ radial-gradient(120% 90% at 0% 0%, #5f9fdb59 0%, #5f9fdb1a 35%, transparent 65%),
+ radial-gradient(70% 60% at 0% 100%, #6cc28d26 0%, transparent 70%), var(--bg2)}
+.insight .big{font-size:64px;font-weight:300;letter-spacing:-.03em;margin-top:26px;line-height:1}.insight .big sup{font-size:22px;color:var(--ok);font-weight:600}
+.insight .txt{margin-top:auto;font-size:16px;line-height:1.35}.insight .txt span{color:var(--faint)}
+.dots{display:flex;align-items:center;gap:10px;margin-top:16px;color:var(--dim)}.dots i{height:3px;width:26px;border-radius:2px;background:var(--ls)}.dots i.on{background:var(--text)}
+.tabs{display:flex;gap:18px;border-bottom:1px solid var(--line);margin:12px -18px 0;padding:0 18px}.tabs span{padding:6px 0 8px;font-size:13px;color:var(--faint)}.tabs .on{color:var(--text);box-shadow:inset 0 -2px 0 var(--text)}
+.bars{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-top:14px}
+.bars .k{font-size:38px;font-weight:300;letter-spacing:-.02em}.bars .ks{color:var(--dim);font-size:13px}.bars .kn{color:var(--dim);font-size:12.5px;margin-top:40px;max-width:24ch}
+.cols{display:flex;align-items:flex-end;gap:14px;height:180px}.col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.col .bar{width:100%;border-radius:4px 4px 0 0}.col span{font-size:12px;color:var(--faint);text-align:center;line-height:1.2}
+.leg{display:flex;gap:14px;font-size:12px;color:var(--dim);margin-top:12px}.leg span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--c)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}th{color:var(--dim);font-weight:400;text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}td{padding:10px 8px;border-bottom:1px solid var(--line)}td.r,th.r{text-align:right}
+.p{color:var(--plat);font-weight:600}.up{color:var(--ok)}.down{color:var(--danger)}.f{color:var(--faint)}
+.tag{font-size:12px;border:1px solid var(--ls);border-radius:4px;padding:0 6px;color:var(--dim);line-height:18px}
+.warnbox{max-width:84ch;margin-top:18px;border:1px solid #e69a5273;background:#e69a520f;border-radius:6px;padding:10px 14px;color:var(--dim);font-size:13px}.warnbox b{color:var(--warn)}
+</style></head><body>
+<h1>Farm & vente, version « insight »</h1>
+<p class="q">D'après ta 2ᵉ capture : une carte « tendance » en grand avec un dégradé et un carrousel, un graphique en barres avec des onglets, puis un tableau. Chiffres inventés.</p>
+
+<div class="win">
+<div class="side">
+<div class="nav"><i></i>Collection</div><div class="nav"><i></i>Maîtrise</div>
+<div class="nav cur"><i></i>Farm & vente</div>
+<div class="nav"><i></i>Récompenses <span class="b">4</span></div><div class="nav"><i></i>Ordres <span class="b">2</span></div>
+<div class="sep"></div><div class="nav"><i></i>Diagnostic</div><div class="nav"><i></i>Réglages</div>
+</div>
+<div class="page">
+<div class="head"><b>Farm & vente</b><div class="r"><span class="btn">Actualiser</span></div></div>
+
+<div class="row1">
+<div class="card insight">
+<div class="h"><span class="ico">✦</span><b>Tendance</b><div class="r"><span class="pill">Cette semaine ▾</span></div></div>
+<div class="big">+22 %<sup>↗</sup></div>
+<div class="txt">Wisp Prime Set depuis son unvault, <span>et 410 ventes ce mois-ci. Tu as 4 Lith W5 qui le donnent.</span></div>
+<div class="dots"><span>‹</span><i></i><i class="on"></i><i></i><i></i><i></i><span>›</span></div>
+</div>
+
+<div class="card">
+<div class="h"><span class="ico">↗</span><b>Plat par heure de farm</b></div>
+<div class="tabs"><span class="on">Farmer</span><span>Ouvrir</span><span>Vendre</span></div>
+<div class="bars">
+<div><div class="k">~240 p</div><div class="ks">par heure, meilleure option</div><div class="kn">Arcanes Eidolon : prix plus bas, mais ils partent en quelques heures.</div></div>
+<div class="cols">
+<div class="col"><div class="bar" style="height:92%;background:linear-gradient(#6cc28d,#6cc28d10)"></div><span>Eidolons</span></div>
+<div class="col"><div class="bar" style="height:70%;background:linear-gradient(#5f9fdb,#5f9fdb10)"></div><span>Fissures Lith</span></div>
+<div class="col"><div class="bar" style="height:48%;background:linear-gradient(#a9b0ba,#a9b0ba10)"></div><span>Arbitrations</span></div>
+<div class="col"><div class="bar" style="height:30%;background:linear-gradient(#8c939d,#8c939d10)"></div><span>Survie Mot</span></div>
+</div>
+</div>
+<div class="leg"><span style="--c:#6cc28d">Se vend vite</span><span style="--c:#5f9fdb">Correct</span><span style="--c:#a9b0ba">Lent</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="h"><span class="ico">≡</span><b>Quoi faire maintenant</b></div>
+<div class="tabs"><span class="on">Tout</span><span>Vendre</span><span>Ouvrir</span><span>Farmer</span></div>
+<table>
+<tr><th>Action</th><th>Objet</th><th>Où</th><th class="r">Plat / unité</th><th class="r">Ventes / 30 j</th><th class="r">7 j</th></tr>
+<tr><td><span class="tag">Vendre</span></td><td>3 × Arcane Energize R0</td><td class="f">Ton inventaire</td><td class="r p">18</td><td class="r">2 140</td><td class="r up">+6 %</td></tr>
+<tr><td><span class="tag">Ouvrir</span></td><td>Lith W5 Radiant × 4</td><td class="f">Fissure Lith</td><td class="r p">~38</td><td class="r">—</td><td class="r up">+18 %</td></tr>
+<tr><td><span class="tag">Farmer</span></td><td>Arcane Energize</td><td class="f">Eidolons, Cetus de nuit</td><td class="r p">18</td><td class="r">2 140</td><td class="r up">+6 %</td></tr>
+<tr><td><span class="tag">Farmer</span></td><td>Galvanized Chamber</td><td class="f">Arbitrations, rot. C 1,9 %</td><td class="r p">25</td><td class="r">290</td><td class="r f">0 %</td></tr>
+</table>
+</div>
+</div></div>
+
+<div class="warnbox"><b>Écart avec DESIGN.md</b> : les dégradés lumineux, les coins de 12px, les gros chiffres en maigre et la couleur par catégorie sur les barres sont tous interdits par les règles actuelles (« Flat Graphite », « One Corner », « One Accent »). Soit cette page a le droit de sortir du cadre, soit on fait évoluer DESIGN.md pour toute l'app.</div>
+</body></html>
