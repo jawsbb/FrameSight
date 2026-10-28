@@ -112,14 +112,10 @@ pub fn opening_value(
 
 /// A relic picked up in a mission is worth the better of opening it and selling it intact.
 pub fn relic_worth(opening: Option<Expected>, sale: Option<Expected>) -> Option<Expected> {
-    match (opening, sale) {
-        (Some(opening), Some(sale)) => Some(if sale.value > opening.value {
-            sale
-        } else {
-            opening
-        }),
-        (one, other) => one.or(other),
-    }
+    // On a tie, opening: `max_by` keeps the last of equals.
+    sale.into_iter()
+        .chain(opening)
+        .max_by(|left, right| left.value.total_cmp(&right.value))
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -145,7 +141,6 @@ pub struct SellRow {
     /// The collection row, which is what the sell form lists.
     pub id: String,
     pub name: String,
-    pub rank: Option<u32>,
     pub quantity: u32,
     pub platinum: u32,
     pub monthly_trades: Option<u32>,
@@ -309,7 +304,6 @@ impl AppCore {
                 Some(SellRow {
                     id: item.id().to_owned(),
                     name: item.name().to_owned(),
-                    rank: item.rank(),
                     quantity: item.quantity(),
                     platinum,
                     monthly_trades: item.monthly_trades(),
@@ -327,10 +321,6 @@ impl AppCore {
             .relics
             .into_iter()
             .filter_map(|relic| {
-                let full = match relic.refinement {
-                    Some(refinement) => format!("{}{}", relic.name, refinement.suffix()),
-                    None => relic.name.clone(),
-                };
                 let opening = opening_value(
                     relic
                         .rewards
@@ -346,8 +336,8 @@ impl AppCore {
                     vaulted: relic.vaulted,
                     value: opening.value,
                     pace: opening.pace(),
-                    change: change(&full),
-                    market: market(&full),
+                    change: change(&relic.full_name),
+                    market: market(&relic.full_name),
                 })
             })
             .collect();
@@ -479,7 +469,6 @@ mod tests {
         let row = |name: &str, platinum, quantity, trades| SellRow {
             id: name.to_owned(),
             name: name.to_owned(),
-            rank: None,
             quantity,
             platinum,
             monthly_trades: Some(trades),

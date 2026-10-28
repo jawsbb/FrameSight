@@ -774,16 +774,6 @@ pub fn civil_date(unix_seconds: u64) -> String {
     format!("{year:04}-{month:02}-{day:02}")
 }
 
-/// Whether a cached dump of this date is already as new as anything that could be published.
-///
-/// The dumps lag: on 2026-07-29 the newest published file was dated the 27th, so "not today's
-/// date" is no evidence that a newer one exists. Today's or yesterday's is the freshest the
-/// publisher ever offers, and downloading 3.9 MB on every launch to be told so is a request
-/// nobody needed.
-///
-/// A dump older than that is refetched even when the publisher has not moved on, which costs one
-/// download per launch on a day the feed is two days behind. Avoiding that means remembering when
-/// we last asked, which is more state than the saving is worth.
 /// Whole days from one dump date to another, or `None` when either is not a date.
 pub fn days_between(from: &str, to: &str) -> Option<i64> {
     Some(epoch_day(to)? - epoch_day(from)?)
@@ -795,6 +785,16 @@ pub fn unix_days_before(date: &str, days: i64) -> Option<u64> {
     u64::try_from((epoch_day(date)? - days) * 86_400).ok()
 }
 
+/// Whether a cached dump of this date is already as new as anything that could be published.
+///
+/// The dumps lag: on 2026-07-29 the newest published file was dated the 27th, so "not today's
+/// date" is no evidence that a newer one exists. Today's or yesterday's is the freshest the
+/// publisher ever offers, and downloading 3.9 MB on every launch to be told so is a request
+/// nobody needed.
+///
+/// A dump older than that is refetched even when the publisher has not moved on, which costs one
+/// download per launch on a day the feed is two days behind. Avoiding that means remembering when
+/// we last asked, which is more state than the saving is worth.
 pub fn dump_is_current(dump_date: &str, now_unix: u64) -> bool {
     [0, 86_400]
         .iter()

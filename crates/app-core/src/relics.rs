@@ -33,14 +33,6 @@ impl Refinement {
         (Self::Radiant, " Radiant"),
     ];
 
-    /// What follows the relic's name: " Radiant".
-    pub(crate) fn suffix(self) -> &'static str {
-        Self::ALL
-            .iter()
-            .find(|(refinement, _)| *refinement == self)
-            .map_or("", |(_, suffix)| suffix)
-    }
-
     /// The relic's name without its refinement, and the refinement, when the name carries one.
     fn split(name: &str) -> (&str, Option<Self>) {
         Self::ALL
@@ -96,6 +88,9 @@ pub struct RelicView {
     pub id: String,
     /// "Axi A1", without the refinement.
     pub name: String,
+    /// "Axi A1 Radiant", as WFCD names it: what the price table is asked about.
+    #[serde(skip)]
+    pub full_name: String,
     /// "Lith", "Meso", "Neo", "Axi", "Requiem", or whatever first word the relic carries.
     pub era: String,
     pub refinement: Option<Refinement>,
@@ -242,6 +237,7 @@ impl AppCore {
                     id: entry.item.id.as_str().to_owned(),
                     era: name.split(' ').next().unwrap_or(name).to_owned(),
                     name: name.to_owned(),
+                    full_name: full_name.to_owned(),
                     refinement,
                     quantity: entry.quantity,
                     vaulted: relic.and_then(|relic| relic.vaulted),
