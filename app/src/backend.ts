@@ -87,6 +87,17 @@ export interface KioskView {
 }
 
 export const getView = () => invoke<AppView>('get_view')
+
+export type Refinement = 'intact' | 'exceptional' | 'flawless' | 'radiant'
+export type Rarity = 'common' | 'uncommon' | 'rare'
+/** One reward of a relic at its refinement. `ducats` absent: Baro does not take it, or the values have not loaded. */
+export interface RelicReward { name: string; rarity: Rarity | null; chance: number | null; platinum: number | null; ducats: number | null; owned: number; mastery?: MasteryMark }
+/** What one opening returns on average: chance × price over the priced rewards. `unpriced` rewards are left out, so it is a floor. */
+export interface RelicOpening { platinum: number; ducats: number | null; unpriced: number; unpriced_chance: number }
+export interface Relic { id: string; name: string; era: string; refinement: Refinement | null; quantity: number; vaulted: boolean | null; platinum: number | null; monthly_trades: number | null; opening: RelicOpening | null; rewards: RelicReward[] }
+/** `catalog` false: WFCD's relic tables are not loaded. `prices_date` null: no price table yet. */
+export interface RelicsView { catalog: boolean; prices_date: string | null; ducats: boolean; relics: Relic[] }
+export const getRelics = () => invoke<RelicsView>('get_relics')
 export const getKioskView = () => invoke<KioskView | null>('get_kiosk_view')
 export const refreshInventory = () => invoke<AppView>('refresh_inventory')
 export const refreshPrices = (ids: string[]) => invoke<AppView>('refresh_prices', { itemIds: ids })
