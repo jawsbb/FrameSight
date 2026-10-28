@@ -95,6 +95,18 @@ pub struct Recipe {
     pub parent_name: String,
     /// Blueprint first, then parts in foundry order, then whole-item ingredients last.
     pub components: Vec<RecipeComponent>,
+    /// What else the foundry asks for, Orokin Cells and the like, in path order. Never a slot:
+    /// no mastery mark counts them, and nobody trades them.
+    pub resources: Vec<RecipeResource>,
+}
+
+/// A common resource a build consumes: "Orokin Cell" ×15.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecipeResource {
+    pub path: String,
+    pub name: String,
+    pub image_name: Option<String>,
+    pub per_build: u32,
 }
 
 /// One slot of a Prime recipe: a blueprint, a tradable part, or a whole item another Prime
@@ -111,6 +123,9 @@ pub struct RecipeComponent {
     /// never assumed to be 1.
     pub per_build: u32,
     pub kind: ComponentKind,
+    /// Where the current drop tables give this piece, refinement set aside and each place once:
+    /// "Axi B1 Relic". Empty when the catalogue lists none, as for a vaulted part.
+    pub drops: Vec<String>,
 }
 
 impl RecipeComponent {
@@ -311,6 +326,7 @@ impl CatalogIndex {
                 .or_insert((component.item_count.unwrap_or(1), component));
         }
         let mut slots = Vec::with_capacity(grouped.len());
+        let mut resources = Vec::new();
         for (path, (per_build, first)) in &grouped {
             let name = validated_name(&first.name)?;
             let kind = if name == "Blueprint" {
@@ -326,14 +342,29 @@ impl CatalogIndex {
             {
                 ComponentKind::Part
             } else {
+                resources.push(RecipeResource {
+                    path: (*path).to_owned(),
+                    name,
+                    image_name: first.image_name.clone(),
+                    per_build: (*per_build).max(1),
+                });
                 continue;
             };
+            let mut drops = first
+                .drops
+                .iter()
+                .map(|drop| unrefined(drop.location.trim()).to_owned())
+                .filter(|location| !location.is_empty())
+                .collect::<Vec<_>>();
+            drops.sort();
+            drops.dedup();
             slots.push(RecipeComponent {
                 path: (*path).to_owned(),
                 name,
                 image_name: first.image_name.clone(),
                 per_build: (*per_build).max(1),
                 kind,
+                drops,
             });
         }
         slots.sort_by(|a, b| {
@@ -379,6 +410,7 @@ impl CatalogIndex {
             parent: parent_path.clone(),
             parent_name: validated_name(&parent.name)?,
             components: slots,
+            resources,
         };
         self.recipes.insert(parent_path, recipe);
         Ok(())
@@ -566,6 +598,23 @@ struct WfcdComponent {
     /// (Akbronco lists Bronco Prime twice), so this is summed per path, never read raw.
     #[serde(default)]
     item_count: Option<u32>,
+    #[serde(default)]
+    drops: Vec<WfcdDrop>,
+}
+
+#[derive(Deserialize)]
+struct WfcdDrop {
+    /// "Axi B1 Relic (Radiant)": one entry per refinement of each relic.
+    #[serde(default)]
+    location: String,
+}
+
+/// A relic's name without its refinement, which changes the odds but not the relic to farm.
+fn unrefined(location: &str) -> &str {
+    [" (Intact)", " (Exceptional)", " (Flawless)", " (Radiant)"]
+        .iter()
+        .find_map(|suffix| location.strip_suffix(suffix))
+        .unwrap_or(location)
 }
 
 fn classify_item(item: &WfcdItem) -> Option<Category> {
