@@ -50,8 +50,8 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
               ? 'Ownership could not be verified for every listing'
               : 'Every listing matches the collection'}
         />
-        {/* A refused credential is not a linked account. Reading "Linked" beside a refusal notice
-            is the band contradicting the screen it heads. */}
+        {/* A refused credential is not a linked account: "Linked" beside a refusal notice would
+            contradict the screen it heads. */}
         <Stat
           kind="backing"
           value={needsRelink ? 'Refused' : 'Linked'}
@@ -130,11 +130,10 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
     ? items.find(item => item.id === entry.row_id && item.quantity > 0)
     : undefined
   return <article className={`docket-line${flagged ? ' doubt' : ''}`} aria-label={entry.name ?? entry.order.item_id}>
-    {/* The claim is struck as a shape as well as a colour: a row is legible as flagged with the
-        hue removed, which is what keeps the whole thing readable to anyone who cannot separate
-        oxblood from platinum. Ordinary rows keep the slot so the names still line up. */}
-    <span className={`line-mark${flagged ? ' struck' : ''}`} aria-hidden="true" />
-    <h2 className="line-name">{entry.name ?? entry.order.item_id}</h2>
+    {/* A flagged row carries a dot as well as a colour, so it reads as flagged without the hue.
+        Ordinary rows keep the empty slot so the names still line up. */}
+    <span className={`line-mark${flagged ? ' flagged' : ''}`} aria-hidden="true" />
+    <h2 className="line-name" title={entry.name ?? entry.order.item_id}>{entry.name ?? entry.order.item_id}</h2>
     <span className="line-figure">
       {entry.order.platinum}<MetalMark metal="plat" alt=" platinum" className="line-metal"/>
       <i>× {entry.order.quantity}</i>
@@ -256,7 +255,7 @@ function PresenceSwitch({ presence, busy, onPresence }: {
       {choices.map(choice => <button
         key={choice.label}
         type="button"
-        className={`stamp${wanted === choice.value ? ' struck' : ''}`}
+        className="stamp"
         aria-pressed={wanted === choice.value}
         // In automatic mode the row reports rather than accepts: pressing one would silently be
         // overridden by the next poll, and a control that undoes itself is worse than a disabled one.
@@ -292,7 +291,7 @@ function statusWord(status: Presence | null): string {
  *
  * Typed rather than picked from a list. A collection runs to a couple of thousand items, and no
  * one scrolls a list that long to find the one they already have a name for, so the field takes
- * the name and the register answers with the few that match.
+ * the name and the list answers with the few that match.
  */
 function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
   items: CollectionItem[]

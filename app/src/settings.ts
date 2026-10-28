@@ -229,7 +229,7 @@ export function clearSnooze(version: string): void {
 }
 
 /**
- * Last offered update, so the masthead stays across restarts until dismissed,
+ * Last offered update, so the sidebar mark stays across restarts until dismissed,
  * installed, or superseded. The daily throttle skips the network check on
  * reopen; without this the button would vanish until the next check.
  */

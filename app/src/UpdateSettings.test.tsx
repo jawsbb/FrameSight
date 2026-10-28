@@ -58,7 +58,7 @@ describe('UpdatesSetting', () => {
   })
 
   // An automatic check with no network says it could not check. It must not also throw away an
-  // offer that was already standing: the masthead mark, the Download control and Not-now all hang
+  // offer that was already standing: the sidebar mark, the Download control and Not-now all hang
   // off that phase, and an offline check is no evidence the offer is stale.
   it('keeps a standing offer when the automatic check finds no network', async () => {
     const online = navigator.onLine
@@ -171,7 +171,7 @@ describe('UpdatesSetting', () => {
   })
 
   it('re-offers an undismissed version with the same pub_date instead of suppressing', async () => {
-    // The masthead must stay after reopen unless dismissed: an already-surfaced
+    // The sidebar mark must stay after reopen unless dismissed: an already-surfaced
     // date alone must not silence an undismissed offer.
     localStorage.setItem('tennoscope.update-last-surfaced', update.date)
     backend.getVersionInfo.mockResolvedValue(portable)
@@ -181,7 +181,7 @@ describe('UpdatesSetting', () => {
     expect(await screen.findByRole('button', { name: 'Download update' })).toBeInTheDocument()
   })
 
-  it('restores a persisted offer on boot so the masthead stays after reopen', async () => {
+  it('restores a persisted offer on boot so the sidebar mark stays after reopen', async () => {
     // Daily throttle skips the network check; the stored offer keeps the UI.
     localStorage.setItem('tennoscope.update-last-check', new Date().toISOString())
     localStorage.setItem('tennoscope.update-offered', JSON.stringify(update))
@@ -193,7 +193,7 @@ describe('UpdatesSetting', () => {
     expect(backend.updateCheck).not.toHaveBeenCalled()
   })
 
-  it('exposes the Updates section as a deep-link target for the masthead mark', async () => {
+  it('exposes the Updates section as a deep-link target for the sidebar mark', async () => {
     backend.getVersionInfo.mockResolvedValue(portable)
     backend.updateCheck.mockResolvedValue({ kind: 'appimage', updatable: true, update })
     const { container } = render(<UpdatesSetting observesGame={false} />)

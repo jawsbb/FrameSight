@@ -38,7 +38,7 @@ function ledgerState(mark: MasteryMark, uncertain: boolean): LedgerState {
 }
 
 /** The doubt mark, the word that states the mark, and the set row at the far end of the line. An
- * unanswerable mark is the app's struck dash, and a screen reader hears what it means. */
+ * unanswerable mark is a dash, and a screen reader hears what it means. */
 function Ledger({ mark, state, uncertain, confidence }: { mark: MasteryMark; state: LedgerState; uncertain: boolean; confidence: number }) {
   return <div className="ledger" data-tone={state.tone}>
     {uncertain && <span className="hallmark doubt">Uncertain · {Math.round(confidence * 100)}%</span>}
@@ -55,7 +55,7 @@ function Ledger({ mark, state, uncertain, confidence }: { mark: MasteryMark; sta
  * in trade chat. So both are shown at the same weight, in their own metal, with the leader marked
  * inside the column it won, rather than one headline number and a footnote.
  *
- * A reading we do not trust is never crowned on either metal. A price we do not have is struck as
+ * A reading we do not trust is never crowned on either metal. A price we do not have is shown as
  * a dash: untradeable items (Forma among them) have no listing and never will.
  */
 export function RewardCards({

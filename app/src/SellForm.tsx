@@ -34,7 +34,7 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
   onUpdate: UpdateHandler
   onDone: () => void
 }) {
-  // Two collection cards, or two docket rows, can hold an open form at once, and their bounds
+  // Two collection cards, or two order rows, can hold an open form at once, and their bounds
   // differ. A fixed id would be duplicated in the document and aria-describedby would resolve to
   // whichever copy came first, so the second form would announce the first one's limit.
   const uid = useId()

@@ -27,7 +27,7 @@ export function stampReading(value: string, now = new Date()): Reading | null {
   return readingOf(/^\d{9,}$/.test(value) ? new Date(Number(value) * 1000) : new Date(value), now)
 }
 
-/** The masthead's label and hover/screen-reader detail for the inventory snapshot. */
+/** The sidebar's label and hover/screen-reader detail for the inventory snapshot. */
 export function snapshotFreshness(snapshot: Snapshot, now = new Date()): { label: string; detail: string } {
   if (!snapshot) return {
     label: 'No successful sync yet',
