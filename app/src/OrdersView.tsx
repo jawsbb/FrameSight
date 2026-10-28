@@ -66,7 +66,7 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
         </button>
         <ConfirmButton label="Unlink account" confirmLabel="Confirm unlink" busy={busy} onConfirm={onSignOut}/>
       </div>
-      <p className="page-note">Sell listings on your linked warframe.market account, checked against this device's inventory.</p>
+      <p className="page-note">Your warframe.market sell listings, checked against this device's inventory.</p>
     </div>
 
     {/* Suppressed while the relink block is up: that block already names the refusal and offers
@@ -78,7 +78,7 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
         follows. */}
     {needsRelink && <div className="relink">
       <h2>Credential refused</h2>
-      <p className="prose">warframe.market refused the stored credential. The listings below are the last that were fetched; sign in again, or link a fresh token, to bring them up to date.</p>
+      <p className="prose">warframe.market refused the stored credential. The listings below may be out of date until you sign in again or link a new token.</p>
       <LinkForms onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} />
     </div>}
 
@@ -379,11 +379,7 @@ function UnlinkedPanel({ onSignIn, onLinkToken, busy, error }: {
   return <section className="page" aria-labelledby="orders-title">
     <div className="page-head">
       <h1 id="orders-title" className="page-title">Market orders</h1>
-      <p className="page-note">
-        Linking a warframe.market account is entirely optional. TennoScope itself has no accounts of its own:
-        this connects to warframe.market directly, and order data (listings, quantities, prices) leaves this
-        device to check it against warframe.market's servers.
-      </p>
+      <p className="page-note">Optional: TennoScope has no account of its own. Linking connects straight to warframe.market and sends your order data (listings, quantities, prices) to its servers.</p>
     </div>
 
     {error && <p className="error-banner" role="alert">{error}</p>}
@@ -409,7 +405,7 @@ function LinkForms({ onSignIn, onLinkToken, busy }: {
   return <div className="clause-pair">
     <article>
       <h2>Sign in</h2>
-      <p className="prose">Your warframe.market email and password. They are sent once to warframe.market and never stored on this device.</p>
+      <p className="prose">Your warframe.market email and password, sent once to warframe.market and never stored here.</p>
       <form onSubmit={event => { event.preventDefault(); void onSignIn(email, password) }}>
         <label className="dial-slot">
           <span>Email</span>
@@ -436,7 +432,7 @@ function LinkForms({ onSignIn, onLinkToken, busy }: {
           <li>Go to <b>Application</b> (Chrome) or <b>Storage</b> (Firefox), then <b>Cookies → warframe.market</b>.</li>
           <li>Copy the value of the cookie named <b>JWT</b>.</li>
         </ol>
-        <p>Treat that value like a password: anyone holding it can post and delete orders on your account. TennoScope stores it in your system keyring where one is available, and in its local database file otherwise. The Status panel says which you got.</p>
+        <p>Treat it like a password: anyone holding it can post and delete your orders. It is kept in your system keyring, or in the local database without one; hover Linked on this page to see which.</p>
       </details>
       <form onSubmit={event => { event.preventDefault(); void onLinkToken(token) }}>
         <label className="dial-slot">

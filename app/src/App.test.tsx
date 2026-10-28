@@ -305,7 +305,7 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Companion' }))
 
     expect(screen.getByRole('status', { name: 'Applying Companion' })).toHaveTextContent('Applying Companion…')
-    expect(screen.getByText('Every change needs confirmation. Nothing applies until you confirm.')).toBeInTheDocument()
+    expect(screen.getByText('Nothing changes until you confirm.')).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'What may TennoScope observe?' })).toBeDisabled()
     await act(async () => { transition.resolve({ setup_complete: true, access_mode: 'companion', desktop_capture_action_available: false }) })
   })
@@ -367,7 +367,7 @@ describe('MVP desktop interface', () => {
 
     expect(await screen.findByRole('heading', { name: 'Saved snapshot' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'No saved inventory snapshot yet' })).toBeInTheDocument()
-    expect(screen.getByText('Full access can acquire one; Companion remains useful for reference, prices, and planning.')).toBeInTheDocument()
+    expect(screen.getByText('Full access can read one. Prices and reference data work without it.')).toBeInTheDocument()
     expect(screen.queryByText(/Start Warframe and refresh/i)).not.toBeInTheDocument()
   })
 
@@ -405,8 +405,8 @@ describe('MVP desktop interface', () => {
     expect(screen.getAllByText(/Overlay or Full access is required/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('region', { name: 'What Companion adds' })).toHaveTextContent(/Nothing read from Warframe.*saved data.*prices.*trading/i)
     expect(screen.getByText('Using saved and reference data')).toBeInTheDocument()
-    expect(screen.getByText(/Companion does not observe the running game process or EE\.log/i)).toBeInTheDocument()
-    expect(screen.getByText(/Inventory synchronization is available only in Full access/i)).toBeInTheDocument()
+    expect(screen.getByText(/Companion does not observe the game process or EE\.log/i)).toBeInTheDocument()
+    expect(screen.getByText(/Inventory synchronization needs Full access/i)).toBeInTheDocument()
   })
 
   it('keeps live pricing available in Companion while inventory refresh stays gated', async () => {
@@ -441,7 +441,7 @@ describe('MVP desktop interface', () => {
     expect(screen.getByText('Companion mode')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: /^Rewards/ }))
-    expect(screen.getByText(/Live reward observation is inactive in Companion/i)).toBeInTheDocument()
+    expect(screen.getByText(/Companion does not read the reward screen/i)).toBeInTheDocument()
     expect(screen.getByRole('article', { name: 'Lex Prime Receiver' })).toHaveTextContent('Unverifiable')
     expect(screen.getByRole('article', { name: 'Lex Prime Receiver' })).not.toHaveTextContent(/Owned|Not owned/)
   })
@@ -459,7 +459,7 @@ describe('MVP desktop interface', () => {
     for (const label of ['Game reader', 'EE.log', 'Reward observer', 'Process discovery', 'Memory read', 'Authorization scan', 'Inventory fetch', 'Schema validation']) {
       expect(within(panel).queryByText(label)).not.toBeInTheDocument()
     }
-    expect(panel).toHaveTextContent(/Live Warframe diagnostics are inactive in Companion/i)
+    expect(panel).toHaveTextContent(/Companion does not watch the game/i)
     expect(panel).not.toHaveTextContent(/Start Warframe/i)
   })
   it('shows useful collection summary and responsive navigation semantics', async () => {
@@ -600,7 +600,7 @@ describe('MVP desktop interface', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
     const about = screen.getByRole('region', { name: 'About' })
-    expect(within(about).getByText(/free, open-source, local-first companion/)).toBeInTheDocument()
+    expect(within(about).getByText(/Free, open-source and local-first/)).toBeInTheDocument()
     expect(await within(about).findByText('Version 0.11.0')).toBeInTheDocument()
     expect(within(about).getByRole('heading', { name: 'Warframe access disclosure' })).toBeInTheDocument()
   })
@@ -704,7 +704,7 @@ describe('MVP desktop interface', () => {
     expect(overlay.hideRewardOverlay).toHaveBeenCalledOnce()
 
     expect(screen.getByRole('heading', { name: 'About' })).toBeInTheDocument()
-    expect(screen.getByText(/stored on this device/i)).toBeInTheDocument()
+    expect(screen.getByText(/stay in this device's app data folder/i)).toBeInTheDocument()
   })
 
   it('explains automatic capture without portal controls', async () => {
@@ -713,7 +713,7 @@ describe('MVP desktop interface', () => {
     await screen.findByRole('heading', { name: 'Your collection' })
     await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
 
-    expect(screen.getByText('Screen capture is automatic. Desktop sharing is only needed when Warframe is launched with PROTON_ENABLE_WAYLAND=1 and this compositor has no direct capture API.')).toBeInTheDocument()
+    expect(screen.getByText('Automatic. Desktop sharing is needed only when Warframe runs with PROTON_ENABLE_WAYLAND=1 and the compositor has no direct capture API.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Captured screens|Set up screen capture|Change captured screens|Allow desktop capture/i })).not.toBeInTheDocument()
     expect(backend.authorizeScreenCapture).not.toHaveBeenCalled()
   })
@@ -725,10 +725,8 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
 
     const action = screen.getByRole('button', { name: 'Allow desktop capture' })
-    const chooser = screen.getByText(/desktop opens its own screen chooser/i)
-    expect(screen.getByText(/select every display where Warframe may run/i)).toBeInTheDocument()
-    expect(screen.getByText(/KDE\/GNOME may show an active screen-sharing indicator/i)).toBeInTheDocument()
-    expect(screen.getByText(/TennoScope releases the session when the game exits/i)).toBeInTheDocument()
+    const chooser = screen.getByText(/desktop's screen chooser, pick every display Warframe may run on/i)
+    expect(chooser).toHaveTextContent(/screen-sharing indicator may show until the game exits/i)
     expect(chooser.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(backend.authorizeScreenCapture).not.toHaveBeenCalled()
 

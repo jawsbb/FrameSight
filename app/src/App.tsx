@@ -744,7 +744,7 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
         : <EmptyState title="No matching items" detail="Try another search or clear the filters." action={<button type="button" className="stamp" onClick={() => update({ search: '', category: 'all', ownership: 'all' })}>Clear filters</button>}/>}
     </> : <EmptyState
       title={snapshotOnly ? 'No saved inventory snapshot yet' : 'No inventory items yet'}
-      detail={snapshotOnly ? 'Full access can acquire one; Companion remains useful for reference, prices, and planning.' : 'Start Warframe and refresh to create your first local snapshot.'}
+      detail={snapshotOnly ? 'Full access can read one. Prices and reference data work without it.' : 'Start Warframe and refresh to create your first local snapshot.'}
     />}
   </section>
 }
@@ -906,13 +906,13 @@ function RewardPage({ view, effectiveMode }: { view: AppView; effectiveMode: Acc
     <div className="page-head">
       <h1 id="reward-title" className="page-title">Reward advisor</h1>
       <p className="page-note">{companion
-        ? 'Live reward observation is inactive in Companion. Saved ownership is shown as unverifiable.'
+        ? 'Companion does not read the reward screen, so ownership shows as unverifiable.'
         : 'Reads the Void Fissure reward screen and shows each choice’s value here and over the game.'}</p>
     </div>
     <section aria-label="Reward advisor">
       {view.reward.cards.length
         ? <RewardCards cards={view.reward.cards} bestValueIndex={view.reward.best_value_index} bestDucatIndex={view.reward.best_ducat_index} ownershipVerified={ownershipVerified}/>
-        : <EmptyState title="No reward choices detected" detail={companion ? 'Live reward observation is inactive in Companion; reference data remains available.' : 'Waiting for an English Void Fissure reward screen.'}/>}
+        : <EmptyState title="No reward choices detected" detail={companion ? 'Overlay or Full access reads the reward screen.' : 'Waiting for an English Void Fissure reward screen.'}/>}
     </section>
   </div>
 }
@@ -964,9 +964,7 @@ function ReportBlock({ health, alwaysVisible }: { health: AppView['health']; alw
       <div className="report-head">
         <StateIcon state={broken ? 'failed' : 'ready'}/>
         <h2 className="section-title">Report a problem</h2>
-        <p className="prose">{broken
-          ? 'Collect a report of what failed and review it before it leaves this machine. Nothing is sent anywhere.'
-          : 'Something not working right? Bundle your diagnostics and open an issue. Nothing leaves this machine without you sending it.'}</p>
+        <p className="prose">{broken ? 'Something failed. ' : ''}Bundle the diagnostics and open an issue; nothing leaves this machine until you send it.</p>
       </div>
       <div className="report-actions">
         <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(openIssue, () => 'Opened the issue form in your browser.')}>Open an issue</button>
@@ -1002,7 +1000,7 @@ function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effectiveMode
     </div>
     <ReportBlock health={view.health}/>
     <section className="page-section" aria-label="Diagnostics">
-      {effectiveMode === 'companion' && <p className="prose">Live Warframe diagnostics are inactive in Companion. Local and reference services remain visible.</p>}
+      {effectiveMode === 'companion' && <p className="prose">Companion does not watch the game, so only local and reference services are listed.</p>}
       <h2 className="section-title">Services</h2>
       <div className="health-list">{systems.map(([label, health]) => <HealthRow key={label} label={label} health={health}/>)}</div>
 
@@ -1019,7 +1017,7 @@ function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effectiveMode
               <span className="verdict">{stateWord[stage.state]}</span>
             </li>
           })}</ol>
-          : <EmptyState title="No acquisition attempt yet" detail="Start Warframe or request a refresh to populate the five pipeline stages."/>}
+          : <EmptyState title="No acquisition attempt yet" detail="Start Warframe or refresh the inventory to run the five stages."/>}
       </>}
     </section>
   </div>
@@ -1034,7 +1032,7 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
     </div>
     <section className="page-section" aria-labelledby="access-setting-title">
       <h2 id="access-setting-title" className="section-title">Warframe access</h2>
-      <p className="band-note">Every change needs confirmation. Nothing applies until you confirm.</p>
+      <p className="band-note">Nothing changes until you confirm.</p>
       <AccessSelector
         value={selectedMode}
         effectiveMode={effectiveMode}
@@ -1047,12 +1045,12 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
     </section>
 
 
-    <section className="page-section" aria-label="Preferences">
-      <h2 className="section-title">Preferences</h2>
+    <section className="page-section" aria-labelledby="collection-setting-title">
+      <h2 id="collection-setting-title" className="section-title">Collection</h2>
       <div className="setting">
         <div>
-          <h3>Collection price floor</h3>
-          <p className="prose">Stacks worth less than this per copy are left out of the sellable figure, and out of it alone: the market-rate total always counts everything. What the market completes is measured; whether a 3&nbsp;platinum mod is worth an evening of arranging the trade by hand is yours to say.</p>
+          <h3>Price floor</h3>
+          <p className="prose">Copies worth less than this are left out of the sellable total. The market value still counts everything.</p>
         </div>
         <div className="dial">
           <label className="dial-slot">
@@ -1074,7 +1072,10 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
         </div>
         <p className="band-note">{figure(counted)} stacks counted · {figure(total)} platinum sellable</p>
       </div>
+    </section>
 
+    <section className="page-section" aria-labelledby="overlays-setting-title">
+      <h2 id="overlays-setting-title" className="section-title">Overlays</h2>
       <MasteryMarksSetting/>
 
       <DesktopCaptureSetting actionAvailable={effectiveMode !== 'companion' && desktopCaptureActionAvailable} prohibited={effectiveMode === 'companion'} busy={captureAuthorizationBusy} note={captureNote} onNote={onCaptureNote} onAuthorize={onAuthorizeCapture}/>
@@ -1082,17 +1083,19 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
       <div className="setting">
         <div>
           <h3>Reward overlay placement</h3>
-          <p className="prose">The strip is drawn against the game's own window, so where it lands is compositor-specific and there is no way to see it without a fissure running. This puts it on screen with nothing to read, and takes it down again.</p>
+          <p className="prose">Shows the empty reward strip where it lands over the game, without a fissure running.</p>
         </div>
         <OverlayPreviewToggle prohibited={effectiveMode === 'companion'} busy={modeBusy}/>
       </div>
+    </section>
+
+    <section className="page-section" aria-labelledby="updates-title">
       <UpdatesSetting observesGame={effectiveMode !== 'companion'}/>
     </section>
 
-    <section className="page-section" aria-label="Support">
-      <h2 className="section-title">Support</h2>
+    <div className="page-section">
       <ReportBlock health={view.health} alwaysVisible/>
-    </section>
+    </div>
 
     <AboutSection effectiveMode={effectiveMode}/>
   </section>
@@ -1137,7 +1140,7 @@ function MasteryMarksSetting() {
   return <div className="setting">
     <div>
       <h3>Mastery marks on overlays</h3>
-      <p className="prose">On the reward screen, each Prime part's slip says whether the item it builds is mastered, built, in the foundry or still unmastered, and draws the set behind an unmastered one. On the Ducat Kiosk, a part of an item you have not mastered, built or started building gets a strip with its price. Full access shows every mark after an inventory sync; Overlay access shows only what you have already mastered.</p>
+      <p className="prose">Marks each Prime part on the reward screen and the Ducat Kiosk with its item's mastery state. Full access shows every mark after an inventory sync; Overlay shows only what you have already mastered.</p>
     </div>
     <button
       type="button"
@@ -1174,8 +1177,8 @@ function DesktopCaptureSetting({ actionAvailable, prohibited, busy, note, onNote
   return <div className="setting">
     <div>
       <h3>Screen capture</h3>
-      <p className="prose">Screen capture is automatic. Desktop sharing is only needed when Warframe is launched with PROTON_ENABLE_WAYLAND=1 and this compositor has no direct capture API.</p>
-      {prohibited ? <p className="prohibition-note" id="capture-prohibited">Overlay or Full access is required because Companion does not use screen capture.</p> : actionAvailable && <p className="prose">The desktop opens its own screen chooser. Select every display where Warframe may run. KDE/GNOME may show an active screen-sharing indicator. TennoScope releases the session when the game exits.</p>}
+      <p className="prose">Automatic. Desktop sharing is needed only when Warframe runs with PROTON_ENABLE_WAYLAND=1 and the compositor has no direct capture API.</p>
+      {prohibited ? <p className="prohibition-note" id="capture-prohibited">Overlay or Full access is required: Companion does not capture the screen.</p> : actionAvailable && <p className="prose">In the desktop's screen chooser, pick every display Warframe may run on. A screen-sharing indicator may show until the game exits.</p>}
     </div>
     {(actionAvailable || prohibited) && <button type="button" className="stamp" onClick={authorize} disabled={busy || prohibited} aria-busy={busy} aria-describedby={prohibited ? 'capture-prohibited' : undefined}>{busy ? 'Allowing desktop capture…' : 'Allow desktop capture'}</button>}
     <p className="band-note capture-status" role="status" aria-live="polite" aria-atomic="true">{note}</p>
@@ -1207,29 +1210,29 @@ function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
   }, [])
   return <section className="page-section" aria-labelledby="about-title">
     <h2 id="about-title" className="section-title">About</h2>
-    <p className="prose">TennoScope is a free, open-source, local-first companion. GPLv3 · MVP.</p>
+    <p className="prose">Free, open-source and local-first. GPLv3 · MVP.</p>
     <p className="band-note">{versionLine}</p>
 
     <div className="clauses">
       <article className="clause">
         <h3>Local-first storage</h3>
-        <p className="prose">Your inventory snapshot and preferences are stored on this device in the application data directory. The UI has no telemetry or cloud account.</p>
+        <p className="prose">Your inventory snapshot and preferences stay in this device's app data folder. No telemetry, no cloud account.</p>
       </article>
       <article className={observesGame ? 'clause caution' : 'clause'}>
         <h3>{observesGame ? 'Warframe access disclosure' : 'Companion access'}</h3>
         <p className="prose">{effectiveMode === 'full'
-          ? 'Full access inspects the running game process using read-only memory access. Third-party software and process inspection may carry account-policy or anti-cheat risk even when no game memory is modified.'
+          ? 'Full reads the game process memory, read-only, and sends your account ID and a nonce to mobile.warframe.com only. Process inspection may carry account-policy or anti-cheat risk, even though no game memory is modified.'
           : effectiveMode === 'overlay'
-            ? 'Overlay observes process presence, EE.log, and visible pixels to provide live reward assistance. It does not read process memory or acquire inventory.'
-            : 'Companion does not observe the running game process or EE.log, capture the screen, display overlays, read process memory, or acquire inventory.'}</p>
+            ? 'Overlay watches the game process, EE.log and the reward screen. It does not read memory or acquire inventory.'
+            : 'Companion does not observe the game process or EE.log, capture the screen, show overlays, read memory or acquire inventory.'}</p>
       </article>
       <article className="clause">
         <h3>Inventory synchronization</h3>
-        <p className="prose">{acquiresInventory ? 'Full access can synchronize inventory automatically and through Refresh inventory in the sidebar.' : 'Inventory synchronization is available only in Full access. Your existing saved snapshot remains available here.'}</p>
+        <p className="prose">{acquiresInventory ? 'Syncs automatically, or with Refresh inventory in the sidebar.' : 'Inventory synchronization needs Full access. Your saved snapshot stays available.'}</p>
       </article>
       <article className="clause">
         <h3>Reward assistance</h3>
-        <p className="prose">{observesGame ? 'Reward names can be read from visible screen pixels with OCR and matched against the squad’s relic pool. The overlay is non-focusable and click-through, so it never takes input from the game.' : 'The catalog and relic reference remain available for planning. Live screen recognition and the click-through overlay are available in Overlay and Full access.'}</p>
+        <p className="prose">{observesGame ? 'Reward names are read from the screen with OCR and matched against the squad’s relic pool. The overlay is click-through and never takes input from the game.' : 'The catalog and relic reference stay available. Screen reading and the overlay need Overlay or Full access.'}</p>
       </article>
     </div>
   </section>
@@ -1260,8 +1263,8 @@ function OverlayPreviewToggle({ prohibited, busy }: { prohibited: boolean; busy:
           .catch(() => setBlocked(true))
       }}
     >{shown ? 'Hide reward overlay' : 'Preview reward overlay'}</button>
-    {prohibited && <p id="overlay-prohibited" className="prohibition-note">Overlay or Full access is required because Companion does not create overlays.</p>}
-    {!prohibited && blocked && <p id="overlay-blocked" className="band-note" role="status">The overlay is unavailable while access is changing. Try again once the new mode is effective.</p>}
+    {prohibited && <p id="overlay-prohibited" className="prohibition-note">Overlay or Full access is required: Companion shows no overlays.</p>}
+    {!prohibited && blocked && <p id="overlay-blocked" className="band-note" role="status">The overlay is unavailable while access is changing. Try again once the new mode applies.</p>}
   </div>
 }
 
