@@ -84,6 +84,12 @@ describe('reward overlay route', () => {
     expect(within(advisor).queryByRole('button')).not.toBeInTheDocument()
   })
 
+  it('sizes the slips in design pixels of the window height, so an 800p screen draws the 1080p strip scaled down', async () => {
+    const advisor = await renderOverlay([slip('Lex Prime Barrel')])
+    // The window is 180/1080 of the screen's height (overlay_window.rs), so one 1080p pixel is 100vh / 180.
+    expect(advisor.style.getPropertyValue('--u')).toBe('calc(100vh / 180)')
+  })
+
   it('renders an honest empty overlay', async () => {
     backend.getView.mockResolvedValue({ ...overlayView, reward: { cards: [], best_value_index: null, best_ducat_index: null } })
     render(<AppRoute pathname="/overlay" />)

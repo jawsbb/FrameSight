@@ -2,8 +2,8 @@
    The item grid is the screen: a dark, dense, quiet companion that shows values and states
    before words. Graphite grounds, 1px neutral borders, 6px radius, one steel-blue accent for
    selection, focus and the primary action; platinum and gold only on currency values.
-   Tokens live in index.css. The reward slips and overlays keep their own look, in the last
-   sections of this file. */
+   Tokens live in index.css. The reward slips, shared by the Rewards page and the overlay, and the
+   kiosk chips close this file. */
 
 /* shell */
 
@@ -285,9 +285,10 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 
 /* rewards */
 
+/* The overlay's slips at one design pixel per CSS pixel. */
 .reward-grid {
-  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1px;
-  overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--line);
+  --u: 1px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(13.5rem, 100%), 1fr)); gap: var(--tight);
 }
 
 /* diagnostics */
@@ -585,167 +586,115 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 }
 
 /* ------------------------------------------------------------------------------------------
-   Reward slips and in-game overlays. These keep the overlays' own grammar (the overlay tokens in
-   index.css) and are owned by the overlay work, not by the main window's look. The reward page
-   above renders the same slips.
+   Reward slips, on the Rewards page and over the game, then the kiosk chips.
+   Every size on a slip is a count of `--u`, one design pixel of the 1080p overlay: 1px on the
+   Rewards page, `100vh / 180` in the overlay window (RewardOverlay.tsx), so the strip scales with
+   the screen's height as the game's cards do. No text on a slip is under 15u, 11px at 800p.
    ------------------------------------------------------------------------------------------ */
 
-@keyframes strike {
-  from { opacity: .35; transform: translateY(-7px) scaleY(.94); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* Struck hallmarks. Colour never carries a state alone. */
-.marks { display: flex; flex-wrap: wrap; align-content: end; gap: var(--hair); }
-.hallmark {
-  display: inline-flex; align-items: center; gap: .28rem;
-  padding: .28rem .5rem .55rem; clip-path: var(--cartouche);
-  background-image: linear-gradient(rgb(0 0 0 / 42%) 0 1px, transparent 1px);
-  background-color: var(--raised);
-  font-family: var(--face-register); font-size: .54rem; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--platinum-dim);
-}
-.hallmark.owned { color: var(--platinum); }
-.hallmark.absent { color: var(--platinum-deep); background: var(--plate); }
-.hallmark.mastered { color: var(--gold); }
-/* A rank is a qualifier on the mark beside it, so it sits back from the ownership figure. Fully
-   ranked is the state worth platinum, and it earns the struck lip rather than a new colour: the
-   text reads 10/10 either way, and gold already means mastered. */
-.hallmark.rank { color: var(--platinum-deep); }
-.hallmark.rank.maxed { color: var(--platinum); box-shadow: var(--strike); }
-.hallmark.doubt { color: var(--oxblood); background: rgb(221 111 96 / 18%); }
-
-/* Fixed rows, so the figures land at the same y across all four columns. A
-   player scans this row sideways under a countdown; ragged baselines make that
-   scan impossible, so the name reserves two lines whether it needs them or not. */
+/* A column, not a grid: the foot line pins to the bottom whatever the name and ledger hold. */
 .slip {
-  display: grid; grid-template-rows: auto auto auto 1fr; gap: var(--step);
-  padding: var(--course) var(--step);
-  background: var(--touchstone);
-  animation: strike .3s cubic-bezier(.16, 1, .3, 1) both;
+  display: flex; flex-direction: column; gap: calc(6 * var(--u)); min-width: 0;
+  padding: calc(6 * var(--u)) calc(10 * var(--u));
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2);
+  font-size: calc(15 * var(--u)); line-height: 1.2; font-variant-numeric: tabular-nums;
 }
-.slip-lot { font-family: var(--face-register); font-size: .56rem; letter-spacing: .16em; text-transform: uppercase; color: var(--platinum-deep); }
+/* Two lines reserved whether the name needs them or not, so the figures land at the same y across
+   the four columns a player scans sideways under a countdown. */
 .slip-name {
-  margin: 0; min-height: 2.08em; font-family: var(--face-mark); font-size: 1.35rem; font-weight: 700;
-  line-height: 1.02; letter-spacing: -.02em; text-transform: uppercase; color: var(--platinum);
-  max-height: 2.08em; overflow: hidden; text-wrap: balance;
+  margin: 0; min-height: 2.3em; max-height: 2.3em; overflow: hidden;
+  font-size: calc(15 * var(--u)); font-weight: 600; line-height: 1.15; color: var(--text); text-wrap: balance;
 }
 
 /* Two metals, appraised at equal weight. This is the product's whole point. */
-.metals { display: grid; grid-template-columns: 1fr 1fr; gap: var(--step); padding-top: var(--step); border-top: 1px solid var(--rule); }
-/* The third row is reserved whether or not a hallmark is struck, so a card that
-   wins nothing keeps its figures level with a card that wins both. */
-.metal { display: grid; grid-template-rows: auto auto 1.65rem; align-content: start; gap: .3rem; min-width: 0; }
-.metal-figure {
-  font-family: var(--face-mark); font-size: clamp(2rem, 4vw, 2.9rem); font-weight: 700;
-  line-height: .82; letter-spacing: -.03em; font-variant-numeric: tabular-nums;
+.metals {
+  display: grid; grid-template-columns: 1fr 1fr; gap: calc(8 * var(--u));
+  padding-top: calc(6 * var(--u)); border-top: 1px solid var(--line);
 }
+.metal { display: grid; justify-items: start; gap: calc(3 * var(--u)); min-width: 0; }
+.metal-value { display: flex; align-items: center; gap: calc(4 * var(--u)); height: calc(28 * var(--u)); }
+.metal-figure { font-size: calc(28 * var(--u)); font-weight: 700; line-height: 1; letter-spacing: -.02em; }
 .metal.plat .metal-figure { color: var(--platinum); }
 .metal.ducat .metal-figure { color: var(--gold); }
-/* The game's own icon rides the label, not the figure. Beside the figure it competed with it for a
-   column barely wider than three digits, and a 220p reading pushed the ducat column off the card.
-   Here the figure keeps the whole column and the mark cannot collide with anything. */
-.metal-label { display: flex; align-items: center; gap: .42rem; font-family: var(--face-register); font-size: .55rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
-/* Sized in `rem` and not `em`: a rendered object loses its dark chip and turns to a grey lozenge
-   below about 18px where a flat mark would still read, so the legibility floor has to hold even
-   where the figure beside it has scaled down. Height-normalised with `width: auto`, because the
-   canister is a wide object and the sigil a tall one. A shared square box renders the canister
-   visibly smaller than the sigil beside it. */
-.metal-mark { flex: none; height: 1.7rem; width: auto; user-select: none; }
-.metal.plat .metal-label { color: var(--platinum-deep); }
-.metal.ducat .metal-label { color: var(--gold-dim); }
-/* An unknown price is dimmer than a real one, but never below AA: the player
-   has to be able to see that no price is known. */
-.market-pending { color: var(--platinum-deep) !important; }
+/* An unknown price is dimmer than a real one, but never below AA: the player has to see that no
+   price is known. */
+.metal.plat .market-pending { color: var(--text-faint); }
+/* The game's own icon, kept at the 18px its dark chip needs to read: 25u is 18.5px at 800p.
+   Height-normalised with `width: auto`, because the canister is wide and the sigil tall. */
+.metal-mark { flex: none; height: calc(25 * var(--u)); width: auto; user-select: none; }
+/* The word and the crown that replaces it share one row height, so a card that wins nothing keeps
+   its figures level with a card that wins both. The winner is marked in the metal it won. */
+.metal-label, .metal-hallmark { display: inline-flex; align-items: center; height: calc(20 * var(--u)); font-weight: 600; white-space: nowrap; }
+.metal-label { color: var(--text-dim); }
+.metal-hallmark { padding: 0 calc(5 * var(--u)); border-radius: var(--radius-sm); color: var(--bg-0); }
+.metal.plat .metal-hallmark { background: var(--platinum); }
+.metal.ducat .metal-hallmark { background: var(--gold); }
 
-/* The winner is marked in the metal it won, not in a shared banner. */
-.metal-hallmark {
-  justify-self: start; margin-top: .2rem; padding: .26rem .45rem .5rem;
-  clip-path: var(--cartouche);
-  background-image: linear-gradient(rgb(0 0 0 / 24%) 0 1px, transparent 1px);
-  font-family: var(--face-register); font-size: .52rem; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase;
+/* The slip's foot: ownership and doubt, or what the collection knows about the item this reward
+   builds. Both wrap inside the column rather than run under the next slip. Colour never carries a
+   state alone: every tag says its state in words. */
+.marks, .ledger { display: flex; flex-wrap: wrap; align-items: flex-end; gap: calc(4 * var(--u)); min-width: 0; margin-top: auto; }
+.hallmark {
+  display: inline-flex; align-items: center; height: calc(20 * var(--u)); padding: 0 calc(5 * var(--u));
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  color: var(--text-dim); font-weight: 600; white-space: nowrap;
 }
-.metal.plat .metal-hallmark { background: var(--platinum); color: var(--touchstone); }
-.metal.ducat .metal-hallmark { background: var(--gold); color: var(--touchstone); }
+.hallmark.owned { color: var(--text); }
+.hallmark.absent { border-style: dashed; color: var(--text-faint); }
+.hallmark.doubt {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger);
+}
 
-/* The set behind a reward: the game's own part art as one-metal silhouettes, so the shapes are ones the
-   player already knows. Solid is held, faint is not; the tick marks this slot, and wrapped rows clear it. */
-.set-row { display: inline-flex; flex-wrap: wrap; align-items: flex-end; gap: var(--tight) .19rem; margin: 0 0 0 auto; padding: 0; list-style: none; color: var(--platinum); }
-.set-slot { position: relative; display: flex; }
-.set-glyph { display: block; flex: none; width: 1.75rem; height: 1.75rem; background-color: currentColor;
+/* The padding reserves the room the set row's tick hangs into, below the row's own box. */
+.ledger { padding-bottom: calc(4 * var(--u)); }
+.ledger-word { display: inline-flex; align-items: center; min-height: calc(20 * var(--u)); font-weight: 600; color: var(--text-dim); }
+.ledger[data-tone="loud"] .ledger-word { color: var(--text); }
+/* The word inverts onto platinum rather than gaining a hue. Scoped under `.ledger` because the loud
+   tone above would otherwise repaint the ink of a word whose ground is already platinum. */
+.ledger .ledger-word.inverted { padding: 0 calc(5 * var(--u)); border-radius: var(--radius-sm); background: var(--platinum); color: var(--bg-0); }
+
+/* The set behind a reward: the game's own part art as one-metal silhouettes, so the shapes are ones
+   the player already knows. Solid is held, faint is not; the tick marks this slot. */
+.set-row {
+  display: inline-flex; flex-wrap: wrap; align-items: flex-end; gap: calc(6 * var(--u)) calc(3 * var(--u));
+  margin: 0 0 0 auto; padding: 0; list-style: none; color: var(--platinum);
+}
+.set-slot { position: relative; display: flex; align-items: center; }
+.set-glyph {
+  display: block; flex: none; width: calc(28 * var(--u)); height: calc(28 * var(--u)); background-color: currentColor;
   -webkit-mask-position: center; mask-position: center; -webkit-mask-size: contain; mask-size: contain;
-  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
-svg.set-glyph { background: none; fill: currentColor; padding: .125rem; }
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+}
+svg.set-glyph { background: none; fill: currentColor; padding: calc(2 * var(--u)); }
 .set-glyph[data-held="false"] { opacity: .4; }
-.set-glyph + .set-glyph { margin-left: -1.125rem; } /* a pair: the second copy rides 10px over the first */
-.set-slot[data-this]::after { content: ''; position: absolute; left: .19rem; right: .19rem; bottom: -.25rem; height: 2px; background: currentColor; }
-.set-count { margin-left: .125rem; font: 600 .56rem/1 var(--face-register); color: var(--platinum-deep); }
-
-/* What the collection knows about the item this reward builds, wrapping inside its slip. The
-   padding reserves the room the set row's tick hangs into, below the row's own box. */
-.ledger { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--hair); min-width: 0; padding-bottom: .25rem; }
-/* Same face, weight, and tracking as `.hallmark`, so a ledger word reads as one of the slip's marks. */
-.ledger-word { font: 700 .56rem/1 var(--face-register); letter-spacing: .1em; text-transform: uppercase; color: var(--platinum-deep); }
-.ledger[data-tone="loud"] .ledger-word { color: var(--platinum); }
-/* The chip inverts onto platinum rather than gaining a hue. It is scoped under `.ledger` because
-   the loud tone above would otherwise repaint the ink of a word whose ground is already platinum. */
-.ledger .ledger-word.inverted { padding: .19rem .32rem .19rem .38rem; background: var(--platinum); color: var(--touchstone); }
-/* A part an unmastered, unbuilt item still lacks rules the slip; the last one double-rules it. Both
-   selectors are named so the rule replaces the overlay slip's faint frame instead of stacking. */
-.slip.ruled, .overlay-rewards .slip.ruled { box-shadow: inset 0 0 0 1px var(--platinum); }
-.slip.ruled-double, .overlay-rewards .slip.ruled-double { box-shadow: inset 0 0 0 1px var(--platinum), inset 0 0 0 3px var(--touchstone), inset 0 0 0 4px var(--platinum); }
+.set-glyph + .set-glyph { margin-left: calc(-18 * var(--u)); } /* a pair: the second copy rides 10u over the first */
+.set-slot[data-this]::after { content: ''; position: absolute; left: calc(3 * var(--u)); right: calc(3 * var(--u)); bottom: calc(-4 * var(--u)); height: 2px; background: currentColor; }
+.set-count { margin-left: calc(2 * var(--u)); font-weight: 600; line-height: 1; color: var(--text-dim); }
 
 /* overlay
-   Sized to the game's four-card block, so a column here is a card there. The
-   0.207% gap is the game's own 2px-in-242 card spacing as a fraction, which
-   keeps the columns aligned at any window size rather than only at 1080p.
-   This surface is read in under a second over a moving game under a countdown:
-   the main window gets the massive field, the overlay gets the figures. */
+   Sized to the game's card block, one column per card the game drew, so a column here is a card
+   there. The 0.207% gap is the game's own 2px-in-242 card spacing as a fraction.
+   Height budget in u, worst case (a ledger whose set row wraps under its word): 6 + 34.5 name
+   + 6 + 57 metals + 6 + 56 ledger + 6 = 171.5u and 3px of rules, inside 180u at any height. */
 
 .overlay-shell { min-height: 100vh; padding: 0; overflow: hidden; background: transparent; }
-/* One column per card, not four: the window is sized to however many cards the
-   game drew, so a fixed four would render a three-card squad at 25% columns in
-   a 75%-wide strip and line up with nothing. Same device as .reward-grid. */
 .overlay-rewards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.207%; height: 100vh; }
-
-.overlay-rewards .slip {
-  gap: .3rem; padding: .55rem .7rem; animation: none;
-  /* The slip keeps the base slip's opaque touchstone. The overlay is a window of its own over the
-     game, so a backdrop blur has no game pixels to soften, and any see-through share lets the
-     text under the cards, including squadmates' names, show through the slip. */
-  box-shadow: inset 0 0 0 1px rgb(232 235 239 / 16%);
-  /* The window's size is fixed, so this stops a line that outgrows its column from painting over
-     the next slip; the ledger wraps inside the column long before that. */
-  overflow: hidden;
-}
-.overlay-rewards .slip { grid-template-rows: auto 1fr auto; }
-.overlay-rewards .slip-lot { display: none; }
-.overlay-rewards .slip-name { font-size: .82rem; line-height: 1.12; white-space: normal; }
-.overlay-rewards .metals { gap: .5rem; padding-top: .35rem; }
-.overlay-rewards .metal-figure { font-size: 1.75rem; }
-.overlay-rewards .metal-mark { height: 1.45rem; }
-.overlay-rewards .metal-label { font-size: .5rem; letter-spacing: .12em; }
-.overlay-rewards .metal-hallmark { margin-top: .15rem; padding: .18rem .34rem .38rem; font-size: .46rem; }
-.overlay-rewards .marks { flex-wrap: nowrap; overflow: hidden; }
-/* Never let the reading we distrust be the mark that falls off the end. */
-.overlay-rewards .hallmark.doubt { order: -1; }
-.overlay-rewards .hallmark { padding: .2rem .38rem .42rem; font-size: .48rem; }
-/* A 1080p overlay is 180px tall, which leaves no room for a ledger on two lines: the word stacks
-   beside its set row instead, and a five-part set draws its shapes 2px smaller to fit the width. */
-@media (max-height: 190px) {
-  .overlay-rewards .ledger:has(.set-row) .ledger-word { width: min-content; }
-  .overlay-rewards .ledger:has(.set-slot:nth-child(5)) .set-glyph { width: 1.625rem; height: 1.625rem; }
-  .overlay-rewards .ledger:has(.set-slot:nth-child(5)) .set-glyph + .set-glyph { margin-left: -1rem; }
-}
-
+/* Nearly opaque: the overlay is a window of its own over the game, and a see-through slip would let
+   the text under the cards, squadmates' names among it, read through the figures. The window's size
+   is fixed, so overflow stops a line that outgrows its column from painting over the next slip. */
+.overlay-rewards .slip { overflow: hidden; border-color: var(--line-strong); background: color-mix(in srgb, var(--bg-0) 94%, transparent); }
 .overlay-empty {
-  display: grid; place-content: center; justify-items: center; gap: .3rem; height: 100vh;
-  background: var(--touchstone); box-shadow: inset 0 0 0 1px rgb(232 235 239 / 16%);
-  font-family: var(--face-register); font-size: .6rem; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--platinum-deep); text-align: center;
+  display: grid; place-content: center; justify-items: center; gap: calc(4 * var(--u)); height: 100vh;
+  border: 1px solid var(--line-strong); border-radius: var(--radius); background: color-mix(in srgb, var(--bg-0) 94%, transparent);
+  color: var(--text-dim); font-size: calc(15 * var(--u)); text-align: center;
 }
-.overlay-empty strong { font-size: .68rem; font-weight: 700; color: var(--platinum-dim); }
+.overlay-empty strong { font-weight: 600; color: var(--text); }
+
+/* A part an unmastered, unbuilt item still lacks rules the slip in platinum; the last one
+   double-rules it. After the overlay's frame, so the rule replaces it there too. */
+.slip.ruled { border-color: var(--platinum); }
+.slip.ruled-double { border-color: var(--platinum); box-shadow: inset 0 0 0 2px var(--bg-0), inset 0 0 0 3px var(--platinum); }
 
 /* kiosk
    Chips over the in-game ducat kiosk. Every position is a design pixel of the
@@ -822,7 +771,4 @@ svg.set-glyph { background: none; fill: currentColor; padding: .125rem; }
   font: 700 calc(10 * var(--h))/1 var(--face-mark);
   text-transform: uppercase; color: #deecfc; white-space: nowrap;
   text-shadow: 0 calc(1 * var(--h)) 1px rgb(0 0 0 / 60%);
-}
-@media (max-width: 640px) {
-  .metals { gap: var(--tight); }
 }
