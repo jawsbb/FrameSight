@@ -113,6 +113,16 @@ pub struct RecipeComponent {
     pub kind: ComponentKind,
 }
 
+impl RecipeComponent {
+    /// The `…Blueprint` path a player may hold in place of a `…Component` part: relics drop the
+    /// blueprint, and the inventory keeps it under that path until it is built.
+    pub fn blueprint_sibling(&self) -> Option<String> {
+        self.path
+            .strip_suffix("Component")
+            .map(|stem| format!("{stem}Blueprint"))
+    }
+}
+
 /// Whether a recipe slot is the build's blueprint, one of its tradable parts, or a whole
 /// masterable item consumed by the build.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -352,11 +362,9 @@ impl CatalogIndex {
                         .insert(slot.path.clone(), (parent_path.clone(), slot_index));
                     // Relics drop the blueprint, and the player may hold either spelling. Key
                     // both at the same slot.
-                    if let Some(stem) = slot.path.strip_suffix("Component") {
-                        self.part_parents.insert(
-                            format!("{stem}Blueprint"),
-                            (parent_path.clone(), slot_index),
-                        );
+                    if let Some(sibling) = slot.blueprint_sibling() {
+                        self.part_parents
+                            .insert(sibling, (parent_path.clone(), slot_index));
                     }
                 }
                 ComponentKind::Ingredient => {
