@@ -25,6 +25,15 @@ see the difference.
   would flag them; the page reports what the last sync changed.
 - **A collection row's live book.** The orders of the traders online for the very copy a row
   holds, its rank or relic refinement, from the same one-minute cache as the Market page.
+- **The Orders page is redone around the listings and the inventory.** Each listing shows the
+  item's picture, a step either way on its count (within what the collection holds, at the
+  listing's own price) and a Sold button that records one trade. The reconciliation's claim sits
+  under the name with its repair beside it, where it used to run under the buttons. A switch turns
+  on the order sync, and the page lists what the last sync changed. Below, the inventory's sellable
+  holdings not yet listed, most valuable first and filtered by name, each opening the sell form in
+  place; this replaces the New listing picker. The sell form, from the Orders page, a card, the
+  Market page or Farm & sales, shows the cheapest sellers in game for that copy and matches the
+  cheapest on one press.
 - **An item sheet lists Overframe's best builds.** Opening a Warframe, weapon or companion (or a
   Prime part or blueprint, which asks for the item it builds) shows its five best builds on
   overframe.gg, best first: title, author, score, Forma count and last update, each opening the
