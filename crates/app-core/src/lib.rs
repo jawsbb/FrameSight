@@ -2,6 +2,11 @@
 
 mod fake_session;
 mod relics;
+mod foundry;
+
+pub use foundry::{
+    FoundryItem, FoundryPiece, FoundryResource, FoundryStage, FoundryStatus, FoundryView,
+};
 
 use std::path::Path;
 use std::sync::Arc;
@@ -1085,11 +1090,7 @@ impl From<&warframe_domain::InventoryEntry> for CollectionItemView {
             category: entry.item.category,
             quantity: entry.quantity,
             mastered: entry.mastered,
-            image_url: entry.item.image_name.as_ref().map(|name| {
-                format!(
-                    "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/img/{name}"
-                )
-            }),
+            image_url: entry.item.image_name.as_deref().map(wfcd_image_url),
             platinum: None,
             platinum_ceiling: None,
             ducats: None,
@@ -1100,6 +1101,11 @@ impl From<&warframe_domain::InventoryEntry> for CollectionItemView {
             monthly_trades: None,
         }
     }
+}
+
+/// Where WFCD publishes the art for a catalogue `imageName`.
+fn wfcd_image_url(image_name: &str) -> String {
+    format!("https://raw.githubusercontent.com/WFCD/warframe-items/master/data/img/{image_name}")
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]

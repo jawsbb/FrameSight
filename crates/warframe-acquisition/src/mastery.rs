@@ -301,10 +301,7 @@ impl<'a> MasteryLedger<'a> {
                 self.holdings.quantity(&slot.path) + self.pending_path(&slot.path)
             }
             ComponentKind::Part => {
-                let sibling = slot
-                    .path
-                    .strip_suffix("Component")
-                    .map(|stem| format!("{stem}Blueprint"));
+                let sibling = slot.blueprint_sibling();
                 self.holdings.quantity(&slot.path)
                     + sibling
                         .as_deref()
