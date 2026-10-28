@@ -348,6 +348,8 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .value em { color: var(--text-faint); font-size: .75rem; font-style: normal; }
 .value em::before { content: "· "; }
 .value-missing, .checked-live { color: var(--text-faint); font-size: .75rem; }
+.change.up { color: var(--ok); }
+.change.down { color: var(--danger); }
 .card > .sell-form { grid-column: 1 / -1; }
 .sell-open { min-height: 24px; margin-left: auto; padding: 0 10px; }
 

@@ -7,6 +7,7 @@ import { EmptyState } from '../components/EmptyState'
 import { Icon } from '../components/Icon'
 import { relicLabel } from '../relics'
 import { Platinum } from '../components/Platinum'
+import { Change } from '../components/Change'
 import { shortDate, useMessages, type Messages } from '../i18n'
 import './FarmPage.css'
 
@@ -106,12 +107,6 @@ export function FarmPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }: 
   </section>
 }
 
-function Change({ value }: { value: number | null }) {
-  const t = useMessages()
-  if (value === null) return <span className="value-missing">—</span>
-  return <span className={`farm-change ${value > 0 ? 'up' : value < 0 ? 'down' : ''}`}>{t.farm.change(value)}</span>
-}
-
 function PaceTag({ pace }: { pace: Pace }) {
   const t = useMessages()
   return pace === 'fast' ? null : <span className={`tag${pace === 'slow' ? ' absent' : ''}`}>{t.farm.pace[pace]}</span>
@@ -134,7 +129,7 @@ function TrendCard({ farm, onPick }: { farm: FarmView; onPick: (picked: Picked) 
       : !trend
         ? <p className="farm-card-empty"><strong>{f.empty}</strong>{f.emptyDetail}</p>
         : <>
-          <p className="trend-figure" aria-live="polite"><span className="farm-change up">{t.farm.change(trend.change)}</span></p>
+          <p className="trend-figure" aria-live="polite"><Change value={trend.change}/></p>
           <p className="trend-text">
             <strong>{trend.name}</strong>
             <Platinum value={trend.platinum}/>
