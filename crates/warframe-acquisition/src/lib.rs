@@ -19,6 +19,7 @@ mod orchestrator;
 mod relic_catalog;
 mod reward_memory;
 mod reward_ui_memory;
+mod run_drops;
 #[cfg(windows)]
 mod windows_proc;
 
@@ -36,7 +37,7 @@ pub use catalog_cache::{
 pub use collection_prices::{
     CollectionPriceCache, CollectionPriceSource, DUMP_LOOKBACK_DAYS, MAX_DUMP_BYTES,
     PriceDumpError, PriceFetch, PriceTable, RELICS_RUN_HISTORY_URL, RelicsRunHttp, civil_date,
-    dump_is_current, latest_dump, relic_base,
+    days_between, dump_is_current, latest_dump, relic_base, unix_days_before,
 };
 pub use inventory::{
     INVENTORY_ENDPOINT, InventoryHttpTransport, InventoryJsonDecoder, MAX_INVENTORY_RESPONSE_BYTES,
@@ -60,6 +61,7 @@ pub use reward_memory::{
     RewardResolution, resolve_reward_choices,
 };
 pub use reward_ui_memory::PersistentRewardResolver;
+pub use run_drops::RunDrop;
 #[cfg(windows)]
 pub use windows_proc::WindowsProc;
 

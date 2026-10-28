@@ -642,6 +642,21 @@ impl PriceTable {
         &self.dump_date
     }
 
+    /// How far this dump's price for `name` moved since `earlier`'s, as a fraction: 0.22 is +22%.
+    ///
+    /// Dump against dump only. A price checked live this minute set against a day-old median would
+    /// report the difference between two ways of measuring as a move of the market.
+    pub fn change_since(&self, earlier: &PriceTable, name: &str) -> Option<f64> {
+        let key = self.market_name(name)?;
+        let (now, then) = (self.prices.get(&key)?, earlier.prices.get(&key)?);
+        Some(f64::from(*now) / f64::from(*then) - 1.0)
+    }
+
+    /// Every listing this dump prices, under the dump's own name.
+    pub fn dump_names(&self) -> impl Iterator<Item = &str> {
+        self.prices.keys().map(String::as_str)
+    }
+
     /// How many items this table can price, dump prices and checked prices together. What the
     /// collection price health row reports, so it grows as a page refresh lands rather than
     /// standing still at the dump's count. An item the dump prices and a live check has since
@@ -769,6 +784,17 @@ pub fn civil_date(unix_seconds: u64) -> String {
 /// A dump older than that is refetched even when the publisher has not moved on, which costs one
 /// download per launch on a day the feed is two days behind. Avoiding that means remembering when
 /// we last asked, which is more state than the saving is worth.
+/// Whole days from one dump date to another, or `None` when either is not a date.
+pub fn days_between(from: &str, to: &str) -> Option<i64> {
+    Some(epoch_day(to)? - epoch_day(from)?)
+}
+
+/// Midnight UTC `days` before a dump date, in Unix seconds: where `latest_dump` starts walking back
+/// when the dump wanted is an older one.
+pub fn unix_days_before(date: &str, days: i64) -> Option<u64> {
+    u64::try_from((epoch_day(date)? - days) * 86_400).ok()
+}
+
 pub fn dump_is_current(dump_date: &str, now_unix: u64) -> bool {
     [0, 86_400]
         .iter()
@@ -844,17 +870,28 @@ impl CollectionPriceSource for RelicsRunHttp {
 /// thousand name-and-price pairs, which loads instantly and costs nothing to keep.
 pub struct CollectionPriceCache {
     directory: PathBuf,
+    file: &'static str,
 }
 
 impl CollectionPriceCache {
     pub fn new(directory: impl Into<PathBuf>) -> Self {
         Self {
             directory: directory.into(),
+            file: "collection-prices.json",
+        }
+    }
+
+    /// The dump a week before the one in use, kept apart: the Farm page's 7-day change compares
+    /// the two, and it must never be mistaken for the table that prices the collection.
+    pub fn earlier(directory: impl Into<PathBuf>) -> Self {
+        Self {
+            directory: directory.into(),
+            file: "collection-prices-earlier.json",
         }
     }
 
     fn path(&self) -> PathBuf {
-        self.directory.join("collection-prices.json")
+        self.directory.join(self.file)
     }
 
     /// The stored table, unless it was written by a parse that no longer means what this one does.

@@ -7,6 +7,7 @@ use warframe_domain::{CatalogItem, Category, DomainError, InventoryEntry, ItemId
 
 use crate::item_facts::{Ability, Introduced, ItemFacts, WfcdDrop, facts_from};
 use crate::relic_base;
+use crate::run_drops::{RunDrop, run_drops};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CatalogMetadata {
@@ -68,6 +69,8 @@ pub struct CatalogIndex {
     consumers: BTreeMap<String, Vec<(String, u32)>>,
     /// The item sheet's facts. Shared, so the runtime's clones of the index stay cheap.
     facts: Arc<BTreeMap<String, ItemFacts>>,
+    /// The Farm page's drop table, shared for the same reason.
+    run_drops: Arc<Vec<RunDrop>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -325,7 +328,13 @@ impl CatalogIndex {
         index.facts = Arc::new(facts_from(&raw, |image_name| {
             validated_image_name(image_name).ok().flatten()
         }));
+        index.run_drops = Arc::new(run_drops(&raw));
         Ok(index)
+    }
+
+    /// Every mod, arcane and relic a mission run gives, with its chance per run.
+    pub fn run_drops(&self) -> &[RunDrop] {
+        &self.run_drops
     }
 
     /// What the item sheet shows for this path. A part's recipe (`…Blueprint`), which no recipe

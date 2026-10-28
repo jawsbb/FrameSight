@@ -36,11 +36,11 @@ pub struct Ability {
 pub(crate) struct WfcdDrop {
     pub(crate) location: String,
     #[serde(default)]
-    chance: Option<f64>,
+    pub(crate) chance: Option<f64>,
     #[serde(default)]
     rarity: Option<String>,
     #[serde(rename = "type", default)]
-    item: Option<String>,
+    pub(crate) item: Option<String>,
     #[serde(default)]
     unique_name: Option<String>,
 }
