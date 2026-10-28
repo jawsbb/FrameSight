@@ -501,6 +501,26 @@ describe('MVP desktop interface', () => {
     expect(within(maxed).getByText('Rank 10/10')).toHaveClass('maxed')
   })
 
+  it('says a live-checked card without a price has no market price', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.getView.mockResolvedValue({
+      ...view,
+      collection: {
+        total_entries: 2,
+        items: [
+          { id: 'braton', name: 'Braton', category: 'weapon', quantity: 3, mastered: true, live: true, priceable: true },
+          { id: 'lith-a1', name: 'Lith A1 Relic', category: 'relic', quantity: 7, mastered: false, platinum: 20, live: true, priceable: true },
+        ],
+      },
+    })
+    render(<App />)
+
+    const unpriced = await screen.findByRole('article', { name: 'Braton' })
+    expect(unpriced).toHaveTextContent('No market price')
+    expect(unpriced).not.toHaveTextContent('Checked live')
+    expect(screen.getByRole('article', { name: 'Lith A1 Relic' })).toHaveTextContent('Checked live')
+  })
+
   it('filters by search, category, and ownership without losing canonical names', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App />)

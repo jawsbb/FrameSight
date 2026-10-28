@@ -880,7 +880,9 @@ function CollectionEntry({ item, ownershipVerified, missingLabel = 'Missing', sh
           {ownershipVerified && item.quantity > 1 && <em>{item.ducats * item.quantity} total</em>}
         </span>
         : item.category === 'prime_part' && <span className="value-missing">Ducat value unavailable</span>)}
-      {item.live && <span className="checked-live">Checked live</span>}
+      {/* The backend pairs `live` with a price today, but the view allows one without the other, and
+          "Checked live" next to no figure reads as a value that is missing by mistake. */}
+      {item.live && <span className="checked-live">{item.platinum === undefined ? 'No market price' : 'Checked live'}</span>}
       {/* On the value line, so a sellable card is no taller than its neighbours. */}
       {remaining && !selling && <button type="button" className="stamp sell-open" disabled={busy} onClick={() => setSelling(true)}>{listedOrder ? 'Sell more' : 'Sell'}</button>}
     </div>
