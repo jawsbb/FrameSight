@@ -85,11 +85,11 @@ starts until you confirm, and no mode ever writes to the game, automates input,
 or sends telemetry. Change your mind later and the lower mode retires everything it
 no longer permits before the switch completes.
 
-![The one-time setup screen, with Companion, Overlay and Full as the three access levels, Full selected, and the list of what Full adds](docs/screenshots/warframe-access.png)
+![The one-time setup screen, with Companion, Overlay and Full as the three access levels, and the list of what Full adds once it is picked](docs/screenshots/warframe-access.png)
 
 > [!IMPORTANT]
 > **Choose the access you want before TennoScope observes Warframe.** First run
-> preselects Full and starts no running-game access until you confirm one. Full reads an
+> selects no level and starts no running-game access until you pick and confirm one. Full reads an
 > account ID and a nonce from the Warframe process and sends them to
 > `mobile.warframe.com`'s inventory endpoint and nowhere else. Overlay does not read process
 > memory. TennoScope never writes to the game or automates an action. It is an unofficial
