@@ -46,7 +46,9 @@ game or automates input.
 
 - Screen reading matches English item names only.
 - Collection ~1,000 entries, paginated client-side.
-- UI copy is English.
+- UI copy is English today. Planned (owner, 2026-10-28): a multilingual interface, starting
+  with French and English, after the current UX pass. Item names stay as the English catalog
+  gives them, which is also what the OCR matches.
 - This is a personal fork, taken over from Deftera186/tennoscope. It no longer needs to stay
   mergeable upstream; upstream may be credited in the repo.
 
