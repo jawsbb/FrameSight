@@ -430,10 +430,11 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 .access-rail:disabled .access-thumb span, .access-rail:disabled .access-node.included { border-color: var(--text-faint); }
 .access-rail:disabled .access-node.included { background: var(--text-faint); }
 .access-stops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--tight); }
-/* Selected is a solid accent frame; the effective mode, when it differs, a dashed neutral one. */
+/* At rest a quiet neutral frame, so each level reads as a choice; hover a stronger one; selected a solid
+   accent frame; the effective mode, when it differs, a dashed neutral one. */
 .access-stop {
   position: relative; display: grid; align-content: start; justify-items: center; gap: 2px; min-width: 0;
-  padding: var(--tight); border: 1px solid transparent; border-radius: var(--radius);
+  padding: var(--tight); border: 1px solid var(--line); border-radius: var(--radius);
   color: var(--text-dim); text-align: center; cursor: pointer;
 }
 .access-stop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
