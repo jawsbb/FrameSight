@@ -77,6 +77,16 @@ see the difference.
 
 ### Fixed
 
+- **A day of trades counts once in an item's sales pace.** The daily warframe.market summary is
+  published a day or two late, so most launches download the file the cache was built from, and
+  each time that same day was averaged into the monthly trade rate again, dragging every listing
+  toward whatever it happened to show. A re-downloaded summary now keeps the average as it stands;
+  a rate already skewed settles back within the month.
+- **86 listings whose names carry an apostrophe, an ampersand or an accent are found on
+  warframe.market.** `Hell's Chamber`, `Cobra & Crane Prime Set` or `La Cathédrale Scene` were
+  asked for under a slug the market does not use, so they never priced live nor loaded a history.
+  Checked against every listed item, 3,890 of 3,893 slugs now match; the three Itzal parts, whose
+  slugs carry a `_blueprint` their names do not, still miss.
 - **The full test suite passes on every tesseract build.** The 16:10 reward-geometry test
   asserted every card read at >= 0.9, which the combined legacy+LSTM `tessdata` that Arch and
   Fedora ship misses by one character on `2X Forma Blueprint` (0.875), so those packages had to
