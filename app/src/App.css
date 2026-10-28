@@ -181,9 +181,12 @@
 .display-switch[aria-checked="true"] .display-track { border-color: var(--accent); background: var(--accent); }
 .display-switch[aria-checked="true"] .display-thumb { transform: translateX(12px); background: var(--accent-ink); }
 
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Chips on the left, the price state and its action on the right; the right group wraps under the
+   chips as one piece when the row runs out of width. */
+.filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight) var(--step); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px;
   border: 1px solid var(--line-control); border-radius: var(--radius);
   background: transparent; color: var(--text-dim); font-size: .8125rem; cursor: pointer;
   transition: color .12s ease, background-color .12s ease, border-color .12s ease;
@@ -193,7 +196,8 @@
 .chip-count { color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .chip[aria-pressed="true"] .chip-count { color: var(--text-dim); }
 
-.status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--step); color: var(--text-faint); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-left: auto; color: var(--text-faint); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.result-count { margin: 0; color: var(--text-faint); font-size: .8125rem; font-variant-numeric: tabular-nums; text-align: center; }
 .pricing { display: inline-flex; align-items: center; gap: var(--tight); color: var(--text-dim); }
 
 progress {

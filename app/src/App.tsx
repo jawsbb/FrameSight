@@ -61,7 +61,7 @@ const initialCollectionFilters: CollectionFilters = { search: '', category: 'all
 const initialMasteryFilters: MasteryFilters = { search: '', category: 'all', sort: 'arsenal-first', page: 1 }
 
 const categories: Array<{ value: ItemCategory | 'all'; label: string }> = [
-  { value: 'all', label: 'All categories' },
+  { value: 'all', label: 'All' },
   { value: 'frame', label: 'Frame' },
   { value: 'weapon', label: 'Weapon' },
   { value: 'companion', label: 'Companion' },
@@ -708,37 +708,42 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
         </button>
       </div>
 
-      <div className="chips" role="group" aria-label="Item categories">
-        {categories.map(item => <button
-          type="button"
-          key={item.value}
-          className="chip"
-          aria-pressed={category === item.value}
-          onClick={() => update({ category: item.value })}
-        >{item.label}</button>)}
-      </div>
-
-      <div className="status-line">
-        <span>{dumpDate ? `Prices from the ${shortDumpDate(dumpDate)} market summary` : 'No price summary loaded yet'}</span>
-        <span>{firstResult}–{lastResult} of {filtered.length}</span>
-        {/* Live prices come from the market dump and explicit price checks, neither of which
-            reads the game or needs verified ownership: Companion and Overlay keep valuation.
-            Selling still needs Full, and that gate lives on the sell controls, not here. */}
-        <button
-          type="button"
-          className="stamp primary price-page"
-          disabled={pricing || inProgress !== null || pricableVisibleIds.length === 0}
-          onClick={() => onPriceLive(pricableVisibleIds)}
-        >{pricing || inProgress ? 'Pricing…' : `Price this page (${pricableVisibleIds.length})`}</button>
-        {inProgress && <span className="pricing" role="status">
-          <progress max={Math.max(inProgress.total, 1)} value={inProgress.done} aria-label="Live price check"/>
-          <span>Checking live prices · {inProgress.done} of {inProgress.total}</span>
-        </span>}
+      {/* The chips and the price controls share a row, so the grid starts where the eye lands. */}
+      <div className="filter-row">
+        <div className="chips" role="group" aria-label="Item categories">
+          {categories.map(item => <button
+            type="button"
+            key={item.value}
+            className="chip"
+            aria-label={item.value === 'all' ? 'All categories' : undefined}
+            aria-pressed={category === item.value}
+            onClick={() => update({ category: item.value })}
+          >{item.label}</button>)}
+        </div>
+        <div className="status-line">
+          {dumpDate
+            ? <span title={`Prices from the ${shortDumpDate(dumpDate)} market summary`}>{shortDumpDate(dumpDate)} prices</span>
+            : <span>No prices yet</span>}
+          {/* Live prices come from the market dump and explicit price checks, neither of which
+              reads the game or needs verified ownership: Companion and Overlay keep valuation.
+              Selling still needs Full, and that gate lives on the sell controls, not here. */}
+          <button
+            type="button"
+            className="stamp primary price-page"
+            disabled={pricing || inProgress !== null || pricableVisibleIds.length === 0}
+            onClick={() => onPriceLive(pricableVisibleIds)}
+          >{pricing || inProgress ? 'Pricing…' : `Price this page (${pricableVisibleIds.length})`}</button>
+          {inProgress && <span className="pricing" role="status">
+            <progress max={Math.max(inProgress.total, 1)} value={inProgress.done} aria-label="Live price check"/>
+            <span>Checking live prices · {inProgress.done} of {inProgress.total}</span>
+          </span>}
+        </div>
       </div>
 
       {filtered.length
         ? <>
           <ul className="card-grid" aria-label="Collection items">{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified={ownershipVerified} showDucats={showDucats} listedOrder={listedOrderFor(view.market_account.orders, item.id)} sellable={ownershipVerified && view.market_account.link === 'linked' && isListable(item, view.market_account.listable)} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
+          <p className="result-count">{firstResult}–{lastResult} of {filtered.length}</p>
           <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
         </>
         : <EmptyState title="No matching items" detail="Try another search or clear the filters." action={<button type="button" className="stamp" onClick={() => update({ search: '', category: 'all', ownership: 'all' })}>Clear filters</button>}/>}
@@ -795,7 +800,7 @@ function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }:
 
         {/* The category chips carry the progress: mastered over total, as the profile would. */}
         <div className="chips" role="group" aria-label="Mastery categories">
-          <button type="button" className="chip" aria-pressed={category === 'all'} onClick={() => update({ category: 'all' })}>All categories</button>
+          <button type="button" className="chip" aria-label="All categories" aria-pressed={category === 'all'} onClick={() => update({ category: 'all' })}>All</button>
           {totals.map(entry => <button
             type="button"
             key={entry.category}
@@ -806,13 +811,10 @@ function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }:
           >{categoryName[entry.category]}<span className="chip-count">{entry.mastered}/{entry.total}</span></button>)}
         </div>
 
-        <div className="status-line">
-          <span>{firstResult}–{lastResult} of {filtered.length}</span>
-        </div>
-
         {filtered.length
           ? <>
             <ul className="card-grid" aria-label="Mastery items">{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified missingLabel="Never held" showDucats={false} listedOrder={null} sellable={false} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
+            <p className="result-count">{firstResult}–{lastResult} of {filtered.length}</p>
             <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
           </>
           : <EmptyState
