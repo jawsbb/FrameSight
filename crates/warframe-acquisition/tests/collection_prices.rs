@@ -1171,3 +1171,26 @@ fn an_earlier_dump_is_found_a_week_back_from_the_current_one() {
         Some("2026-07-20".to_owned())
     );
 }
+
+/// The dumps lag, so most launches download the file the cache was built from. That file is a day
+/// the running average has already counted; counting it again on every launch drags each listing
+/// toward whatever that one day happened to show.
+#[test]
+fn a_dump_downloaded_again_is_not_averaged_in_twice() {
+    let yesterday = r#"{"Intruder": [
+        {"order_type":"closed","median":3.0,"mod_rank":0,"volume":6},
+        {"order_type":"sell","median":3.0,"mod_rank":0,"volume":14436}
+    ]}"#;
+    let today = r#"{"Intruder": [{"order_type":"sell","median":3.0,"mod_rank":0,"volume":14436}]}"#;
+    let yesterday =
+        PriceTable::from_dump_json(yesterday.as_bytes(), "2026-07-29").expect("fixture parses");
+    let mut cached =
+        PriceTable::from_dump_json(today.as_bytes(), "2026-07-30").expect("fixture parses");
+    cached.adopt(&yesterday);
+
+    let mut again =
+        PriceTable::from_dump_json(today.as_bytes(), "2026-07-30").expect("fixture parses");
+    again.adopt(&cached);
+
+    assert_eq!(again.monthly_trades("Intruder"), Some(90));
+}

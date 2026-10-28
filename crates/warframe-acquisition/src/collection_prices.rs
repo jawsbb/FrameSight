@@ -685,26 +685,31 @@ impl PriceTable {
         //
         // The date carried is the last dump that saw a trade, not today, so a listing nobody has
         // bought in `CARRY_DAYS` drops out entirely rather than decaying towards zero forever.
-        for (name, (rate, days, seen)) in &previous.trade_rate {
-            if self.expired(seen) {
-                continue;
-            }
-            let today = self.trade_rate.get(name);
-            let observed = today.map_or(0.0, |(rate, ..)| *rate);
-            let seen = today.map_or(seen, |(_, _, seen)| seen).clone();
-            let weight = (1.0 / f64::from(days + 1)).max(DAY_WEIGHT);
-            self.trade_rate.insert(
-                name.clone(),
-                (
-                    observed * weight + rate * (1.0 - weight),
-                    (days + 1).min(MONTH_DAYS),
-                    seen,
-                ),
-            );
-        }
+        //
+        // The same dump downloaded again, which the publication lag makes most launches, is a day
+        // the average already holds: counting it again drags every listing toward that one day.
+        // It takes the average as it stands, and the day's checked prices with it.
         if self.dump_date != previous.dump_date {
+            for (name, (rate, days, seen)) in &previous.trade_rate {
+                if self.expired(seen) {
+                    continue;
+                }
+                let today = self.trade_rate.get(name);
+                let observed = today.map_or(0.0, |(rate, ..)| *rate);
+                let seen = today.map_or(seen, |(_, _, seen)| seen).clone();
+                let weight = (1.0 / f64::from(days + 1)).max(DAY_WEIGHT);
+                self.trade_rate.insert(
+                    name.clone(),
+                    (
+                        observed * weight + rate * (1.0 - weight),
+                        (days + 1).min(MONTH_DAYS),
+                        seen,
+                    ),
+                );
+            }
             return;
         }
+        self.trade_rate = previous.trade_rate.clone();
         for (market_name, platinum) in &previous.checked_prices {
             self.checked_prices
                 .entry(market_name.clone())
