@@ -18,6 +18,7 @@
     { "identifier": "opener:allow-open-url", "allow": [{ "url": "https://github.com/Deftera186/tennoscope/**" }, { "url": "https://wiki.warframe.com/**" }] },
     "core:window:allow-start-dragging",
     { "identifier": "opener:allow-reveal-item-in-dir", "allow": [{ "path": "$APPDATA/reports/**" }] },
-    "clipboard-manager:allow-write-text"
+    "clipboard-manager:allow-write-text",
+    "notification:default"
   ]
 }

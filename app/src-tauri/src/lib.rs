@@ -55,6 +55,7 @@ mod reward_source;
 // is likewise absent on mobile, so everything referencing it gates together.
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod update;
+mod world_state;
 pub use access::{AccessMode, AccessPolicy};
 pub use kiosk_ocr::{BasketRow, GridCell};
 pub use kiosk_view::{KioskState, KioskView};
@@ -2282,6 +2283,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_notification::init())
         // `reward-overlay` is only ever hidden, never destroyed, so Tauri still holds a live window
         // once the main window closes and the app stays up: tailing the log and drawing the overlay
         // over the game with no UI left to close it by.
@@ -2349,6 +2351,7 @@ pub fn run() {
             app.manage(kiosk_view::KioskState::default());
             // The Market page's short cache of live orders.
             app.manage(market_lookup::MarketLookup::default());
+            app.manage(world_state::WorldCache::default());
             if let Some(access_mode) = startup.access_mode {
                 start_collection_prices(Arc::clone(app.state::<SharedRuntime>().inner()));
                 // The stored mode is installed here without a transition, so the switch a
@@ -2416,6 +2419,7 @@ pub fn run() {
             market_lookup::market_search,
             market_lookup::market_item_orders,
             market_lookup::market_item_history,
+            world_state::get_world_state,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             update::get_version_info,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
