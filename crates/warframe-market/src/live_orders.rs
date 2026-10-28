@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{API_V2, MarketError, MarketRequest, MarketTransport, Method};
+use crate::{API_V2, MarketError, MarketRequest, MarketTransport, Method, valid_slug};
 
 /// The cap on one top-of-book response, generous against the measured 5 KB.
 pub const MAX_TOP_BYTES: usize = 256 * 1024;
@@ -137,11 +137,7 @@ pub fn parse_top(body: &[u8]) -> Result<ItemOrders, MarketError> {
 /// The live top of one item's book. `slug` must come from the item table: anything else is
 /// refused before a request is spent on it.
 pub fn item_orders(transport: &dyn MarketTransport, slug: &str) -> Result<ItemOrders, MarketError> {
-    if slug.is_empty()
-        || !slug
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
-    {
+    if !valid_slug(slug) {
         return Err(MarketError::Malformed);
     }
     let response = transport.send(MarketRequest {
