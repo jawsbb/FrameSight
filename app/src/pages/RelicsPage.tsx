@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getRelics, type AccessMode, type AppView, type Relic, type RelicReward, type RelicsView } from '../backend'
-import { figure } from '../collection'
 import { MetalMark } from '../MetalMark'
 import { EmptyState } from '../components/EmptyState'
-import { Platinum } from '../components/Platinum'
+import { Ducats, Platinum } from '../components/Platinum'
 import { SearchField } from '../components/SearchField'
 import { Stat } from '../components/Stat'
 import { shortDate, useMessages, type Messages } from '../i18n'
@@ -121,11 +120,6 @@ export function RelicsPage({ view, effectiveMode }: { view: AppView; effectiveMo
           </div>}
       </>}
   </section>
-}
-
-function Ducats({ value, approx }: { value: number; approx?: boolean }) {
-  const t = useMessages()
-  return <span className="value ducat"><MetalMark metal="ducat" alt={t.card.ducat}/><b>{approx ? t.relics.approx(value) : figure(value, t)}</b></span>
 }
 
 function RelicEntry({ relic, priced, ducats, expanded, onToggle }: { relic: Relic; priced: boolean; ducats: boolean; expanded: boolean; onToggle: () => void }) {

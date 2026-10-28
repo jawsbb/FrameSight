@@ -7,3 +7,9 @@ export function Platinum({ value, approx }: { value: number; approx?: boolean })
   const t = useMessages()
   return <span className="value plat"><MetalMark metal="plat" alt={t.card.platinum}/><b>{approx ? t.relics.approx(value) : figure(value, t)}</b></span>
 }
+
+/** The same for ducats, in gold. */
+export function Ducats({ value, approx }: { value: number; approx?: boolean }) {
+  const t = useMessages()
+  return <span className="value ducat"><MetalMark metal="ducat" alt={t.card.ducat}/><b>{approx ? t.relics.approx(value) : figure(value, t)}</b></span>
+}
