@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const backend = vi.hoisted(() => ({ marketSearch: vi.fn(), marketItemOrders: vi.fn() }))
+const backend = vi.hoisted(() => ({ marketSearch: vi.fn(), marketItemOrders: vi.fn(), marketBoard: vi.fn() }))
 const clipboard = vi.hoisted(() => ({ writeText: vi.fn(() => Promise.resolve()) }))
 vi.mock('../backend', () => backend)
 vi.mock('@tauri-apps/plugin-clipboard-manager', () => clipboard)
@@ -10,7 +10,7 @@ vi.mock('@tauri-apps/plugin-clipboard-manager', () => clipboard)
 import { MarketPage } from './MarketPage'
 import { forgetRecentForTests, whisper } from '../market'
 import { MessagesContext, catalogs } from '../i18n'
-import type { AppView, MarketHit, MarketItemOrders } from '../backend'
+import type { AppView, BoardRow, MarketBoard, MarketHit, MarketItemOrders } from '../backend'
 
 const SERRATION_ROW = '/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod'
 
@@ -31,6 +31,33 @@ const serrationOrders: MarketItemOrders = {
   buy: [{ user: 'LukaGamer86', status: 'ingame', platinum: 15, quantity: 1, per_trade: 1, rank: 10, subtype: 'regular' }],
 }
 
+const noBoard: MarketBoard = { date: null, earlier_date: null, most_sold: [], fastest: [], most_platinum: [], rising: [], falling: [], hits: {} }
+
+/** Rows as the 2026-10-27 summary has them, against 2026-10-20. */
+const row = (name: string, sales: number, listings: number, median: number, more: Partial<BoardRow> = {}): BoardRow =>
+  ({ name, subtype: null, rank: null, sales, listings, median, traded: sales * median, change: null, ...more })
+const sculptor: MarketHit = {
+  id: '5b00231bac0f7e006fd6f7b4', slug: 'arcane_sculptor', name: 'Arcane Sculptor', thumb_url: null, max_rank: 5,
+  median: 10, median_max_rank: 199, checked_live: false, monthly_trades: 13000, held: [],
+}
+const meso: MarketHit = {
+  id: '5b00231bac0f7e006fd6f7b5', slug: 'meso_i3_relic', name: 'Meso I3 Relic', thumb_url: null, max_rank: null,
+  median: 4, median_max_rank: null, checked_live: false, monthly_trades: 9000, held: [],
+}
+const board: MarketBoard = {
+  date: '2026-10-27',
+  earlier_date: '2026-10-20',
+  most_sold: [
+    row('Melee Riven Mod (Veiled)', 926, 3634, 9, { subtype: 'unrevealed' }),
+    row('Arcane Sculptor', 446, 892, 10, { rank: 0 }),
+  ],
+  fastest: [row('Meso I3 Relic (Radiant)', 78, 36, 6), row('Arcane Sculptor', 243, 199, 199, { rank: 5 })],
+  most_platinum: [row('Arcane Sculptor', 243, 199, 199, { rank: 5 })],
+  rising: [row('Ballistica Prime Set', 118, 577, 135, { change: 0.35 })],
+  falling: [row('Primed Point Blank', 40, 3399, 20, { rank: 0, change: -0.6 })],
+  hits: { 'Arcane Sculptor': sculptor, 'Meso I3 Relic (Radiant)': meso },
+}
+
 function view(overrides: Partial<AppView['market_account']> = {}): AppView {
   return {
     collection: {
@@ -43,7 +70,7 @@ function view(overrides: Partial<AppView['market_account']> = {}): AppView {
       link: 'unlinked', orders: [], listed_platinum: 0, flagged: 0, listable: [],
       presence: { status: null, wanted: null, auto: false }, ...overrides,
     },
-    health: {} as AppView['health'],
+    health: { collection_prices: { state: 'ready', message: 'Priced', last_success: '2026-10-27' } } as AppView['health'],
   }
 }
 
@@ -62,6 +89,7 @@ beforeEach(() => {
     dump_date: '2026-10-28',
   }))
   backend.marketItemOrders.mockResolvedValue(serrationOrders)
+  backend.marketBoard.mockResolvedValue(noBoard)
 })
 afterEach(() => {
   cleanup()
@@ -181,6 +209,64 @@ describe('Market page item sheet', () => {
     await userEvent.click(await screen.findByRole('option', { name: /^Serration/ }))
     await waitFor(() => expect(screen.getByRole('region', { name: 'Sellers now' })).toBeInTheDocument())
     expect(screen.queryByRole('button', { name: /^Sell/ })).toBeNull()
+  })
+})
+
+describe('Market page board', () => {
+  it('ranks the day it names, not today', async () => {
+    backend.marketBoard.mockResolvedValue(board)
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Trades of 27 Oct' })).toBeInTheDocument()
+    const sold = screen.getByRole('region', { name: 'Most sold' })
+    const rows = within(sold).getAllByRole('listitem')
+    expect(rows[0]).toHaveTextContent('Melee Riven Mod (Veiled)unrevealed926')
+    expect(rows[1]).toHaveTextContent('Arcane SculptorRank 0446')
+    const fastest = screen.getByRole('region', { name: 'Selling fastest' })
+    // A relic tier is named as the Relics page names it; 78 sales against 36 listings.
+    expect(within(fastest).getAllByRole('listitem')[0]).toHaveTextContent('Meso I3 Radiant2.17')
+    expect(screen.getByRole('region', { name: 'Most platinum traded' })).toHaveTextContent('48,357')
+    expect(screen.queryByRole('heading', { name: 'Look up an item' })).toBeNull()
+  })
+
+  it('opens a row’s item as the search does, and a row it cannot open is still shown', async () => {
+    backend.marketBoard.mockResolvedValue(board)
+    renderPage()
+    const fastest = await screen.findByRole('region', { name: 'Selling fastest' })
+    await userEvent.click(within(fastest).getByRole('button', { name: /Meso I3 Radiant/ }))
+
+    expect(backend.marketItemOrders).toHaveBeenCalledWith('meso_i3_relic')
+    expect(screen.getByRole('heading', { name: 'Meso I3 Relic' })).toBeInTheDocument()
+    expect(screen.getByText('Daily summary of 27 Oct')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Trades of 27 Oct' })).toBeNull()
+    expect(backend.marketBoard).toHaveBeenCalledTimes(1)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to the day’s rankings' }))
+    expect(screen.getByRole('heading', { name: 'Trades of 27 Oct' })).toBeInTheDocument()
+  })
+
+  it('switches the week between rises and falls, in French too', async () => {
+    backend.marketBoard.mockResolvedValue(board)
+    renderPage(view(), 'fr')
+    const week = await screen.findByRole('region', { name: 'Sur 7 jours' })
+    expect(week).toHaveTextContent('Ballistica Prime Set')
+    expect(week).toHaveTextContent('+35')
+    await userEvent.click(within(week).getByRole('button', { name: 'En baisse' }))
+    expect(week).toHaveTextContent('Primed Point BlankRang 0')
+    expect(week).toHaveTextContent('-60')
+    expect(screen.getByRole('heading', { name: 'Échanges du 27 oct.' })).toBeInTheDocument()
+  })
+
+  it('says the week cannot be compared until the earlier summary loads', async () => {
+    backend.marketBoard.mockResolvedValue({ ...board, earlier_date: null, rising: [], falling: [] })
+    renderPage()
+    expect(await screen.findByRole('region', { name: 'Over 7 days' })).toHaveTextContent('The summary from a week earlier has not loaded yet.')
+  })
+
+  it('waits for the summary rather than ranking nothing', async () => {
+    renderPage()
+    expect(await screen.findByText(/The day’s rankings appear once the daily summary has loaded\./)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Look up an item' })).toBeInTheDocument()
   })
 })
 

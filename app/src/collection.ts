@@ -160,6 +160,6 @@ export function pageNumbers(currentPage: number, totalPages: number): number[] {
 
 /** Figures are grouped: a five-digit total is read, not counted. Grouped the catalog's way, so
  * the same language reads the same on every machine, whatever the system locale. */
-export function figure(value: number, t: Messages = en): string {
-  return value.toLocaleString(t.locale)
+export function figure(value: number, t: Messages = en, maximumFractionDigits?: number): string {
+  return value.toLocaleString(t.locale, { maximumFractionDigits })
 }

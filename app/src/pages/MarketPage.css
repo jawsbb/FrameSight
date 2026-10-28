@@ -27,6 +27,7 @@
 .market-thumb img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
 
 .market-recent { display: grid; gap: 4px; }
+.market-back { justify-self: start; }
 
 .market-item { display: grid; gap: 12px; }
 .market-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight) 12px; }
@@ -74,10 +75,37 @@
 }
 
 @media (pointer: coarse) {
-  .market-suggestions li, .trade-row { min-height: 44px; }
+  .market-suggestions li, .trade-row, .ranked-row:not(.ranked-head) { min-height: 44px; }
   .trade-row .stamp { height: auto; min-height: 44px; }
 }
 
 @media (forced-colors: active) {
   .market-suggestions li[aria-selected="true"] { outline: 1px solid Highlight; }
 }
+
+/* The day's rankings, shown while no item is open: four groups, two abreast when there is room. */
+.market-board { display: grid; gap: 12px; }
+.market-board-head { display: grid; gap: 2px; }
+.market-board-head h2 { margin: 0; font-size: .8125rem; font-weight: 600; }
+.market-rankings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 27rem), 1fr)); gap: var(--step) 12px; align-items: start; }
+.market-ranking { display: grid; gap: 4px; min-width: 0; }
+.market-ranking-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--tight); min-height: 28px; }
+.market-ranking > .band-note { margin: 0 0 0 2px; }
+.ranked-list { margin: 0; padding: 0; list-style: none; }
+.ranked-list > li { border-top: 1px solid var(--line); }
+.ranked-row {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) 7.5rem 4.5rem; align-items: center; gap: 10px;
+  width: 100%; min-height: 40px; padding: 4px 14px 4px 10px; border: 0; background: none; color: var(--text);
+  font: inherit; font-variant-numeric: tabular-nums; text-align: left;
+}
+button.ranked-row { cursor: pointer; }
+button.ranked-row:hover { background: var(--fill); }
+button.ranked-row:focus-visible { outline-offset: -2px; }
+.ranked-head { min-height: 0; padding-block: 8px 6px; color: var(--text-faint); font-size: .75rem; }
+.ranked-head > :nth-child(n+3), .ranked-figure { text-align: right; }
+.ranked-row .market-thumb { width: 28px; height: 28px; }
+.ranked-name { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
+.ranked-name > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.ranked-figure { color: var(--text-dim); }
+.ranked-figure .value, .ranked-row > .value { justify-content: flex-end; }
+.ranked-row .value b { font-size: .8125rem; }

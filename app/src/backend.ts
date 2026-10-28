@@ -234,6 +234,24 @@ export interface LiveOrder { user: string; status: TraderStatus; platinum: numbe
 export interface MarketItemOrders { sell: LiveOrder[]; buy: LiveOrder[]; fetched_at: number }
 export const marketSearch = (query: string) => invoke<MarketSearch>('market_search', { query })
 export const marketItemOrders = (slug: string) => invoke<MarketItemOrders>('market_item_orders', { slug })
+/** One variant's day on warframe.market (a change row: one item). `median` is what it traded at, or on a
+ * change row the price the change is measured on; `traded` the platinum that changed hands; `change` the
+ * 7-day move, 0.22 for +22%. */
+export interface BoardRow { name: string; subtype: string | null; rank: number | null; sales: number; listings: number; median: number; traded: number; change: number | null }
+/** The Market page's rankings, from the daily summary. `date` null until one carrying its day's trades
+ * has loaded; `earlier_date` null until the one a week before it has. `hits` is the item each row's
+ * name opens; a name it lacks opens nothing. */
+export interface MarketBoard {
+  date: string | null
+  earlier_date: string | null
+  most_sold: BoardRow[]
+  fastest: BoardRow[]
+  most_platinum: BoardRow[]
+  rising: BoardRow[]
+  falling: BoardRow[]
+  hits: Record<string, MarketHit>
+}
+export const marketBoard = () => invoke<MarketBoard>('market_board')
 /** The Foundry page, built from what the backend already holds. `status` names what it waits for. */
 export type FoundryStage = 'ready' | 'almost' | 'set'
 /** One recipe slot. A part counts its blueprint too; builds already in the foundry are not in hand. */

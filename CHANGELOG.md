@@ -16,6 +16,18 @@ see the difference.
 
 ### Added
 
+- **The Market page ranks the day's trades while no item is open.** Four rankings of ten from
+  the daily warframe.market summary the app already downloads, each named for the day it
+  covers (the summary is published a day or two late): the most sold, the fastest selling
+  (sales per listing, from 20 sales in the day so one trade against one listing does not lead),
+  the most platinum traded (each variant's sales times its median), and the week's rises and
+  falls against the summary a week earlier, as on Farm & sales (from 20 sales and 10 platinum).
+  A mod's ranks, a relic's refinements and a fish's sizes are each their own row, since their
+  prices differ by up to twenty times. A row opens the item and its live orders as a search
+  does. The summary's per-day figures are now kept with the cached prices; a cache saved before
+  this is downloaded once more on the next start rather than discarded. Opening the page now
+  loads warframe.market's item list (about 1.6 MB, once per session) for the thumbnails, which
+  the first search used to.
 - **The Dashboard shows the game's world as you log in, instead of account statistics.** The
   cycles of Earth, Cetus, Orb Vallis and the Cambion Drift count down to their next change; the
   void fissures sit in three tabs (Normal, Steel Path, Void storms), soonest to close first, each

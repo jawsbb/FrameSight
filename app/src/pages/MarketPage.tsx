@@ -1,19 +1,22 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { writeText } from '@tauri-apps/plugin-clipboard-manager'
-import { marketItemOrders, marketSearch, type AccessMode, type AppView, type LiveOrder, type MarketHit, type MarketItemOrders, type MarketSearch } from '../backend'
+import { marketBoard, marketItemOrders, marketSearch, type AccessMode, type AppView, type BoardRow, type LiveOrder, type MarketBoard, type MarketHit, type MarketItemOrders, type MarketSearch } from '../backend'
 import { figure, rankLabel } from '../collection'
 import { isListable, listedOrderFor } from '../orders'
 import { stampReading } from '../freshness'
 import { MetalMark } from '../MetalMark'
 import { SellForm, type SellHandler, type UpdateHandler } from '../SellForm'
+import { Platinum } from '../components/Platinum'
+import { Change } from '../components/Change'
 import { EmptyState } from '../components/EmptyState'
 import { Icon } from '../components/Icon'
 import { backendReason, shortDate, useMessages, type Messages } from '../i18n'
-import { rememberViewed, viewedRecently, whisper, type Side, type Viewed } from '../market'
+import { boardName, rememberViewed, viewedRecently, whisper, type Side, type Viewed } from '../market'
 import './MarketPage.css'
 
 type Orders = { state: 'loading' } | { state: 'ready'; orders: MarketItemOrders } | { state: 'failed'; message: string }
 type Search = { query: string; result?: MarketSearch; error?: string }
+type Board = { state: 'ready'; board: MarketBoard } | { state: 'failed'; message: string }
 
 /** A failure, then the backend's reason in this catalog's words when it gives one. */
 function withReason(failure: string, reason: unknown, t: Messages): string {
@@ -22,12 +25,12 @@ function withReason(failure: string, reason: unknown, t: Messages): string {
   return `${failure} ${/^\S+\.\S/.test(text) ? text : text[0].toUpperCase() + text.slice(1)}.`
 }
 
-function Thumb({ hit }: { hit: MarketHit }) {
+function Thumb({ hit, name = hit?.name ?? '' }: { hit: MarketHit | undefined; name?: string }) {
   const [failed, setFailed] = useState(false)
   return <span className="market-thumb">
-    {hit.thumb_url && !failed
+    {hit?.thumb_url && !failed
       ? <img src={hit.thumb_url} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)}/>
-      : <span aria-hidden="true">{hit.name.slice(0, 2)}</span>}
+      : <span aria-hidden="true">{name.slice(0, 2)}</span>}
   </span>
 }
 
@@ -61,8 +64,20 @@ export function MarketPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }
   const [copied, setCopied] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [clock, setClock] = useState(() => new Date())
+  const [board, setBoard] = useState<Board | null>(null)
   const orderRequest = useRef(0)
+  const pricesAt = view.health.collection_prices.last_success
 
+  // The day's rankings come from the daily summary in hand; a new one redraws them.
+  useEffect(() => {
+    let live = true
+    marketBoard()
+      .then(next => { if (live) setBoard({ state: 'ready', board: next }) })
+      .catch(reason => { if (live) setBoard({ state: 'failed', message: withReason(m.board.failed, reason, t) }) })
+    return () => { live = false }
+  }, [pricesAt, m, t])
+
+  const ranked = board?.state === 'ready' && board.board.date ? { board: board.board, date: board.board.date } : null
   const trimmed = query.trim()
   useEffect(() => {
     if (trimmed.length < 2) {
@@ -199,6 +214,8 @@ export function MarketPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }
       </div>
     </div>}
 
+    {selected && ranked && <button type="button" className="link-button market-back" onClick={() => setSelected(null)}>{m.board.back}</button>}
+
     {selected
       ? <ItemSheet
         viewed={selected}
@@ -215,9 +232,97 @@ export function MarketPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }
         copied={copied}
         onCopy={copy}
       />
-      : <EmptyState icon="market" title={m.emptyTitle} detail={`${m.emptyDetail} ${m.firstSearch}`}/>}
+      : ranked
+        ? <Rankings {...ranked} onOpen={choose}/>
+        : <>
+          {board?.state === 'failed' && <p className="error-banner" role="alert">{board.message}</p>}
+          <EmptyState icon="market" title={m.emptyTitle} detail={board?.state === 'ready' ? `${m.emptyDetail} ${m.board.waiting}` : m.emptyDetail}/>
+        </>}
 
     <p className="sr-only" role="status">{note}</p>
+  </section>
+}
+
+type Week = 'rising' | 'falling'
+
+/** The day's trades, ranked: what sold most, fastest and for the most platinum, and what moved. */
+function Rankings({ board, date, onOpen }: { board: MarketBoard; date: string; onOpen: (viewed: Viewed) => void }) {
+  const t = useMessages()
+  const b = t.marketPage.board
+  const headingId = useId()
+  const [week, setWeek] = useState<Week>('rising')
+  const open = (hit: MarketHit) => onOpen({ hit, dumpDate: date })
+
+  return <section className="market-board" aria-labelledby={headingId}>
+    <div className="market-board-head">
+      <h2 id={headingId}>{b.title(shortDate(date, t))}</h2>
+      <p className="band-note">{b.note(board.earlier_date && shortDate(board.earlier_date, t))}</p>
+    </div>
+    <div className="market-rankings">
+      <Ranked title={b.mostSold} figure={b.sales} rows={board.most_sold} hits={board.hits} onOpen={open}
+        value={row => figure(row.sales, t)}/>
+      <Ranked title={b.fastest} figure={b.perListing} rows={board.fastest} hits={board.hits} onOpen={open}
+        value={row => figure(row.sales / row.listings, t, 2)} note={b.fastestNote}/>
+      <Ranked title={b.mostPlatinum} figure={b.traded} rows={board.most_platinum} hits={board.hits} onOpen={open}
+        value={row => <Platinum value={row.traded}/>}/>
+      <Ranked title={b.week} figure={b.change} rows={board[week]} hits={board.hits} onOpen={open}
+        value={row => <Change value={row.change}/>}
+        note={b.weekNote}
+        empty={board.earlier_date ? b.noChange : b.noEarlier}
+        control={<div className="segmented" role="group" aria-label={b.week}>
+          {(['rising', 'falling'] as Week[]).map(option => <button key={option} type="button" aria-pressed={week === option} onClick={() => setWeek(option)}>{b[option]}</button>)}
+        </div>}/>
+    </div>
+  </section>
+}
+
+/** One ranking: a titled group of rows, each opening its item as a search would. */
+function Ranked({ title, figure: figureTitle, rows, hits, value, note, empty, control, onOpen }: {
+  title: string
+  figure: string
+  rows: BoardRow[]
+  hits: Record<string, MarketHit>
+  value: (row: BoardRow) => ReactNode
+  note?: string
+  empty?: string
+  control?: ReactNode
+  onOpen: (hit: MarketHit) => void
+}) {
+  const t = useMessages()
+  const b = t.marketPage.board
+  const headingId = useId()
+  return <section className="market-ranking" aria-labelledby={headingId}>
+    <div className="market-ranking-head">
+      <h3 id={headingId} className="section-title">{title}</h3>
+      {control}
+    </div>
+    {rows.length === 0
+      ? <p className="group market-book-empty">{empty}</p>
+      : <div className="group">
+        <div className="ranked-row ranked-head"><span/><span>{b.item}</span><span>{figureTitle}</span><span>{b.median}</span></div>
+        <ol className="ranked-list">
+          {rows.map(row => {
+            const hit = hits[row.name]
+            const name = boardName(row, t)
+            const cells = <>
+              <Thumb hit={hit} name={name}/>
+              <span className="ranked-name">
+                <span>{name}</span>
+                {row.rank !== null && <span className="tag">{t.marketPage.rank(row.rank)}</span>}
+                {row.subtype && <span className="tag">{row.subtype}</span>}
+              </span>
+              <span className="ranked-figure">{value(row)}</span>
+              <Platinum value={row.median}/>
+            </>
+            return <li key={`${row.name}-${row.subtype}-${row.rank}`}>
+              {hit
+                ? <button type="button" className="ranked-row" onClick={() => onOpen(hit)}>{cells}</button>
+                : <div className="ranked-row">{cells}</div>}
+            </li>
+          })}
+        </ol>
+      </div>}
+    {note && <p className="band-note">{note}</p>}
   </section>
 }
 
