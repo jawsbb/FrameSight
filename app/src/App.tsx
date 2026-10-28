@@ -1182,9 +1182,12 @@ function DesktopCaptureSetting({ actionAvailable, prohibited, busy, note, onNote
     <div>
       <h3>Screen capture</h3>
       <p className="prose">Automatic. Desktop sharing is needed only when Warframe runs with PROTON_ENABLE_WAYLAND=1 and the compositor has no direct capture API.</p>
-      {prohibited ? <p className="prohibition-note" id="capture-prohibited">Overlay or Full access is required: Companion does not capture the screen.</p> : actionAvailable && <p className="prose">In the desktop's screen chooser, pick every display Warframe may run on. A screen-sharing indicator may show until the game exits.</p>}
+      {actionAvailable && <p className="prose">In the desktop's screen chooser, pick every display Warframe may run on. A screen-sharing indicator may show until the game exits.</p>}
     </div>
-    {(actionAvailable || prohibited) && <button type="button" className="stamp" onClick={authorize} disabled={busy || prohibited} aria-busy={busy} aria-describedby={prohibited ? 'capture-prohibited' : undefined}>{busy ? 'Allowing desktop capture…' : 'Allow desktop capture'}</button>}
+    {(actionAvailable || prohibited) && <div className="prohibited-control">
+      <button type="button" className="stamp" onClick={authorize} disabled={busy || prohibited} aria-busy={busy} aria-describedby={prohibited ? 'capture-prohibited' : undefined}>{busy ? 'Allowing desktop capture…' : 'Allow desktop capture'}</button>
+      {prohibited && <p className="prohibition-note" id="capture-prohibited">Overlay or Full access is required: Companion does not capture the screen.</p>}
+    </div>}
     <p className="band-note capture-status" role="status" aria-live="polite" aria-atomic="true">{note}</p>
   </div>
 }
