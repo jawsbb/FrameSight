@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import type { CollectionItem, MarketAccount, Presence, ReconciledOrder } from './backend'
-import { SellForm, type SellHandler, type UpdateHandler } from './SellForm'
-import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderValue, sortOrders, statusLabel, uncountedReason } from './orders'
-import { stampReading } from './freshness'
-import { MetalMark } from './MetalMark'
-import { Stat } from './Stat'
-import { useMessages } from './i18n'
-import { EmptyState } from './EmptyState'
+import type { CollectionItem, MarketAccount, Presence, ReconciledOrder } from '../backend'
+import { SellForm, type SellHandler, type UpdateHandler } from '../SellForm'
+import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderValue, sortOrders, statusLabel, uncountedReason } from '../orders'
+import { stampReading } from '../freshness'
+import { MetalMark } from '../MetalMark'
+import { Stat } from '../components/Stat'
+import { useMessages } from '../i18n'
+import { EmptyState } from '../components/EmptyState'
 
 type OrdersViewProps = {
   account: MarketAccount

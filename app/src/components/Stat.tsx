@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { figure } from './collection'
-import { useMessages } from './i18n'
+import { figure } from '../collection'
+import { useMessages } from '../i18n'
 
 /** One summary figure, inline in a page head: the figure, what it counts, and an optional
  * qualification on it. The qualification is a tooltip and a spoken suffix, never visible text: in

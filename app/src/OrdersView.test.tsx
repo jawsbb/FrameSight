@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CollectionItem, MarketAccount, ReconciledOrder } from './backend'
-import { OrdersView } from './OrdersView'
+import { OrdersView } from './pages/OrdersView'
 
 afterEach(() => {
   cleanup()
