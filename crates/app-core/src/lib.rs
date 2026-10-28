@@ -4,12 +4,14 @@ mod fake_session;
 mod farm;
 mod foundry;
 mod item_detail;
+mod market_board;
 mod relics;
 
 pub use farm::{FarmDrop, FarmRow, FarmView, OpenRow, Pace, SellRow, Trend};
 pub use foundry::{
     FoundryItem, FoundryPiece, FoundryResource, FoundryStage, FoundryStatus, FoundryView,
 };
+pub use market_board::{BoardRow, MIN_DAY_SALES, MarketBoard, market_board};
 
 use std::path::Path;
 use std::sync::Arc;

@@ -28,7 +28,7 @@ const TRENDS: usize = 5;
 const TREND_POOL: usize = 20;
 /// A move from 2p to 3p is +50% of nothing.
 // ponytail: a flat floor; a test against the day's spread if cheap items still crowd the carousel.
-const TREND_FLOOR: u32 = 10;
+pub(crate) const TREND_FLOOR: u32 = 10;
 
 /// The share of a price the ranking keeps for an item sold this many times a month.
 pub fn sale_flow(monthly_trades: Option<u32>) -> f64 {

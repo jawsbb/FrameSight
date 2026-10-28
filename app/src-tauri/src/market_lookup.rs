@@ -9,14 +9,15 @@
 //! the same pacer, kept for hours because it describes whole days.
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+use app_core::{AppCore, MarketBoard};
 use serde::Serialize;
 use tauri::State;
-use warframe_acquisition::{PriceTable, slug_and_subtype};
+use warframe_acquisition::{PriceTable, relic_base, slug_and_subtype};
 use warframe_market::{DayTrades, ItemOrders, ItemSummary, MarketHttp, MarketItems};
 
 use crate::{SharedRuntime, market_account::failure_message};
@@ -63,6 +64,14 @@ pub struct MarketSearch {
     dump_date: Option<String>,
 }
 
+/// The board, with the item each row opens.
+#[derive(Debug, Serialize)]
+pub struct MarketBoardView {
+    #[serde(flatten)]
+    board: MarketBoard,
+    hits: HashMap<String, MarketHit>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct MarketItemOrders {
     #[serde(flatten)]
@@ -74,36 +83,71 @@ pub struct MarketItemOrders {
 pub fn hits(
     items: &MarketItems,
     prices: Option<&PriceTable>,
-    rows: &[&str],
+    rows: &[String],
     query: &str,
 ) -> Vec<MarketHit> {
     items
         .search(query, SEARCH_LIMIT)
         .into_iter()
-        .map(|item| {
-            let name = item.name.as_str();
-            let median = prices.and_then(|table| table.price_for(name));
-            let median_max_rank = item.max_rank.and_then(|max| {
-                prices?
-                    .ranked_price_for(name, Some(max), Some(true))
-                    .platinum
-                    .filter(|maxed| Some(*maxed) != median)
-            });
-            let checked_live = prices
-                .and_then(|table| Some(table.has_checked_price(&table.market_name(name)?)))
-                .unwrap_or(false);
-            MarketHit {
-                median,
-                median_max_rank,
-                checked_live,
-                monthly_trades: prices.and_then(|table| table.monthly_trades(name)),
-                held: items
-                    .rows_of(&item.id, rows.iter().copied())
-                    .into_iter()
-                    .map(str::to_owned)
-                    .collect(),
-                item,
-            }
+        .map(|item| hit(items, prices, rows, item))
+        .collect()
+}
+
+fn hit(
+    items: &MarketItems,
+    prices: Option<&PriceTable>,
+    rows: &[String],
+    item: ItemSummary,
+) -> MarketHit {
+    let name = item.name.as_str();
+    let median = prices.and_then(|table| table.price_for(name));
+    let median_max_rank = item.max_rank.and_then(|max| {
+        prices?
+            .ranked_price_for(name, Some(max), Some(true))
+            .platinum
+            .filter(|maxed| Some(*maxed) != median)
+    });
+    let checked_live = prices
+        .and_then(|table| Some(table.has_checked_price(&table.market_name(name)?)))
+        .unwrap_or(false);
+    MarketHit {
+        median,
+        median_max_rank,
+        checked_live,
+        monthly_trades: prices.and_then(|table| table.monthly_trades(name)),
+        held: items
+            .rows_of(&item.id, rows.iter().map(String::as_str))
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
+        item,
+    }
+}
+
+/// The board's rows, and the item each one opens, by the row's name. A relic's tier opens the
+/// relic, as a search for it would. A name the item table does not list opens nothing.
+pub fn board_hits(
+    items: &MarketItems,
+    prices: Option<&PriceTable>,
+    rows: &[String],
+    board: &MarketBoard,
+) -> HashMap<String, MarketHit> {
+    let names: HashSet<&str> = [
+        &board.most_sold,
+        &board.fastest,
+        &board.most_platinum,
+        &board.rising,
+        &board.falling,
+    ]
+    .into_iter()
+    .flatten()
+    .map(|row| row.name.as_str())
+    .collect();
+    names
+        .into_iter()
+        .filter_map(|name| {
+            let item = items.by_name(relic_base(name).unwrap_or(name))?;
+            Some((name.to_owned(), hit(items, prices, rows, item)))
         })
         .collect()
 }
@@ -130,30 +174,52 @@ fn item_table(shared: &SharedRuntime, lookup: &MarketLookup) -> Result<Arc<Marke
     Ok(items)
 }
 
+/// The price table in use and the collection's row ids, which a hit is joined against.
+fn prices_and_rows(core: &AppCore) -> Result<(Option<Arc<PriceTable>>, Vec<String>), String> {
+    let collection = core
+        .collection_for_reconciliation()
+        .map_err(|_| "the collection could not be read")?;
+    Ok((
+        core.collection_prices(),
+        collection
+            .entries()
+            .map(|entry| entry.item.id.as_str().to_owned())
+            .collect(),
+    ))
+}
+
 fn search_blocking(
     shared: &SharedRuntime,
     lookup: &MarketLookup,
     query: &str,
 ) -> Result<MarketSearch, String> {
     let items = item_table(shared, lookup)?;
-    let (prices, collection) = {
-        let runtime = shared.lock().map_err(|_| STATE_UNAVAILABLE)?;
-        (
-            runtime.core.collection_prices(),
-            runtime
-                .core
-                .collection_for_reconciliation()
-                .map_err(|_| "the collection could not be read")?,
-        )
-    };
-    let rows: Vec<&str> = collection
-        .entries()
-        .map(|entry| entry.item.id.as_str())
-        .collect();
+    let (prices, rows) = prices_and_rows(&shared.lock().map_err(|_| STATE_UNAVAILABLE)?.core)?;
     Ok(MarketSearch {
         hits: hits(&items, prices.as_deref(), &rows, query),
         dump_date: prices.map(|table| table.dump_date().to_owned()),
     })
+}
+
+fn board_blocking(
+    shared: &SharedRuntime,
+    lookup: &MarketLookup,
+) -> Result<MarketBoardView, String> {
+    let (board, (prices, rows)) = {
+        let runtime = shared.lock().map_err(|_| STATE_UNAVAILABLE)?;
+        (runtime.core.market_board(), prices_and_rows(&runtime.core)?)
+    };
+    // Nothing to rank yet is no reason to download the item list.
+    let hits = match board.date {
+        Some(_) => board_hits(
+            &*item_table(shared, lookup)?,
+            prices.as_deref(),
+            &rows,
+            &board,
+        ),
+        None => HashMap::new(),
+    };
+    Ok(MarketBoardView { board, hits })
 }
 
 /// A remembered answer while it is younger than `ttl`; otherwise `fetch` over a paced transport,
@@ -254,6 +320,17 @@ pub async fn market_search(
 }
 
 #[tauri::command]
+pub async fn market_board(
+    state: State<'_, SharedRuntime>,
+    lookup: State<'_, MarketLookup>,
+) -> Result<MarketBoardView, String> {
+    let (shared, lookup) = (Arc::clone(state.inner()), lookup.inner().clone());
+    tauri::async_runtime::spawn_blocking(move || board_blocking(&shared, &lookup))
+        .await
+        .map_err(|_| "market board task failed".to_owned())?
+}
+
+#[tauri::command]
 pub async fn market_item_orders(
     slug: String,
     state: State<'_, SharedRuntime>,
@@ -289,7 +366,8 @@ mod tests {
         let rows = [
             "/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod#10",
             "/Lotus/Powersuits/Excalibur/Excalibur",
-        ];
+        ]
+        .map(String::from);
 
         let found = hits(&items, Some(&prices), &rows, "serra");
 
@@ -299,11 +377,38 @@ mod tests {
         assert_eq!(found[0].median_max_rank, Some(20));
         assert_eq!(found[0].monthly_trades, Some(1800));
         assert!(!found[0].checked_live);
-        assert_eq!(found[0].held, [rows[0]]);
+        assert_eq!(found[0].held, [rows[0].clone()]);
         // Not in the dump: no price is made up for it.
         assert_eq!(found[1].median, None);
         assert_eq!(found[1].monthly_trades, None);
         assert!(found[1].held.is_empty());
+    }
+
+    #[test]
+    fn a_board_row_opens_its_item_and_a_relic_tier_opens_the_relic() {
+        let items = MarketItems::from_response(
+            br#"{"data":[
+                {"id":"54a74454e779892d5e515596","slug":"serration","maxRank":10,
+                 "i18n":{"en":{"name":"Serration"}}},
+                {"id":"6054dd685221e30057500f63","slug":"axi_a1_relic",
+                 "i18n":{"en":{"name":"Axi A1 Relic"}}}
+            ]}"#,
+        )
+        .expect("items");
+        let prices = PriceTable::from_dump_json(
+            br#"{"Serration":[{"order_type":"closed","median":2,"mod_rank":0,"volume":40}],
+                 "Axi A1 Relic":[{"order_type":"closed","median":15,"subtype":"radiant","volume":5}],
+                 "Unlisted Thing":[{"order_type":"closed","median":3,"volume":9}]}"#,
+            "2026-10-27",
+        )
+        .expect("dump");
+        let board = app_core::market_board(&prices, None);
+
+        let found = board_hits(&items, Some(&prices), &[], &board);
+
+        assert_eq!(found["Serration"].item.slug, "serration");
+        assert_eq!(found["Axi A1 Relic (Radiant)"].item.slug, "axi_a1_relic");
+        assert!(!found.contains_key("Unlisted Thing"));
     }
 
     #[test]

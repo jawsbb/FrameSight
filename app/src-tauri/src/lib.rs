@@ -20,7 +20,7 @@ use tauri::{AppHandle, Manager, State};
 use warframe_acquisition::{
     CatalogCache, CollectionPriceCache, DUMP_LOOKBACK_DAYS, InventoryAcquirer,
     InventoryHttpTransport, MarketPriceCache, RelicsRunHttp, WarmOutcome, WfcdCatalogHttp,
-    days_between, dump_is_current, latest_dump, unix_days_before,
+    days_between, latest_dump, unix_days_before,
 };
 
 /// The platform's process-memory backend. Both sides implement `MemoryReader` and
@@ -2009,10 +2009,7 @@ fn start_collection_prices(shared: SharedRuntime) {
                 let _ = runtime.core.record_collection_prices_ready(priced, date);
             }
         }
-        if !cached
-            .as_ref()
-            .is_some_and(|table| dump_is_current(table.dump_date(), now))
-        {
+        if !cached.as_ref().is_some_and(|table| table.is_current(now)) {
             let Some(source) = RelicsRunHttp::new() else {
                 return;
             };
@@ -2417,6 +2414,7 @@ pub fn run() {
             update_order,
             get_item_detail,
             market_lookup::market_search,
+            market_lookup::market_board,
             market_lookup::market_item_orders,
             market_lookup::market_item_history,
             world_state::get_world_state,

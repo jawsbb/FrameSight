@@ -36,7 +36,7 @@ pub use catalog_cache::{
     WFCD_RELICS_JSON_URL, WfcdCatalogHttp, WfcdRelicCatalogHttp,
 };
 pub use collection_prices::{
-    CollectionPriceCache, CollectionPriceSource, DUMP_LOOKBACK_DAYS, MAX_DUMP_BYTES,
+    CollectionPriceCache, CollectionPriceSource, DUMP_LOOKBACK_DAYS, DaySales, MAX_DUMP_BYTES,
     PriceDumpError, PriceFetch, PriceTable, RELICS_RUN_HISTORY_URL, RelicsRunHttp, civil_date,
     days_between, dump_is_current, latest_dump, relic_base, unix_days_before,
 };

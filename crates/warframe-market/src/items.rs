@@ -355,6 +355,15 @@ impl MarketItems {
         entry.summary(id)
     }
 
+    /// The item an English name addresses: the price dump's keys are these names, exactly.
+    pub fn by_name(&self, name: &str) -> Option<ItemSummary> {
+        let (id, entry) = self
+            .entries
+            .iter()
+            .find(|(_, entry)| entry.name.as_deref() == Some(name))?;
+        entry.summary(id)
+    }
+
     /// Which of these collection rows hold the item: its own path, a ranked copy of it
     /// (`path#rank`), or a relic refinement of it (the tier-suffixed path).
     pub fn rows_of<'a>(
