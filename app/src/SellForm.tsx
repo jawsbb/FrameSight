@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import type { CollectionItem, MarketOrder } from './backend'
+import { useMessages } from './i18n'
 
 /**
  * Publishing or editing one sell listing, from wherever the player is standing.
@@ -37,6 +38,7 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
   // Two collection cards, or two order rows, can hold an open form at once, and their bounds
   // differ. A fixed id would be duplicated in the document and aria-describedby would resolve to
   // whichever copy came first, so the second form would announce the first one's limit.
+  const t = useMessages()
   const uid = useId()
   const priceProblemId = `${uid}-price-problem`
   const countProblemId = `${uid}-count-problem`
@@ -53,16 +55,16 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
   // is not focusable while it is disabled. Not an alert: the sentence re-renders on every keystroke
   // and an assertive region would speak every character.
   const priceProblem = !Number.isInteger(price) || price < 1 || price > 900_000
-    ? 'Platinum must be a whole number of 1 to 900,000.'
+    ? t.sell.priceProblem(900_000)
     : null
   const countProblem = !Number.isInteger(count) || count < 1 || count > Math.max(item.quantity, 1)
-    ? `Quantity must be a whole number of 1 to ${Math.max(item.quantity, 1)}.`
+    ? t.sell.countProblem(Math.max(item.quantity, 1))
     : null
   const valid = priceProblem === null && countProblem === null
 
   return <form
     className="sell-form"
-    aria-label={listing ? `Edit listing for ${item.name}` : `List ${item.name} for sale`}
+    aria-label={listing ? t.sell.edit(item.name) : t.sell.list(item.name)}
     onSubmit={async event => {
       event.preventDefault()
       if (!valid) return
@@ -75,13 +77,13 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
     }}
   >
     <label className="dial-slot">
-      <span>Platinum</span>
-      <input type="number" min={1} max={900000} aria-label="Platinum" value={platinum} onChange={event => setPlatinum(event.target.value)} disabled={busy} aria-invalid={priceProblem !== null} aria-describedby={priceProblem !== null ? priceProblemId : undefined} />
+      <span>{t.sell.platinum}</span>
+      <input type="number" min={1} max={900000} aria-label={t.sell.platinum} value={platinum} onChange={event => setPlatinum(event.target.value)} disabled={busy} aria-invalid={priceProblem !== null} aria-describedby={priceProblem !== null ? priceProblemId : undefined} />
       {priceProblem !== null && <span className="band-note" id={priceProblemId}>{priceProblem}</span>}
     </label>
     <label className="dial-slot">
-      <span>Quantity</span>
-      <input type="number" min={1} max={Math.max(item.quantity, 1)} aria-label="Quantity" value={quantity} onChange={event => setQuantity(event.target.value)} disabled={busy} aria-invalid={countProblem !== null} aria-describedby={countProblem !== null ? countProblemId : undefined} />
+      <span>{t.sell.quantity}</span>
+      <input type="number" min={1} max={Math.max(item.quantity, 1)} aria-label={t.sell.quantity} value={quantity} onChange={event => setQuantity(event.target.value)} disabled={busy} aria-invalid={countProblem !== null} aria-describedby={countProblem !== null ? countProblemId : undefined} />
       {countProblem !== null && <span className="band-note" id={countProblemId}>{countProblem}</span>}
     </label>
     {/* Hidden is offered rather than assumed either way: a hidden listing is a real way to hold a
@@ -89,13 +91,13 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
         someone pressing "sell" means. Edit mode sends no visibility at all. */}
     {!listing && <label className="sell-visible">
       <input type="checkbox" checked={visible} onChange={event => setVisible(event.target.checked)} disabled={busy} />
-      <span>Visible to buyers</span>
+      <span>{t.sell.visible}</span>
     </label>}
     <div className="sell-actions">
       <button type="submit" className="stamp" disabled={busy || !valid}><span>{busy
-        ? (listing ? 'Saving…' : 'Listing…')
-        : (listing ? 'Save listing' : 'List for sale')}</span></button>
-      <button type="button" className="stamp" disabled={busy} onClick={onDone}><span>Cancel</span></button>
+        ? (listing ? t.sell.saving : t.sell.listing)
+        : (listing ? t.sell.save : t.sell.submit)}</span></button>
+      <button type="button" className="stamp" disabled={busy} onClick={onDone}><span>{t.sell.cancel}</span></button>
     </div>
   </form>
 }

@@ -18,6 +18,7 @@ import {
   updateOrder,
   setMarketPresence,
   setAccessMode,
+  setLanguage,
   setMasteryMarks,
   setOrderQuantity,
   type AppView,
@@ -29,6 +30,8 @@ import {
   type SetupStatus,
   type MarketOrder,
   type Presence,
+  type Language,
+  type VersionInfo,
 } from './backend'
 import { hideRewardOverlay, showRewardOverlay } from './overlay'
 import { copyReport, openIssue, saveReport } from './report'
@@ -48,6 +51,7 @@ import { reportBlockVisible } from './reportable'
 import { AccessSelector } from './AccessSelector'
 import { accessMode } from './access'
 import { Stat } from './Stat'
+import { LANGUAGE_NAMES, MessagesContext, backendReason, catalogs, resolveLanguage, shortDate, useDocumentLanguage, useMessages, type Messages } from './i18n'
 
 type Page = 'collection' | 'mastery' | 'rewards' | 'orders' | 'diagnostics' | 'settings'
 type Ownership = 'all' | 'owned' | 'mastered' | 'missing' | 'tradeable'
@@ -60,75 +64,28 @@ type MasteryFilters = { search: string; category: ItemCategory | 'all'; sort: Ma
 const initialCollectionFilters: CollectionFilters = { search: '', category: 'all', ownership: 'all', sort: 'name-asc', page: 1 }
 const initialMasteryFilters: MasteryFilters = { search: '', category: 'all', sort: 'arsenal-first', page: 1 }
 
-const categories: Array<{ value: ItemCategory | 'all'; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'frame', label: 'Frame' },
-  { value: 'weapon', label: 'Weapon' },
-  { value: 'companion', label: 'Companion' },
-  { value: 'prime_part', label: 'Prime Parts' },
-  { value: 'relic', label: 'Relic' },
-  { value: 'resource', label: 'Resource' },
-  { value: 'blueprint', label: 'Blueprint' },
-  { value: 'vehicle', label: 'Vehicle' },
-  { value: 'mod', label: 'Mod' },
-  { value: 'arcane', label: 'Arcane' },
-]
+// Their names are the catalog's (`categories`, `collection.sorts`, `mastery.sorts`).
+const categories: Array<ItemCategory | 'all'> = ['all', 'frame', 'weapon', 'companion', 'prime_part', 'relic', 'resource', 'blueprint', 'vehicle', 'mod', 'arcane']
 
 // Ducats is offered only while the ducat values are on screen.
-const sortOptions: Array<{ value: Sort; label: string }> = [
-  { value: 'name-asc', label: 'Name A–Z' },
-  { value: 'quantity-desc', label: 'Quantity' },
-  { value: 'category-asc', label: 'Category' },
-  { value: 'mastery-asc', label: 'Unmastered first' },
-  { value: 'platinum-desc', label: 'Platinum' },
-  { value: 'ducats-desc', label: 'Ducats' },
-]
+const sortOptions: Sort[] = ['name-asc', 'quantity-desc', 'category-asc', 'mastery-asc', 'platinum-desc', 'ducats-desc']
 
 // What is held can be ranked tonight; what was never held is a hunt. The default order says so.
-const masterySortOptions: Array<{ value: MasterySort; label: string }> = [
-  { value: 'arsenal-first', label: 'In arsenal first' },
-  { value: 'name-asc', label: 'Name A–Z' },
-  { value: 'category-asc', label: 'Category' },
-]
-
-const categoryName = Object.fromEntries(categories.map(category => [category.value, category.label])) as Record<ItemCategory | 'all', string>
-
-const monthAbbr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-/** `2026-07-27` -> `27 Jul`. Formatted by hand rather than `Intl`, whose month/day order follows
- * the runtime locale. This reading has to look the same on every machine it runs on. */
-function shortDumpDate(isoDate: string): string {
-  const [, month, day] = isoDate.split('-').map(Number)
-  return `${day} ${monthAbbr[month - 1]}`
-}
+const masterySortOptions: MasterySort[] = ['arsenal-first', 'name-asc', 'category-asc']
 
 const pages: Page[] = ['collection', 'mastery', 'rewards', 'orders', 'diagnostics', 'settings']
-
-const pageLabel: Record<Page, string> = {
-  collection: 'Collection',
-  mastery: 'Mastery',
-  rewards: 'Rewards',
-  orders: 'Orders',
-  diagnostics: 'Diagnostics',
-  settings: 'Settings',
-}
 
 /**
  * A failure in the app's words, followed by the backend's own reason when it gives one: the Rust
  * commands reject with a sentence meant for the player ("warframe.market is limiting requests; try
  * again shortly"), which says what the generic line cannot.
  */
-function failureWithReason(failure: string, reason: unknown): string {
-  const text = typeof reason === 'string' ? reason.trim().replace(/\.$/, '') : ''
+function failureWithReason(failure: string, reason: unknown, t: Messages): string {
+  const text = typeof reason === 'string' ? backendReason(reason.trim().replace(/\.$/, ''), t) : ''
   if (!text || failure.toLowerCase().startsWith(text.toLowerCase())) return failure
   // A sentence starts with a capital, a domain name never does: "warframe.market is limiting…".
   const lead = /^\S+\.\S/.test(text) ? text : text[0].toUpperCase() + text.slice(1)
   return `${failure} ${lead}.`
-}
-
-/** `1 choice`, `4 choices`: a nav badge's count, said in words for its accessible name. */
-function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`
 }
 
 /** Line icons on a 24px grid, one round stroke throughout. */
@@ -164,6 +121,7 @@ function StateIcon({ state }: { state: HealthState }) {
  * maximized), because a button whose name never changes cannot say which press undoes the other.
  */
 function WindowControls() {
+  const t = useMessages()
   const [maximized, setMaximized] = useState(false)
   useEffect(() => {
     let active = true
@@ -180,16 +138,16 @@ function WindowControls() {
       unlisten?.()
     }
   }, [])
-  return <div className="window-controls" role="group" aria-label="Window">
-    <button type="button" className="window-control" aria-label="Minimize window" onClick={() => { void minimizeWindow() }}>
+  return <div className="window-controls" role="group" aria-label={t.window.group}>
+    <button type="button" className="window-control" aria-label={t.window.minimize} onClick={() => { void minimizeWindow() }}>
       <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 5h8"/></svg>
     </button>
-    <button type="button" className="window-control" aria-label={maximized ? 'Restore window' : 'Maximize window'} onClick={() => { void toggleMaximizeWindow() }}>
+    <button type="button" className="window-control" aria-label={maximized ? t.window.restore : t.window.maximize} onClick={() => { void toggleMaximizeWindow() }}>
       {maximized
         ? <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 3.5h5v5h-5zM6.5 3.5v-2h-5v5h2"/></svg>
         : <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 1.5h7v7h-7z"/></svg>}
     </button>
-    <button type="button" className="window-control close" aria-label="Close window" onClick={() => { void closeWindow() }}>
+    <button type="button" className="window-control close" aria-label={t.window.close} onClick={() => { void closeWindow() }}>
       <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1L1 9"/></svg>
     </button>
   </div>
@@ -205,6 +163,15 @@ function TitleBar() {
 }
 
 function App() {
+  // Undefined until the backend has answered, so the first screen with words on it is already in
+  // the chosen language; null is the answer "follow the system".
+  const [languagePreference, setLanguagePreference] = useState<Language | null | undefined>(undefined)
+  const language = resolveLanguage(languagePreference)
+  const t = catalogs[language]
+  // Failures land after an await, in callbacks made before the answer; they speak the language of now.
+  const messages = useRef(t)
+  useEffect(() => { messages.current = t }, [t])
+  useDocumentLanguage(language)
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null)
   // Nothing is chosen for the player on first run; the effective mode fills this once there is one.
   const [selectedMode, setSelectedMode] = useState<AccessMode | null>(null)
@@ -221,7 +188,7 @@ function App() {
   const [ordersBusy, setOrdersBusy] = useState(false)
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [ordersNote, setOrdersNote] = useState<string | null>(null)
-  const [captureNote, setCaptureNote] = useState<string | null>(null)
+  const [captureNote, setCaptureNote] = useState<CaptureNote | null>(null)
   const [collectionFilters, setCollectionFilters] = useState(initialCollectionFilters)
   const [masteryFilters, setMasteryFilters] = useState(initialMasteryFilters)
   const viewGeneration = useRef(0)
@@ -232,7 +199,7 @@ function App() {
   const effectiveModeRef = useRef<AccessMode | null>(null)
   const [captureAuthorizationBusy, setCaptureAuthorizationBusy] = useState(false)
 
-  const requestView = useCallback(async (request: () => Promise<AppView>, failure: string) => {
+  const requestView = useCallback(async (request: () => Promise<AppView>, failure: (t: Messages) => string) => {
     const generation = ++viewGeneration.current
     try {
       const next = await request()
@@ -241,7 +208,7 @@ function App() {
         setError(null)
       }
     } catch (reason) {
-      if (generation === viewGeneration.current) setError(failureWithReason(failure, reason))
+      if (generation === viewGeneration.current) setError(failureWithReason(failure(messages.current), reason, messages.current))
     }
   }, [])
 
@@ -268,17 +235,21 @@ function App() {
   }, [])
 
   useEffect(() => {
+    // A failed read is not worth a banner: the system language is the fallback either way.
+    getPreferences()
+      .then(preferences => setLanguagePreference(preferences.language ?? null))
+      .catch(() => setLanguagePreference(null))
     getSetupStatus()
       .then(async status => {
         effectiveModeRef.current = status.access_mode
         setSetupStatus(status)
         if (status.access_mode) setSelectedMode(status.access_mode)
         if (status.setup_complete) {
-          await requestView(getView, 'The local application backend is unavailable.')
+          await requestView(getView, m => m.app.backendUnavailable)
           await requestMarketStatus()
         }
       })
-      .catch(() => setError('The local application backend is unavailable.'))
+      .catch(() => setError(messages.current.app.backendUnavailable))
   }, [requestView, requestMarketStatus])
 
   useEffect(() => {
@@ -290,7 +261,7 @@ function App() {
       if (document.hidden || foregroundInFlight.current > 0) { schedule(); return }
       const generation = ++setupGeneration.current
       await Promise.all([
-        requestView(getView, 'The live backend view could not be updated.'),
+        requestView(getView, m => m.app.liveViewFailed),
         getSetupStatus(1).then(status => {
           if (active && generation === setupGeneration.current) {
             const modeChanged = status.access_mode !== effectiveModeRef.current
@@ -338,7 +309,7 @@ function App() {
         effectiveModeRef.current = status.access_mode
         setSetupStatus(status)
         if (status.access_mode) setSelectedMode(status.access_mode)
-        await requestView(getView, 'The local application backend is unavailable.')
+        await requestView(getView, m => m.app.backendUnavailable)
         // Reconciliation depends on the effective mode: without this a Full-to-Companion
         // downgrade keeps Full-era verified ownership and sellable flags until the player
         // happens to open Orders. The helper merges only what it owns and stays silent on
@@ -346,10 +317,9 @@ function App() {
         await requestMarketStatus()
       })
     } catch {
-      const active = previous ? accessMode(previous).name : 'No mode'
       // Keep the pending selection on every failure direction so retry is one Confirm click;
       // the effective mode beside it still names what is actually active.
-      setModeError(`Could not change Warframe access. ${active} remains active. Review the mode and try again.`)
+      setModeError(t.app.accessChangeFailed(previous ? accessMode(previous, t).name : null))
     } finally {
       modeTransitionInFlight.current = false
       setModeBusy(false)
@@ -377,7 +347,7 @@ function App() {
   async function refresh() {
     setBusy(true)
     setError(null)
-    await runForeground(() => requestView(refreshInventory, 'Inventory refresh failed. Check diagnostics for acquisition health.'))
+    await runForeground(() => requestView(refreshInventory, m => m.app.refreshFailed))
     setBusy(false)
   }
 
@@ -394,7 +364,7 @@ function App() {
    */
   async function priceLive(ids: string[]) {
     setPricing(true)
-    await requestView(() => refreshPrices(ids), 'Live prices could not be fetched.')
+    await requestView(() => refreshPrices(ids), m => m.app.livePricesFailed)
     setPricing(false)
   }
 
@@ -415,49 +385,50 @@ function App() {
       setView(next)
       setOrdersNote(note ? note(next) : null)
     } catch (reason) {
-      setOrdersError(failureWithReason(failure, reason))
+      setOrdersError(failureWithReason(failure, reason, t))
     } finally {
       setOrdersBusy(false)
     }
   }
 
+  const failures = t.market.failures
   const ordersSignIn = (email: string, password: string) =>
-    ordersOperation(() => marketSignIn(email, password), 'Could not sign in to warframe.market.')
+    ordersOperation(() => marketSignIn(email, password), failures.signIn)
   const ordersLinkToken = (token: string) =>
-    ordersOperation(() => marketLinkToken(token), 'Could not link with that token.')
+    ordersOperation(() => marketLinkToken(token), failures.linkToken)
   const ordersSignOut = () =>
-    ordersOperation(marketSignOut, 'Could not unlink the account.')
+    ordersOperation(marketSignOut, failures.signOut)
   const ordersRefresh = () =>
-    ordersOperation(refreshOrders, 'warframe.market could not be reached.')
+    ordersOperation(refreshOrders, failures.refresh)
   const ordersRemove = (orderId: string) =>
-    ordersOperation(() => removeOrder(orderId), 'Could not remove that listing.')
+    ordersOperation(() => removeOrder(orderId), failures.remove)
   const ordersLowerTo = (orderId: string, _quantity: number) =>
-    ordersOperation(() => setOrderQuantity(orderId), 'Could not lower that listing.')
+    ordersOperation(() => setOrderQuantity(orderId), failures.lower)
   const ordersPresence = (status: Presence | null, auto: boolean) =>
-    ordersOperation(() => setMarketPresence(status, auto), 'Could not change your market status.')
+    ordersOperation(() => setMarketPresence(status, auto), failures.presence)
   /** The card's own accessible name: the rank belongs in it because a mod held at two ranks is two
    * cards headed the same word. Shared with the spoken note, so the note says what the card is
    * named. */
   function cardLabel(item: CollectionItem): string {
-    return rankLabel(item) ? `${item.name}, ${rankLabel(item)}` : item.name
+    return rankLabel(item, t) ? `${item.name}, ${rankLabel(item, t)}` : item.name
   }
 
   const ordersSell = (collectionId: string, platinum: number, quantity: number, visible: boolean) =>
     ordersOperation(
       () => createOrder(collectionId, platinum, quantity, visible),
-      'Could not publish that listing.',
+      failures.publish,
       next => {
         const item = next.collection.items.find(entry => entry.id === collectionId)
-        return `Listed ${item ? cardLabel(item) : 'the item'} at ${platinum} platinum × ${quantity}`
+        return t.market.listed(item ? cardLabel(item) : t.market.theItem, platinum, quantity)
       },
     )
   const ordersUpdate = (orderId: string, platinum: number, quantity: number) =>
     ordersOperation(
       () => updateOrder(orderId, platinum, quantity),
-      'Could not update that listing.',
+      failures.update,
       next => {
         const name = next.market_account.orders.find(entry => entry.order.id === orderId)?.name
-        return `Listing updated: ${name ?? 'the item'} at ${platinum} platinum × ${quantity}`
+        return t.market.updated(name ?? t.market.theItem, platinum, quantity)
       },
     )
 
@@ -491,51 +462,52 @@ function App() {
     }
   }, [page])
 
-  if (setupStatus === null && !error) return <main className="holding"><div className="streak" aria-hidden="true"/><p>Starting TennoScope…</p></main>
-  if (!setupStatus?.setup_complete) return <SetupScreen selected={selectedMode} busy={modeBusy} error={modeError ?? error} onSelect={setSelectedMode} onContinue={mode => { void changeAccessMode(mode) }}/>
+  if ((setupStatus === null || languagePreference === undefined) && !error) return <main className="holding"><div className="streak" aria-hidden="true"/><p>{t.app.starting}</p></main>
+  if (!setupStatus?.setup_complete) return <MessagesContext value={t}><SetupScreen selected={selectedMode} busy={modeBusy} error={modeError ?? error} onSelect={setSelectedMode} onContinue={mode => { void changeAccessMode(mode) }}/></MessagesContext>
 
   const effectiveMode = setupStatus.access_mode ?? 'companion'
   const liveState = view?.health.game_reader.state ?? 'degraded'
-  const freshness = snapshotFreshness(view?.collection.snapshot, clock)
+  const freshness = snapshotFreshness(view?.collection.snapshot, clock, t)
   const readerState: HealthState = effectiveMode === 'companion' ? 'idle' : liveState
-  const readerDetail = effectiveMode === 'companion' ? 'Using saved and reference data' : view?.health.game_reader.message ?? 'Connecting to local backend'
+  // The reader's own message is a health message: English, like every Diagnostics line.
+  const readerDetail = effectiveMode === 'companion' ? t.sidebar.companionDetail : view?.health.game_reader.message ?? t.sidebar.connecting
   const navCount: Partial<Record<Page, number>> = { rewards: view?.reward.cards.length, orders: view?.market_account.flagged }
   const settingsMode = selectedMode ?? effectiveMode
-  return <div className="shell">
+  return <MessagesContext value={t}><div className="shell">
     <TitleBar/>
 
     <aside className="sidebar">
-      <nav className="nav" aria-label="Primary">
+      <nav className="nav" aria-label={t.nav.primary}>
         {pages.map(item => {
           const count = navCount[item] ?? 0
           return <button
             key={item}
             type="button"
             className="nav-item"
-            aria-label={count ? `${pageLabel[item]}, ${item === 'rewards' ? plural(count, 'choice', 'choices') : plural(count, 'needs attention', 'need attention')}` : pageLabel[item]}
-            title={pageLabel[item]}
+            aria-label={count ? `${t.nav.pages[item]}, ${item === 'rewards' ? t.nav.choices(count) : t.nav.needAttention(count)}` : t.nav.pages[item]}
+            title={t.nav.pages[item]}
             aria-current={page === item ? 'page' : undefined}
             onClick={() => openPage(item)}
           >
             <Icon name={item}/>
-            <span className="nav-label">{pageLabel[item]}</span>
+            <span className="nav-label">{t.nav.pages[item]}</span>
             {count > 0 && <span className="nav-count" aria-hidden="true">{count}</span>}
           </button>
         })}
       </nav>
-      <section className="sidebar-foot" aria-label="Runtime operations">
+      <section className="sidebar-foot" aria-label={t.sidebar.runtime}>
         <div className={`reader ${readerState}`} title={readerDetail}>
           <StateIcon state={readerState}/>
           <span className="reader-text">
-            <strong role="status">{effectiveMode === 'companion' ? 'Companion mode' : readerWord[liveState]}</strong>
+            <strong role="status">{effectiveMode === 'companion' ? t.sidebar.companionMode : t.sidebar.reader[liveState]}</strong>
             <small>{readerDetail}</small>
           </span>
         </div>
         {view && <span className="snapshot-age" title={freshness.detail}>{freshness.label}<span className="sr-only">, {freshness.detail}</span></span>}
         <button type="button" className="stamp refresh" onClick={refresh} disabled={busy || modeBusy || setupStatus?.access_mode !== 'full'} aria-describedby={setupStatus?.access_mode !== 'full' ? 'inventory-access-note' : undefined}>
-          <Icon name="refresh"/><span className="refresh-label">{busy ? 'Refreshing…' : 'Refresh inventory'}</span>
+          <Icon name="refresh"/><span className="refresh-label">{busy ? t.sidebar.refreshing : t.sidebar.refreshInventory}</span>
         </button>
-        {setupStatus?.access_mode !== 'full' && <span id="inventory-access-note" className="sr-only">Full access is required to acquire inventory. The saved snapshot remains available.</span>}
+        {setupStatus?.access_mode !== 'full' && <span id="inventory-access-note" className="sr-only">{t.sidebar.fullRequired}</span>}
         <UpdateMark onOpen={openUpdates}/>
       </section>
     </aside>
@@ -571,7 +543,7 @@ function App() {
           error={ordersError}
         />}
         {page === 'diagnostics' && <DiagnosticsPage view={view} effectiveMode={effectiveMode}/>}
-        {page === 'settings' && <SettingsPage view={view} priceFloor={priceFloor} effectiveMode={effectiveMode} selectedMode={settingsMode} modeBusy={modeBusy} modeError={modeError} onSelectMode={mode => {
+        {page === 'settings' && <SettingsPage view={view} language={languagePreference ?? null} onLanguage={setLanguagePreference} priceFloor={priceFloor} effectiveMode={effectiveMode} selectedMode={settingsMode} modeBusy={modeBusy} modeError={modeError} onSelectMode={mode => {
           setSelectedMode(mode)
           setModeError(null)
         }} onConfirmMode={() => { void changeAccessMode(settingsMode) }} desktopCaptureActionAvailable={setupStatus?.desktop_capture_action_available ?? false} captureAuthorizationBusy={captureAuthorizationBusy} captureNote={captureNote} onCaptureNote={setCaptureNote} onAuthorizeCapture={authorizeCapture} onPriceFloor={floor => {
@@ -580,20 +552,21 @@ function App() {
         }}/>}
       </>}
     </main>
-  </div>
+  </div></MessagesContext>
 }
 
 function SetupScreen({ selected, busy, error, onSelect, onContinue }: { selected: AccessMode | null; busy: boolean; error: string | null; onSelect: (mode: AccessMode) => void; onContinue: (mode: AccessMode) => void }) {
+  const t = useMessages()
   return <div className="setup-shell">
     <TitleBar/>
     <main className="setup">
       <section className="setup-panel" aria-labelledby="setup-title">
-        <h1 id="setup-title" className="page-title">Choose Warframe access</h1>
-        <p className="prose">Each level includes the previous level. Nothing starts until you confirm.</p>
+        <h1 id="setup-title" className="page-title">{t.setup.title}</h1>
+        <p className="prose">{t.setup.intro}</p>
         <AccessSelector value={selected} onChange={onSelect} applyingMode={busy ? selected : null} disabled={busy}/>
         {error && <p className="error-banner" role="alert">{error}</p>}
         <button type="button" className="stamp primary setup-confirm" onClick={() => { if (selected) onContinue(selected) }} disabled={busy || !selected} aria-busy={busy}>
-          {!selected ? 'Choose an access level' : busy ? `Applying ${accessMode(selected).name}…` : `Confirm ${accessMode(selected).name}`}
+          {!selected ? t.setup.choose : busy ? `${t.access.applying(accessMode(selected, t).name)}…` : t.access.confirm(accessMode(selected, t).name)}
         </button>
       </section>
     </main>
@@ -601,23 +574,26 @@ function SetupScreen({ selected, busy, error, onSelect, onContinue }: { selected
 }
 
 function LoadingView() {
+  const t = useMessages()
   return <section className="page" aria-live="polite">
     <div className="page-head">
-      <h1 className="page-title">Loading your local collection…</h1>
-      <p className="page-note">Reading the latest saved snapshot.</p>
+      <h1 className="page-title">{t.app.loadingTitle}</h1>
+      <p className="page-note">{t.app.loadingNote}</p>
     </div>
     <div className="streak" aria-hidden="true"/>
   </section>
 }
 
 function SearchField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const t = useMessages()
   return <label className="search">
     <Icon name="search"/>
-    <input type="search" aria-label={label} placeholder="Search items" value={value} onChange={event => onChange(event.target.value)}/>
+    <input type="search" aria-label={label} placeholder={t.grid.searchPlaceholder} value={value} onChange={event => onChange(event.target.value)}/>
   </label>
 }
 
 function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPriceLive, priceFloor, showDucats, onToggleDucats, onOpenMastery, onSell, onUpdate, ordersBusy }: { view: AppView; effectiveMode: AccessMode; filters: CollectionFilters; onFilters: (filters: CollectionFilters) => void; pricing: boolean; onPriceLive: (ids: string[]) => void; priceFloor: number; showDucats: boolean; onToggleDucats: () => void; onOpenMastery: () => void; onSell: SellHandler; onUpdate: UpdateHandler; ordersBusy: boolean }) {
+  const t = useMessages()
   const ownershipVerified = effectiveMode === 'full'
   const snapshotOnly = !ownershipVerified
   const { search, category } = filters
@@ -661,69 +637,67 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
   // party that knows the total, and every pass comes out of one rate-limited budget.
   const inProgress = view.collection.pricing ?? null
   const dumpDate = view.health.collection_prices.last_success
-  const sorts = showDucats ? sortOptions : sortOptions.filter(option => option.value !== 'ducats-desc')
+  const sorts = showDucats ? sortOptions : sortOptions.filter(option => option !== 'ducats-desc')
 
   return <section className="page" aria-labelledby="collection-title">
     <div className="page-head">
-      <h1 id="collection-title" className="page-title">{snapshotOnly ? 'Saved snapshot' : 'Your collection'}</h1>
+      <h1 id="collection-title" className="page-title">{snapshotOnly ? t.collection.titleSnapshot : t.collection.title}</h1>
       <div className="stats">
-        <Stat kind="items" value={view.collection.total_entries} label={snapshotOnly ? 'saved entries' : 'items'}/>
-        <Stat kind="owned" value={owned} label="owned" aside={`${figure(missing)} missing`}/>
+        <Stat kind="items" value={view.collection.total_entries} label={snapshotOnly ? t.collection.savedEntries : t.collection.items}/>
+        <Stat kind="owned" value={owned} label={t.collection.owned} aside={t.collection.missing(missing)}/>
         <Stat
           kind="worth"
           value={worth}
-          unit={<MetalMark metal="plat" alt=" platinum"/>}
-          label="market value"
-          aside={<>{figure(sellable)}<MetalMark metal="plat" alt=" platinum"/> sellable</>}
-          note={priceFloor
-            ? `Sellable counts only the copies the market buys in a month, at ${priceFloor} platinum and over.`
-            : 'Sellable counts only the copies the market buys in a month.'}
+          unit={<MetalMark metal="plat" alt={t.units.platinum}/>}
+          label={t.collection.marketValue}
+          aside={<>{figure(sellable, t)}<MetalMark metal="plat" alt={t.units.platinum}/> {t.collection.sellable}</>}
+          note={t.collection.sellableNote(priceFloor)}
         />
-        {showDucats && <Stat kind="ducats" value={ducatsAtStake} unit={<MetalMark metal="ducat" alt=" ducats"/>} label="at stake"/>}
-        <button type="button" className="link-button head-link" onClick={onOpenMastery}>Mastery progress<Icon name="next"/></button>
+        {showDucats && <Stat kind="ducats" value={ducatsAtStake} unit={<MetalMark metal="ducat" alt={t.units.ducats}/>} label={t.collection.atStake}/>}
+        <button type="button" className="link-button head-link" onClick={onOpenMastery}>{t.collection.masteryProgress}<Icon name="next"/></button>
       </div>
-      {snapshotOnly && <p className="page-note">Read from the saved snapshot. Current ownership can't be verified without Full access.</p>}
+      {snapshotOnly && <p className="page-note">{t.collection.snapshotNote}</p>}
     </div>
 
     {view.collection.items.length ? <>
       <div className="toolbar">
-        <SearchField label="Search collection" value={search} onChange={value => update({ search: value })}/>
+        <SearchField label={t.collection.search} value={search} onChange={value => update({ search: value })}/>
         <label className="select">
-          <span aria-hidden="true">Sort</span>
-          <select aria-label="Sort collection" value={sort} onChange={event => update({ sort: event.target.value as Sort })}>
-            {sorts.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          <span aria-hidden="true">{t.grid.sort}</span>
+          <select aria-label={t.collection.sortLabel} value={sort} onChange={event => update({ sort: event.target.value as Sort })}>
+            {sorts.map(option => <option key={option} value={option}>{t.collection.sorts[option]}</option>)}
           </select>
         </label>
-        {ownershipVerified && <div className="segmented" role="group" aria-label="Ownership filters">
+        {ownershipVerified && <div className="segmented" role="group" aria-label={t.collection.ownershipFilters}>
           {(['all', 'owned', 'mastered', 'missing', 'tradeable'] as const).map(filter => <button
             type="button"
             key={filter}
             aria-pressed={ownership === filter}
             onClick={() => update({ ownership: filter })}
-          >{filter[0].toUpperCase() + filter.slice(1)}</button>)}
+          >{t.collection.ownership[filter]}</button>)}
         </div>}
         <button type="button" role="switch" aria-checked={showDucats} className="display-switch" onClick={onToggleDucats}>
-          <span className="display-face"><MetalMark metal="ducat"/>Ducat values</span>
+          <span className="display-face"><MetalMark metal="ducat"/>{t.collection.ducatValues}</span>
           <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
         </button>
       </div>
 
       {/* The chips and the price controls share a row, so the grid starts where the eye lands. */}
       <div className="filter-row">
-        <div className="chips" role="group" aria-label="Item categories">
+        <div className="chips" role="group" aria-label={t.collection.itemCategories}>
           {categories.map(item => <button
             type="button"
-            key={item.value}
+            key={item}
             className="chip"
-            aria-label={item.value === 'all' ? 'All categories' : undefined}
-            aria-pressed={category === item.value}
-            onClick={() => update({ category: item.value })}
-          >{item.label}</button>)}
+            aria-label={item === 'all' ? t.grid.allCategories : undefined}
+            aria-pressed={category === item}
+            onClick={() => update({ category: item })}
+          >{t.categories[item]}</button>)}
         </div>
         <div className="status-line">
           {dumpDate
-            ? <span title={`Prices from the ${shortDumpDate(dumpDate)} market summary`}>{shortDumpDate(dumpDate)} prices</span>
-            : <span>No prices yet</span>}
+            ? <span title={t.collection.pricesFrom(shortDate(dumpDate, t))}>{t.collection.prices(shortDate(dumpDate, t))}</span>
+            : <span>{t.collection.noPrices}</span>}
           {/* Live prices come from the market dump and explicit price checks, neither of which
               reads the game or needs verified ownership: Companion and Overlay keep valuation.
               Selling still needs Full, and that gate lives on the sell controls, not here. */}
@@ -732,29 +706,30 @@ function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPr
             className="stamp primary price-page"
             disabled={pricing || inProgress !== null || pricableVisibleIds.length === 0}
             onClick={() => onPriceLive(pricableVisibleIds)}
-          >{pricing || inProgress ? 'Pricing…' : `Price this page (${pricableVisibleIds.length})`}</button>
+          >{pricing || inProgress ? t.collection.pricing : t.collection.pricePage(pricableVisibleIds.length)}</button>
           {inProgress && <span className="pricing" role="status">
-            <progress max={Math.max(inProgress.total, 1)} value={inProgress.done} aria-label="Live price check"/>
-            <span>Checking live prices · {inProgress.done} of {inProgress.total}</span>
+            <progress max={Math.max(inProgress.total, 1)} value={inProgress.done} aria-label={t.collection.liveCheck}/>
+            <span>{t.collection.checking(inProgress.done, inProgress.total)}</span>
           </span>}
         </div>
       </div>
 
       {filtered.length
         ? <>
-          <ul className="card-grid" aria-label="Collection items">{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified={ownershipVerified} showDucats={showDucats} listedOrder={listedOrderFor(view.market_account.orders, item.id)} sellable={ownershipVerified && view.market_account.link === 'linked' && isListable(item, view.market_account.listable)} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
-          <p className="result-count">{firstResult}–{lastResult} of {filtered.length}</p>
+          <ul className="card-grid" aria-label={t.collection.list}>{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified={ownershipVerified} showDucats={showDucats} listedOrder={listedOrderFor(view.market_account.orders, item.id)} sellable={ownershipVerified && view.market_account.link === 'linked' && isListable(item, view.market_account.listable)} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
+          <p className="result-count">{t.grid.range(firstResult, lastResult, filtered.length)}</p>
           <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
         </>
-        : <EmptyState title="No matching items" detail="Try another search or clear the filters." action={<button type="button" className="stamp" onClick={() => update({ search: '', category: 'all', ownership: 'all' })}>Clear filters</button>}/>}
+        : <EmptyState title={t.grid.noMatch} detail={t.grid.tryAnother} action={<button type="button" className="stamp" onClick={() => update({ search: '', category: 'all', ownership: 'all' })}>{t.grid.clearFilters}</button>}/>}
     </> : <EmptyState
-      title={snapshotOnly ? 'No saved inventory snapshot yet' : 'No inventory items yet'}
-      detail={snapshotOnly ? 'Full access can read one. Prices and reference data work without it.' : 'Start Warframe and refresh to create your first local snapshot.'}
+      title={snapshotOnly ? t.collection.emptySnapshot : t.collection.empty}
+      detail={snapshotOnly ? t.collection.emptySnapshotDetail : t.collection.emptyDetail}
     />}
   </section>
 }
 
 function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }: { view: AppView; filters: MasteryFilters; onFilters: (filters: MasteryFilters) => void; onSell: SellHandler; onUpdate: UpdateHandler; ordersBusy: boolean }) {
+  const t = useMessages()
   const { search, category, sort } = filters
   const update = (patch: Partial<MasteryFilters>) => onFilters({ ...filters, page: 1, ...patch })
   const { available, items, totals } = view.mastery
@@ -776,63 +751,65 @@ function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }:
 
   return <section className="page" aria-labelledby="mastery-title">
     <div className="page-head">
-      <h1 id="mastery-title" className="page-title">Mastery</h1>
+      <h1 id="mastery-title" className="page-title">{t.mastery.title}</h1>
       {available && <div className="stats">
-        <Stat kind="mastered" value={mastered} label={`of ${figure(total)} mastered${total ? ` · ${Math.round(mastered / total * 100)}%` : ''}`}/>
-        <Stat kind="items" value={items.length} label="remaining"/>
-        <Stat kind="arsenal" value={inArsenal} label="in arsenal"/>
-        <Stat kind="missing" value={items.length - inArsenal} label="never held"/>
+        <Stat kind="mastered" value={mastered} label={t.mastery.masteredOf(total, total ? Math.round(mastered / total * 100) : null)}/>
+        <Stat kind="items" value={items.length} label={t.mastery.remaining}/>
+        <Stat kind="arsenal" value={inArsenal} label={t.mastery.inArsenal}/>
+        <Stat kind="missing" value={items.length - inArsenal} label={t.mastery.neverHeld}/>
       </div>}
     </div>
 
     {!available
-      ? <EmptyState title="Mastery needs an inventory read under Full access" detail="Refresh the inventory once under Full access. Companion and Overlay show the saved snapshot only."/>
+      ? <EmptyState title={t.mastery.unavailable} detail={t.mastery.unavailableDetail}/>
       : <>
         <div className="toolbar">
-          <SearchField label="Search mastery" value={search} onChange={value => update({ search: value })}/>
+          <SearchField label={t.mastery.search} value={search} onChange={value => update({ search: value })}/>
           <label className="select">
-            <span aria-hidden="true">Sort</span>
-            <select aria-label="Sort mastery" value={sort} onChange={event => update({ sort: event.target.value as MasterySort })}>
-              {masterySortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            <span aria-hidden="true">{t.grid.sort}</span>
+            <select aria-label={t.mastery.sortLabel} value={sort} onChange={event => update({ sort: event.target.value as MasterySort })}>
+              {masterySortOptions.map(option => <option key={option} value={option}>{t.mastery.sorts[option]}</option>)}
             </select>
           </label>
         </div>
 
         {/* The category chips carry the progress: mastered over total, as the profile would. */}
-        <div className="chips" role="group" aria-label="Mastery categories">
-          <button type="button" className="chip" aria-label="All categories" aria-pressed={category === 'all'} onClick={() => update({ category: 'all' })}>All</button>
+        <div className="chips" role="group" aria-label={t.mastery.categories}>
+          <button type="button" className="chip" aria-label={t.grid.allCategories} aria-pressed={category === 'all'} onClick={() => update({ category: 'all' })}>{t.categories.all}</button>
           {totals.map(entry => <button
             type="button"
             key={entry.category}
             className="chip"
-            aria-label={`${categoryName[entry.category]} ${entry.mastered}/${entry.total}`}
+            aria-label={`${t.categories[entry.category]} ${entry.mastered}/${entry.total}`}
             aria-pressed={category === entry.category}
             onClick={() => update({ category: entry.category })}
-          >{categoryName[entry.category]}<span className="chip-count">{entry.mastered}/{entry.total}</span></button>)}
+          >{t.categories[entry.category]}<span className="chip-count">{entry.mastered}/{entry.total}</span></button>)}
         </div>
 
         {filtered.length
           ? <>
-            <ul className="card-grid" aria-label="Mastery items">{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified missingLabel="Never held" showDucats={false} listedOrder={null} sellable={false} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
-            <p className="result-count">{firstResult}–{lastResult} of {filtered.length}</p>
+            <ul className="card-grid" aria-label={t.mastery.list}>{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified missingLabel={t.card.neverHeld} showDucats={false} listedOrder={null} sellable={false} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
+            <p className="result-count">{t.grid.range(firstResult, lastResult, filtered.length)}</p>
             <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
           </>
           : <EmptyState
-            title="Nothing left in this view"
-            detail={items.length ? 'Try another search or clear the filters.' : 'Every masterable item the catalog knows is mastered.'}
-            action={items.length > 0 && <button type="button" className="stamp" onClick={() => update({ search: '', category: 'all' })}>Clear filters</button>}
+            title={t.mastery.nothingLeft}
+            detail={items.length ? t.grid.tryAnother : t.mastery.allMastered}
+            action={items.length > 0 && <button type="button" className="stamp" onClick={() => update({ search: '', category: 'all' })}>{t.grid.clearFilters}</button>}
           />}
       </>}
   </section>
 }
 
-function CollectionEntry({ item, ownershipVerified, missingLabel = 'Missing', showDucats, listedOrder, sellable, onSell, onUpdate, busy }: { item: CollectionItem; ownershipVerified: boolean; missingLabel?: string; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }) {
+function CollectionEntry({ item, ownershipVerified, missingLabel, showDucats, listedOrder, sellable, onSell, onUpdate, busy }: { item: CollectionItem; ownershipVerified: boolean; missingLabel?: string; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }) {
+  const t = useMessages()
   const missing = item.quantity === 0
   const [artFailed, setArtFailed] = useState(false)
   const [selling, setSelling] = useState(false)
   // The rank belongs in the accessible name: a mod held at two ranks is two cards headed the same
   // word, and without it they are indistinguishable to anyone not reading the badges.
-  const label = rankLabel(item) ? `${item.name}, ${rankLabel(item)}` : item.name
+  const rank = rankLabel(item, t)
+  const label = rank ? `${item.name}, ${rank}` : item.name
   // Nothing offered on a card whose whole holding is already listed: the badge says so, and the
   // market allows one sell order per item. A listing that covers part of the holding keeps the
   // control, as an edit of the listing that already stands.
@@ -841,33 +818,33 @@ function CollectionEntry({ item, ownershipVerified, missingLabel = 'Missing', sh
     <div className="card-art">
       {item.image_url && !artFailed
         ? <img src={item.image_url} alt={item.name} loading="lazy" decoding="async" onError={() => setArtFailed(true)}/>
-        : <span aria-hidden="true">{categoryName[item.category].slice(0, 2)}</span>}
+        : <span aria-hidden="true">{t.categories[item.category].slice(0, 2)}</span>}
     </div>
     <div className="card-body">
       <h2 className="card-name" title={item.name}>{item.name}</h2>
-      <span className="card-meta">{categoryName[item.category]}</span>
+      <span className="card-meta">{t.categories[item.category]}</span>
       <div className="tags">
         {ownershipVerified
           ? missing
-            ? <span className="tag absent">{missingLabel}</span>
-            : <span className="tag">Owned ×{item.quantity}</span>
+            ? <span className="tag absent">{missingLabel ?? t.card.missing}</span>
+            : <span className="tag">{t.card.owned(item.quantity)}</span>
           : null}
-        {rankLabel(item) && <span className={`tag rank${atMaxRank(item) ? ' maxed' : ''}`}>{rankLabel(item)}</span>}
-        {ownershipVerified && item.mastered && <span className="tag mastered">Mastered</span>}
-        {listedOrder && <span className="tag listed">{listedLabel(listedOrder, item.quantity)}</span>}
+        {rank && <span className={`tag rank${atMaxRank(item) ? ' maxed' : ''}`}>{rank}</span>}
+        {ownershipVerified && item.mastered && <span className="tag mastered">{t.card.mastered}</span>}
+        {listedOrder && <span className="tag listed">{listedLabel(listedOrder, item.quantity, t)}</span>}
       </div>
     </div>
     <div className="card-values">
       {item.platinum !== undefined && <span className="value plat">
-        <MetalMark metal="plat" alt="platinum "/>
+        <MetalMark metal="plat" alt={t.card.platinum}/>
         {item.platinum_ceiling === undefined
           ? <>
             <b>{item.platinum}</b>
-            {ownershipVerified && item.quantity > 1 && <em>{stackValue(item)} total</em>}
+            {ownershipVerified && item.quantity > 1 && <em>{t.card.total(stackValue(item) ?? 0)}</em>}
           </>
           // Nobody sells a half-ranked card, so the market brackets it without ever quoting it.
           // The two ends are what is known; a single number here would be invented.
-          : <b title="Sellers list unranked and fully ranked copies only, so this rank sits between the two">
+          : <b title={t.card.rankBracket}>
             {item.platinum}–{item.platinum_ceiling}
           </b>}
       </span>}
@@ -875,56 +852,56 @@ function CollectionEntry({ item, ownershipVerified, missingLabel = 'Missing', sh
           so it reads on a missing part too, and it totals like platinum does. */}
       {showDucats && (item.ducats !== undefined
         ? <span className="value ducat">
-          <MetalMark metal="ducat" alt="ducat "/>
+          <MetalMark metal="ducat" alt={t.card.ducat}/>
           <b>{item.ducats}</b>
-          {ownershipVerified && item.quantity > 1 && <em>{item.ducats * item.quantity} total</em>}
+          {ownershipVerified && item.quantity > 1 && <em>{t.card.total(item.ducats * item.quantity)}</em>}
         </span>
-        : item.category === 'prime_part' && <span className="value-missing">Ducat value unavailable</span>)}
+        : item.category === 'prime_part' && <span className="value-missing">{t.card.ducatUnavailable}</span>)}
       {/* The backend pairs `live` with a price today, but the view allows one without the other, and
           "Checked live" next to no figure reads as a value that is missing by mistake. */}
-      {item.live && <span className="checked-live">{item.platinum === undefined ? 'No market price' : 'Checked live'}</span>}
+      {item.live && <span className="checked-live">{item.platinum === undefined ? t.card.noMarketPrice : t.card.checkedLive}</span>}
       {/* On the value line, so a sellable card is no taller than its neighbours. */}
-      {remaining && !selling && <button type="button" className="stamp sell-open" disabled={busy} onClick={() => setSelling(true)}>{listedOrder ? 'Sell more' : 'Sell'}</button>}
+      {remaining && !selling && <button type="button" className="stamp sell-open" disabled={busy} onClick={() => setSelling(true)}>{listedOrder ? t.card.sellMore : t.card.sell}</button>}
     </div>
     {remaining && selling && <SellForm item={item} listing={listedOrder ?? undefined} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={() => setSelling(false)}/>}
   </article>
 }
 
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (page: number) => void }) {
+  const t = useMessages()
   if (total <= 1) return null
   const pages = pageNumbers(current, total)
-  return <nav className="pagination" aria-label="Collection pages">
-    <button type="button" disabled={current === 1} aria-label="Previous page" onClick={() => onChange(current - 1)}><Icon name="previous"/></button>
+  return <nav className="pagination" aria-label={t.grid.pages}>
+    <button type="button" disabled={current === 1} aria-label={t.grid.previous} onClick={() => onChange(current - 1)}><Icon name="previous"/></button>
     {pages.map((page, index) => <span key={page} className="page-slot">
       {index > 0 && page - pages[index - 1] > 1 ? <i aria-hidden="true">…</i> : null}
-      <button type="button" aria-current={page === current ? 'page' : undefined} aria-label={`Go to page ${page}`} onClick={() => onChange(page)}>{page}</button>
+      <button type="button" aria-current={page === current ? 'page' : undefined} aria-label={t.grid.goTo(page)} onClick={() => onChange(page)}>{page}</button>
     </span>)}
-    <button type="button" disabled={current === total} aria-label="Next page" onClick={() => onChange(current + 1)}><Icon name="next"/></button>
+    <button type="button" disabled={current === total} aria-label={t.grid.next} onClick={() => onChange(current + 1)}><Icon name="next"/></button>
   </nav>
 }
 
 function RewardPage({ view, effectiveMode }: { view: AppView; effectiveMode: AccessMode }) {
+  const t = useMessages()
   const ownershipVerified = effectiveMode === 'full'
   const companion = effectiveMode === 'companion'
   return <div className="page">
     <div className="page-head">
-      <h1 id="reward-title" className="page-title">Reward advisor</h1>
-      <p className="page-note">{companion
-        ? 'Companion does not read the reward screen, so ownership shows as unverifiable.'
-        : 'Reads the Void Fissure reward screen and shows each choice’s value here and over the game.'}</p>
+      <h1 id="reward-title" className="page-title">{t.rewards.title}</h1>
+      <p className="page-note">{companion ? t.rewards.companionNote : t.rewards.note}</p>
     </div>
-    <section aria-label="Reward advisor">
+    <section aria-label={t.rewards.title}>
       {view.reward.cards.length
         ? <RewardCards cards={view.reward.cards} bestValueIndex={view.reward.best_value_index} bestDucatIndex={view.reward.best_ducat_index} ownershipVerified={ownershipVerified}/>
-        : <EmptyState title="No reward choices detected" detail={companion ? 'Overlay or Full access reads the reward screen.' : 'Waiting for an English Void Fissure reward screen.'}/>}
+        : <EmptyState title={t.rewards.none} detail={companion ? t.rewards.companionDetail : t.rewards.waiting}/>}
     </section>
   </div>
 }
 
-const stateWord: Record<HealthState, string> = { ready: 'Ready', idle: 'Idle', degraded: 'Degraded', failed: 'Failed' }
-const readerWord: Record<HealthState, string> = { ready: 'Watching Warframe', idle: 'Idle', degraded: 'Attention needed', failed: 'Attention: reader failed' }
-
+/** A service's state in words. Its message is the backend's and stays in English: it is composed
+ * from live values (paths, counts, error text) that no catalog can hold. */
 function HealthRow({ label, health }: { label: string; health: BackendHealth | { state: HealthState; message: string; last_success?: string | null } }) {
+  const t = useMessages()
   return <article className={`health-row ${health.state}`}>
     <StateIcon state={health.state}/>
     <div>
@@ -933,14 +910,14 @@ function HealthRow({ label, health }: { label: string; health: BackendHealth | {
       {/* Rows record their success time in whatever form their own source keeps: most write Unix
           seconds, the price table an ISO date. The relative reading is the useful one here; the
           exact stamp rides along for anyone comparing a row against a log. */}
-      {health.last_success && <small>Last success: {healthSuccessLabel(health.last_success)}</small>}
+      {health.last_success && <small>{t.health.lastSuccess(healthSuccessLabel(health.last_success, t))}</small>}
     </div>
-    <span className="verdict">{stateWord[health.state]}</span>
+    <span className="verdict">{t.health.states[health.state]}</span>
   </article>
 }
 
-function healthSuccessLabel(value: string) {
-  const reading = stampReading(value)
+function healthSuccessLabel(value: string, t: Messages) {
+  const reading = stampReading(value, new Date(), t)
   return reading ? `${reading.relative} · ${reading.exact}` : value
 }
 
@@ -950,6 +927,7 @@ type ReportStatus =
   | { kind: 'done'; message: string }
 
 function ReportBlock({ health, alwaysVisible }: { health: AppView['health']; alwaysVisible?: boolean }) {
+  const t = useMessages()
   const [status, setStatus] = useState<ReportStatus>({ kind: 'idle' })
   const broken = reportBlockVisible(health)
   if (!alwaysVisible && !broken) return null
@@ -964,18 +942,18 @@ function ReportBlock({ health, alwaysVisible }: { health: AppView['health']; alw
     }
   }
   return (
-    <section className={`report${broken ? ' broken' : ''}`} role="group" aria-label="Report a problem">
+    <section className={`report${broken ? ' broken' : ''}`} role="group" aria-label={t.report.title}>
       <div className="report-head">
         <StateIcon state={broken ? 'failed' : 'ready'}/>
-        <h2 className="section-title">Report a problem</h2>
-        <p className="prose">{broken ? 'Something failed. ' : ''}Bundle the diagnostics and open an issue; nothing leaves this machine until you send it.</p>
+        <h2 className="section-title">{t.report.title}</h2>
+        <p className="prose">{broken ? t.report.failed : ''}{t.report.intro}</p>
       </div>
       <div className="report-actions">
-        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(openIssue, () => 'Opened the issue form in your browser.')}>Open an issue</button>
-        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(copyReport, () => 'Copied. Paste it into the diagnostics field of the issue form.')}>Copy diagnostics</button>
+        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(openIssue, () => t.report.opened)}>{t.report.openIssue}</button>
+        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(copyReport, () => t.report.copied)}>{t.report.copy}</button>
         <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(saveReport, result =>
-          `Saved to ${result?.folder_path ?? '…'}${result?.ee_log_included ? '. EE.log included (sanitized), safe to attach to the issue.' : ''}`,
-        )}>Save logs</button>
+          t.report.saved(result?.folder_path ?? '…', result?.ee_log_included ?? false),
+        )}>{t.report.save}</button>
       </div>
       {status.kind === 'done' && <p className="report-status" role="status">{status.message}</p>}
     </section>
@@ -983,60 +961,53 @@ function ReportBlock({ health, alwaysVisible }: { health: AppView['health']; alw
 }
 
 function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effectiveMode: AccessMode }) {
-  const referenceSystems = [
-    ['Catalog', view.health.catalog],
-    ['Market data', view.health.market],
-    ['Collection prices', view.health.collection_prices],
-    ['Database', view.health.database],
-    ['Market account', view.health.market_account],
-  ] as const
-  const liveSystems = [
-    ['Game reader', view.health.game_reader],
-    ['EE.log', view.health.log_monitor],
-    ['Reward observer', view.health.capture],
-  ] as const
+  const t = useMessages()
+  const referenceSystems = ['catalog', 'market', 'collection_prices', 'database', 'market_account'] as const
+  const liveSystems = ['game_reader', 'log_monitor', 'capture'] as const
   const systems = effectiveMode === 'companion' ? referenceSystems : [...liveSystems, ...referenceSystems]
   const showAcquisition = effectiveMode === 'full'
   return <div className="page">
     <div className="page-head">
-      <h1 id="diagnostics-title" className="page-title">Diagnostics</h1>
-      <p className="page-note">Each service TennoScope depends on, and when it last worked. Messages never show tokens or other secrets.</p>
+      <h1 id="diagnostics-title" className="page-title">{t.diagnostics.title}</h1>
+      <p className="page-note">{t.diagnostics.note}</p>
     </div>
     <ReportBlock health={view.health}/>
-    <section className="page-section" aria-label="Diagnostics">
-      {effectiveMode === 'companion' && <p className="prose">Companion does not watch the game, so only local and reference services are listed.</p>}
-      <h2 className="section-title">Services</h2>
-      <div className="health-list">{systems.map(([label, health]) => <HealthRow key={label} label={label} health={health}/>)}</div>
+    <section className="page-section" aria-label={t.diagnostics.title}>
+      {effectiveMode === 'companion' && <p className="prose">{t.diagnostics.companion}</p>}
+      <h2 className="section-title">{t.diagnostics.services}</h2>
+      <div className="health-list">{systems.map(system => <HealthRow key={system} label={t.diagnostics.systems[system]} health={view.health[system]}/>)}</div>
 
       {showAcquisition && <>
-        <h2 className="section-title">Inventory acquisition</h2>
+        <h2 className="section-title">{t.diagnostics.acquisition}</h2>
         {view.health.acquisition_stages.length
           ? <ol className="stages">{view.health.acquisition_stages.map((stage, index) => {
+            // A stage the catalog does not name yet reads as its id in words.
             const words = stage.stage.replaceAll('_', ' ')
-            const label = words[0].toUpperCase() + words.slice(1)
+            const label = (t.diagnostics.stages as Partial<Record<string, string>>)[stage.stage] ?? words[0].toUpperCase() + words.slice(1)
             return <li key={stage.stage} className={stage.state}>
               <span className="stage-index">{index + 1}</span>
               <StateIcon state={stage.state}/>
               <div><strong>{label}</strong><p>{stage.message}</p></div>
-              <span className="verdict">{stateWord[stage.state]}</span>
+              <span className="verdict">{t.health.states[stage.state]}</span>
             </li>
           })}</ol>
-          : <EmptyState title="No acquisition attempt yet" detail="Start Warframe or refresh the inventory to run the five stages."/>}
+          : <EmptyState title={t.diagnostics.noAttempt} detail={t.diagnostics.noAttemptDetail}/>}
       </>}
     </section>
   </div>
 }
 
-function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy, modeError, onSelectMode, onConfirmMode, desktopCaptureActionAvailable, captureAuthorizationBusy, captureNote, onCaptureNote, onAuthorizeCapture, onPriceFloor }: { view: AppView; priceFloor: number; effectiveMode: AccessMode; selectedMode: AccessMode; modeBusy: boolean; modeError: string | null; onSelectMode: (mode: AccessMode) => void; onConfirmMode: () => void; desktopCaptureActionAvailable: boolean; captureAuthorizationBusy: boolean; captureNote: string | null; onCaptureNote: (note: string | null) => void; onAuthorizeCapture: () => Promise<void>; onPriceFloor: (floor: number) => void }) {
+function SettingsPage({ view, language, onLanguage, priceFloor, effectiveMode, selectedMode, modeBusy, modeError, onSelectMode, onConfirmMode, desktopCaptureActionAvailable, captureAuthorizationBusy, captureNote, onCaptureNote, onAuthorizeCapture, onPriceFloor }: { view: AppView; language: Language | null; onLanguage: (language: Language | null) => void; priceFloor: number; effectiveMode: AccessMode; selectedMode: AccessMode; modeBusy: boolean; modeError: string | null; onSelectMode: (mode: AccessMode) => void; onConfirmMode: () => void; desktopCaptureActionAvailable: boolean; captureAuthorizationBusy: boolean; captureNote: CaptureNote | null; onCaptureNote: (note: CaptureNote | null) => void; onAuthorizeCapture: () => Promise<void>; onPriceFloor: (floor: number) => void }) {
+  const t = useMessages()
   const { sellable: total, sellableCount: counted } = collectionTotals(view.collection.items, priceFloor)
   return <section className="page" aria-labelledby="settings-title">
     <div className="page-head">
-      <h1 id="settings-title" className="page-title">Settings</h1>
-      <p className="page-note">Saved on this device and applied as you set them.</p>
+      <h1 id="settings-title" className="page-title">{t.settings.title}</h1>
+      <p className="page-note">{t.settings.note}</p>
     </div>
     <section className="page-section" aria-labelledby="access-setting-title">
-      <h2 id="access-setting-title" className="section-title">Warframe access</h2>
-      <p className="band-note">Nothing changes until you confirm.</p>
+      <h2 id="access-setting-title" className="section-title">{t.settings.access}</h2>
+      <p className="band-note">{t.settings.accessNote}</p>
       <AccessSelector
         value={selectedMode}
         effectiveMode={effectiveMode}
@@ -1048,17 +1019,18 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
       {modeError && <p className="error-banner" role="alert">{modeError}</p>}
     </section>
 
+    <LanguageSetting preference={language} onSaved={onLanguage}/>
 
     <section className="page-section" aria-labelledby="collection-setting-title">
-      <h2 id="collection-setting-title" className="section-title">Collection</h2>
+      <h2 id="collection-setting-title" className="section-title">{t.settings.collection}</h2>
       <div className="setting">
         <div>
-          <h3>Price floor</h3>
-          <p className="prose">Copies worth less than this are left out of the sellable total. The market value still counts everything.</p>
+          <h3>{t.settings.priceFloor}</h3>
+          <p className="prose">{t.settings.priceFloorNote}</p>
         </div>
         <div className="dial">
           <label className="dial-slot">
-            <span className="sr-only">Minimum platinum a copy must be worth to count</span>
+            <span className="sr-only">{t.settings.priceFloorLabel}</span>
             <input
               type="range"
               min={0}
@@ -1066,28 +1038,28 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
               step={1}
               value={priceFloor}
               style={{ '--dial-fill': `${priceFloor / MAX_PRICE_FLOOR * 100}%` } as CSSProperties}
-              aria-valuetext={priceFloor ? `${priceFloor} platinum and over` : 'Every price counts'}
+              aria-valuetext={priceFloor ? t.settings.floorValue(priceFloor) : t.settings.everyPriceCounts}
               onChange={event => onPriceFloor(Number(event.target.value))}
             />
           </label>
           <output className="dial-figure">
-            {priceFloor ? <>{priceFloor}<MetalMark metal="plat" alt=" platinum"/><span> and over</span></> : <span>Every price</span>}
+            {priceFloor ? <>{priceFloor}<MetalMark metal="plat" alt={t.units.platinum}/><span>{t.settings.andOver}</span></> : <span>{t.settings.everyPrice}</span>}
           </output>
         </div>
-        <p className="band-note">{figure(counted)} stacks counted · {figure(total)} platinum sellable</p>
+        <p className="band-note">{t.settings.floorSummary(counted, total)}</p>
       </div>
     </section>
 
     <section className="page-section" aria-labelledby="overlays-setting-title">
-      <h2 id="overlays-setting-title" className="section-title">Overlays</h2>
+      <h2 id="overlays-setting-title" className="section-title">{t.settings.overlays}</h2>
       <MasteryMarksSetting/>
 
       <DesktopCaptureSetting actionAvailable={effectiveMode !== 'companion' && desktopCaptureActionAvailable} prohibited={effectiveMode === 'companion'} busy={captureAuthorizationBusy} note={captureNote} onNote={onCaptureNote} onAuthorize={onAuthorizeCapture}/>
 
       <div className="setting">
         <div>
-          <h3>Reward overlay placement</h3>
-          <p className="prose">Shows the empty reward strip where it lands over the game, without a fissure running.</p>
+          <h3>{t.settings.placement}</h3>
+          <p className="prose">{t.settings.placementNote}</p>
         </div>
         <OverlayPreviewToggle prohibited={effectiveMode === 'companion'} busy={modeBusy}/>
       </div>
@@ -1109,10 +1081,11 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
 /** The preference lives in the backend and a click is a command it may refuse. A refusal leaves
  * the switch where it was and says so, so the thumb never claims a state the overlays are not in. */
 function MasteryMarksSetting() {
+  const t = useMessages()
   const [enabled, setEnabled] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
+  const [note, setNote] = useState<'unreadable' | 'unsaved' | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -1120,7 +1093,7 @@ function MasteryMarksSetting() {
     // on a guess would teach the player that the guess is a fact.
     getPreferences()
       .then(preferences => { if (mounted) setEnabled(preferences.mastery_marks) })
-      .catch(() => { if (mounted) setNote('Could not read this setting.') })
+      .catch(() => { if (mounted) setNote('unreadable') })
       .finally(() => { if (mounted) setLoaded(true) })
     return () => { mounted = false }
   }, [])
@@ -1135,7 +1108,7 @@ function MasteryMarksSetting() {
       const preferences = await setMasteryMarks(!enabled)
       setEnabled(preferences.mastery_marks)
     } catch {
-      setNote('Could not save this setting.')
+      setNote('unsaved')
     } finally {
       setBusy(false)
     }
@@ -1143,8 +1116,8 @@ function MasteryMarksSetting() {
 
   return <div className="setting">
     <div>
-      <h3>Mastery marks on overlays</h3>
-      <p className="prose">Marks each Prime part on the reward screen and the Ducat Kiosk with its item's mastery state. Full access shows every mark after an inventory sync; Overlay shows only what you have already mastered.</p>
+      <h3>{t.settings.marks}</h3>
+      <p className="prose">{t.settings.marksNote}</p>
     </div>
     <button
       type="button"
@@ -1155,17 +1128,64 @@ function MasteryMarksSetting() {
       aria-busy={busy}
       onClick={() => { void toggle() }}
     >
-      <span className="display-face">Mastery marks</span>
+      <span className="display-face">{t.settings.marksSwitch}</span>
       <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
     </button>
-    {note && <p className="band-note" role="status">{note}</p>}
+    {note && <p className="band-note" role="status">{t.settings[note]}</p>}
   </div>
 }
 
-function DesktopCaptureSetting({ actionAvailable, prohibited, busy, note, onNote, onAuthorize }: { actionAvailable: boolean; prohibited: boolean; busy: boolean; note: string | null; onNote: (note: string | null) => void; onAuthorize: () => Promise<void> }) {
+/** System, English or Français. Like the marks, a backend preference: the overlays read it there.
+ * Each language is named in itself, so it can be found from a screen the player cannot read. */
+function LanguageSetting({ preference, onSaved }: { preference: Language | null; onSaved: (language: Language | null) => void }) {
+  const t = useMessages()
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+  async function choose(next: Language | null) {
+    if (busy || next === preference) return
+    setBusy(true)
+    setFailed(false)
+    try {
+      // The stored answer, not the request, decides what the screen shows.
+      onSaved((await setLanguage(next)).language ?? null)
+    } catch {
+      setFailed(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const choices: Array<{ value: Language | null; label: string }> = [
+    { value: null, label: t.settings.system },
+    { value: 'en', label: LANGUAGE_NAMES.en },
+    { value: 'fr', label: LANGUAGE_NAMES.fr },
+  ]
+  return <section className="page-section" aria-labelledby="language-setting-title">
+    <h2 id="language-setting-title" className="section-title">{t.settings.language}</h2>
+    <div className="setting">
+      <p className="prose">{t.settings.languageNote}</p>
+      <div className="segmented" role="group" aria-labelledby="language-setting-title">
+        {choices.map(choice => <button
+          type="button"
+          key={choice.label}
+          lang={choice.value ?? undefined}
+          aria-pressed={preference === choice.value}
+          disabled={busy}
+          onClick={() => { void choose(choice.value) }}
+        >{choice.label}</button>)}
+      </div>
+      {failed && <p className="band-note" role="status">{t.settings.unsaved}</p>}
+    </div>
+  </section>
+}
+
+/** `note` is a key into the catalog's settings, held by `App` so it outlives the page. */
+type CaptureNote = 'captureAllowed' | 'captureAgain' | 'captureDenied'
+
+function DesktopCaptureSetting({ actionAvailable, prohibited, busy, note, onNote, onAuthorize }: { actionAvailable: boolean; prohibited: boolean; busy: boolean; note: CaptureNote | null; onNote: (note: CaptureNote | null) => void; onAuthorize: () => Promise<void> }) {
+  const t = useMessages()
   useEffect(() => {
-    if (actionAvailable && note === 'Desktop capture allowed.') {
-      onNote('Desktop capture needs permission again.')
+    if (actionAvailable && note === 'captureAllowed') {
+      onNote('captureAgain')
     }
   }, [actionAvailable, note, onNote])
   async function authorize() {
@@ -1173,70 +1193,61 @@ function DesktopCaptureSetting({ actionAvailable, prohibited, busy, note, onNote
     onNote(null)
     try {
       await onAuthorize()
-      onNote('Desktop capture allowed.')
+      onNote('captureAllowed')
     } catch {
-      onNote('Desktop capture was denied or is unavailable. Check that desktop screen sharing works, then try again.')
+      onNote('captureDenied')
     }
   }
   return <div className="setting">
     <div>
-      <h3>Screen capture</h3>
-      <p className="prose">Automatic. Desktop sharing is needed only when Warframe runs with PROTON_ENABLE_WAYLAND=1 and the compositor has no direct capture API.</p>
-      {actionAvailable && <p className="prose">In the desktop's screen chooser, pick every display Warframe may run on. A screen-sharing indicator may show until the game exits.</p>}
+      <h3>{t.settings.capture}</h3>
+      <p className="prose">{t.settings.captureNote}</p>
+      {actionAvailable && <p className="prose">{t.settings.captureChooser}</p>}
     </div>
     {(actionAvailable || prohibited) && <div className="prohibited-control">
-      <button type="button" className="stamp" onClick={authorize} disabled={busy || prohibited} aria-busy={busy} aria-describedby={prohibited ? 'capture-prohibited' : undefined}>{busy ? 'Allowing desktop capture…' : 'Allow desktop capture'}</button>
-      {prohibited && <p className="prohibition-note" id="capture-prohibited">Overlay or Full access is required: Companion does not capture the screen.</p>}
+      <button type="button" className="stamp" onClick={authorize} disabled={busy || prohibited} aria-busy={busy} aria-describedby={prohibited ? 'capture-prohibited' : undefined}>{busy ? t.settings.allowingCapture : t.settings.allowCapture}</button>
+      {prohibited && <p className="prohibition-note" id="capture-prohibited">{t.settings.captureProhibited}</p>}
     </div>}
-    <p className="band-note capture-status" role="status" aria-live="polite" aria-atomic="true">{note}</p>
+    <p className="band-note capture-status" role="status" aria-live="polite" aria-atomic="true">{note && t.settings[note]}</p>
   </div>
 }
 
 /** What TennoScope is, and what it does to this machine in the current mode. */
 function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
+  const t = useMessages()
   const observesGame = effectiveMode !== 'companion'
   const acquiresInventory = effectiveMode === 'full'
-  const [versionLine, setVersionLine] = useState<string>(`Version ${APP_VERSION}`)
+  const [info, setInfo] = useState<VersionInfo | null>(null)
   // The version is a frontend build constant: the line renders even when the
   // backend is down, gaining installer identity once getVersionInfo lands.
   useEffect(() => {
-    getVersionInfo()
-      .then(info => {
-        const installer = info.kind === 'appimage'
-          ? 'AppImage'
-          : info.kind === 'portable_win'
-            ? 'Windows install'
-            : info.kind === 'system_linux'
-              ? (info.manager ?? 'System package')
-              : info.kind === 'system_win'
-                ? 'Windows system install'
-                : ''
-        setVersionLine(installer ? `Version ${info.version} · ${installer}` : `Version ${info.version}`)
-      })
-      .catch(() => {})
+    getVersionInfo().then(setInfo).catch(() => {})
   }, [])
+  const installer = !info || info.kind === 'unknown'
+    ? undefined
+    : info.kind === 'system_linux' ? (info.manager ?? t.about.installers.system_linux) : t.about.installers[info.kind]
   return <section className="page-section" aria-labelledby="about-title">
-    <h2 id="about-title" className="section-title">About</h2>
-    <p className="prose">Free, open-source and local-first. GPLv3 · MVP.</p>
-    <p className="band-note">{versionLine}</p>
+    <h2 id="about-title" className="section-title">{t.about.title}</h2>
+    <p className="prose">{t.about.tagline}</p>
+    <p className="band-note">{t.about.version(info?.version ?? APP_VERSION, installer)}</p>
 
     {/* What each access level reads, and what Full sends, is said once, in the selector above. */}
     <div className="setting">
       <div>
-        <h3>Local-first storage</h3>
-        <p className="prose">Your inventory snapshot and preferences stay in this device's app data folder. No telemetry, no cloud account.</p>
+        <h3>{t.about.storage}</h3>
+        <p className="prose">{t.about.storageNote}</p>
       </div>
     </div>
     <div className="setting">
       <div>
-        <h3>Inventory synchronization</h3>
-        <p className="prose">{acquiresInventory ? 'Syncs automatically, or with Refresh inventory in the sidebar.' : 'Inventory synchronization needs Full access. Your saved snapshot stays available.'}</p>
+        <h3>{t.about.sync}</h3>
+        <p className="prose">{acquiresInventory ? t.about.syncFull : t.about.syncOther}</p>
       </div>
     </div>
     <div className="setting">
       <div>
-        <h3>Reward assistance</h3>
-        <p className="prose">{observesGame ? 'Reward names are read from the screen with OCR and matched against the squad’s relic pool. The overlay is click-through and never takes input from the game.' : 'The catalog and relic reference stay available. Screen reading and the overlay need Overlay or Full access.'}</p>
+        <h3>{t.about.assistance}</h3>
+        <p className="prose">{observesGame ? t.about.assistanceObserving : t.about.assistanceOther}</p>
       </div>
     </div>
   </section>
@@ -1248,6 +1259,7 @@ function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
  * earn its place, which is why this is a toggle and not a one-way button.
  */
 function OverlayPreviewToggle({ prohibited, busy }: { prohibited: boolean; busy: boolean }) {
+  const t = useMessages()
   const [shown, setShown] = useState(false)
   const [blocked, setBlocked] = useState(false)
   return <div className="prohibited-control">
@@ -1266,9 +1278,9 @@ function OverlayPreviewToggle({ prohibited, busy }: { prohibited: boolean; busy:
           .then(() => setShown(next))
           .catch(() => setBlocked(true))
       }}
-    >{shown ? 'Hide reward overlay' : 'Preview reward overlay'}</button>
-    {prohibited && <p id="overlay-prohibited" className="prohibition-note">Overlay or Full access is required: Companion shows no overlays.</p>}
-    {!prohibited && blocked && <p id="overlay-blocked" className="band-note" role="status">The overlay is unavailable while access is changing. Try again once the new mode applies.</p>}
+    >{shown ? t.settings.hideOverlay : t.settings.previewOverlay}</button>
+    {prohibited && <p id="overlay-prohibited" className="prohibition-note">{t.settings.overlayProhibited}</p>}
+    {!prohibited && blocked && <p id="overlay-blocked" className="band-note" role="status">{t.settings.overlayBlocked}</p>}
   </div>
 }
 

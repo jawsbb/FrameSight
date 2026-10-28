@@ -1,4 +1,5 @@
 import type { SetPart } from './backend'
+import { useMessages } from './i18n'
 
 /** The game's part icons as 64px white silhouettes, masked rather than painted: `currentColor`
  * gives the metal and a copy not held is the same shape faint, so one file serves every state. */
@@ -12,17 +13,18 @@ const FALLBACK = 'M12 2l10 10-10 10L2 12z'
 /** Solid is held and faint is not, and each slot's label says the same in words. At most two
  * copies are drawn, since a third overlapping shape stops reading as a quantity; ×n says more. */
 export function SetRow({ parts }: { parts: SetPart[] }) {
-  return <ul className="set-row" aria-label="Set">
+  const t = useMessages()
+  return <ul className="set-row" aria-label={t.slip.set}>
     {parts.map((part, index) => {
       const art = part.image ? PART_ART[`./assets/parts/${part.image}`] : undefined
       const copies = Math.min(part.uses, 2)
       // "3 of 1 held" reads as a contradiction, so a slot held to its need or past it says so in words.
-      const holding = part.held >= part.uses ? 'held in full' : `${part.held} of ${part.uses} held`
+      const holding = part.held >= part.uses ? t.slip.heldInFull : t.slip.held(part.held, part.uses)
       return <li
         key={`${part.name}-${index}`}
         className="set-slot"
         data-this={part.this || undefined}
-        aria-label={`${part.name}, ${holding}${part.this ? ', this reward' : ''}`}
+        aria-label={`${part.name}, ${holding}${part.this ? t.slip.thisReward : ''}`}
       >
         {Array.from({ length: copies }, (_, copy) => art
           ? <i

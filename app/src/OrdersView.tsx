@@ -5,6 +5,7 @@ import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderVal
 import { stampReading } from './freshness'
 import { MetalMark } from './MetalMark'
 import { Stat } from './Stat'
+import { useMessages } from './i18n'
 
 type OrdersViewProps = {
   account: MarketAccount
@@ -23,50 +24,51 @@ type OrdersViewProps = {
 }
 
 export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onLowerTo, onSell, onUpdate, onPresence, items, busy, error }: OrdersViewProps) {
+  const t = useMessages()
   if (account.link === 'unlinked') {
     return <UnlinkedPanel onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} error={error} />
   }
 
   // Only the relative reading is shown here, and an unfetched order list is not a missing inventory
   // snapshot, so this says what actually has not happened yet.
-  const fetched = account.fetched_at ? stampReading(account.fetched_at) : null
-  const freshness = fetched ? `Fetched ${fetched.relative}` : 'Orders have not been fetched yet'
+  const fetched = account.fetched_at ? stampReading(account.fetched_at, new Date(), t) : null
+  const freshness = fetched ? t.orders.fetched(fetched.relative) : t.orders.notFetched
   const needsRelink = account.link === 'needs_relink'
   const ownershipUnverifiable = account.orders.some(entry => entry.status.state === 'unverifiable')
 
   return <section className="page" aria-labelledby="orders-title">
     <div className="page-head">
-      <h1 id="orders-title" className="page-title">Market orders</h1>
+      <h1 id="orders-title" className="page-title">{t.orders.title}</h1>
       <div className="stats">
-        <Stat kind="orders" value={account.listed_platinum} unit={<MetalMark metal="plat" alt=" platinum"/>} label="listed value" note={`Visible sell listings only. ${freshness}`}/>
+        <Stat kind="orders" value={account.listed_platinum} unit={<MetalMark metal="plat" alt={t.units.platinum}/>} label={t.orders.listedValue} note={t.orders.listedValueNote(freshness)}/>
         {/* Red only while something is flagged: a zero is not an alarm. */}
         <Stat
           kind={account.flagged ? 'flagged' : 'unflagged'}
           value={account.flagged}
-          label="need attention"
+          label={t.orders.needAttention}
           note={account.flagged
-            ? 'Listed above what this device says you hold'
+            ? t.orders.flaggedNote
             : ownershipUnverifiable
-              ? 'Ownership could not be verified for every listing'
-              : 'Every listing matches the collection'}
+              ? t.orders.unverifiableNote
+              : t.orders.matchingNote}
         />
         {/* A refused credential is not a linked account: "Linked" beside a refusal notice would
             contradict the screen it heads. */}
         <Stat
           kind="backing"
-          value={needsRelink ? 'Refused' : 'Linked'}
+          value={needsRelink ? t.orders.refused : t.orders.linked}
           note={needsRelink
-            ? 'Sign in again, or link a fresh token'
-            : `Credential held in ${backingLabel(account.backing).toLowerCase()}`}
+            ? t.orders.relinkNote
+            : t.orders.heldIn(backingLabel(account.backing, t))}
         />
       </div>
       <div className="head-actions">
         <button type="button" className="stamp" onClick={onRefresh} disabled={busy}>
-          <span>{busy ? 'Refreshing…' : 'Refresh orders'}</span>
+          <span>{busy ? t.orders.refreshing : t.orders.refresh}</span>
         </button>
-        <ConfirmButton label="Unlink account" confirmLabel="Confirm unlink" busy={busy} onConfirm={onSignOut}/>
+        <ConfirmButton label={t.orders.unlink} confirmLabel={t.orders.confirmUnlink} busy={busy} onConfirm={onSignOut}/>
       </div>
-      <p className="page-note">Your warframe.market sell listings, checked against this device's inventory.</p>
+      <p className="page-note">{t.orders.note}</p>
     </div>
 
     {/* Suppressed while the relink block is up: that block already names the refusal and offers
@@ -77,8 +79,8 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
         heading whose instruction is answered a screen further down is an instruction nobody
         follows. */}
     {needsRelink && <div className="relink">
-      <h2>Credential refused</h2>
-      <p className="prose">warframe.market refused the stored credential. The listings below may be out of date until you sign in again or link a new token.</p>
+      <h2>{t.orders.credentialRefused}</h2>
+      <p className="prose">{t.orders.refusedNote}</p>
       <LinkForms onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} />
     </div>}
 
@@ -87,14 +89,14 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
     {!needsRelink && <NewListing items={items} orders={account.orders} listable={account.listable} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
 
     {account.orders.length
-      ? <ul className="docket" aria-label="Market orders">
+      ? <ul className="docket" aria-label={t.orders.list}>
         {sortOrders(account.orders).map(entry => <li key={entry.order.id}>
           <OrderRow entry={entry} items={items} busy={busy} onRemove={onRemove} onLowerTo={onLowerTo} onSell={onSell} onUpdate={onUpdate} />
         </li>)}
       </ul>
       : <div className="empty-state">
-        <h2>No sell orders found</h2>
-        <p>Nothing is currently listed on this account.</p>
+        <h2>{t.orders.none}</h2>
+        <p>{t.orders.noneDetail}</p>
       </div>}
   </section>
 }
@@ -118,10 +120,11 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
   onSell: SellHandler
   onUpdate: UpdateHandler
 }) {
+  const t = useMessages()
   const [editing, setEditing] = useState(false)
   const flagged = isFlagged(entry.status)
-  const label = statusLabel(entry)
-  const fix = fixLabel(entry.status)
+  const label = statusLabel(entry, t)
+  const fix = fixLabel(entry.status, t)
   const value = orderValue(entry.order)
   const overshoot = entry.status.state === 'overshoot' ? entry.status.owned : null
   // The edit is bounded by a holding, so it is offered only where the order names one held row.
@@ -135,14 +138,14 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
     <span className={`line-mark${flagged ? ' flagged' : ''}`} aria-hidden="true" />
     <h2 className="line-name" title={entry.name ?? entry.order.item_id}>{entry.name ?? entry.order.item_id}</h2>
     <span className="line-figure">
-      {entry.order.platinum}<MetalMark metal="plat" alt=" platinum" className="line-metal"/>
+      {entry.order.platinum}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/>
       <i>× {entry.order.quantity}</i>
     </span>
     {/* Every row states its own share of the headline figure, or why it has none. The total is a
         sum of these and nothing else, so it can be checked by reading down the column. */}
     <span className="line-value">{value === null
-      ? <em>{uncountedReason(entry.order)}</em>
-      : <>{value}<MetalMark metal="plat" alt=" platinum" className="line-metal"/></>}</span>
+      ? <em>{uncountedReason(entry.order, t)}</em>
+      : <>{value}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></>}</span>
     <span className="line-claim" title={label ?? undefined}>{label}</span>
     <span className="line-fix">
       {/* The count is read out here rather than inside the handler: a narrowing on a property
@@ -158,11 +161,11 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
         className="stamp"
         disabled={busy}
         onClick={() => setEditing(true)}
-      ><span>Edit listing</span></button>}
+      ><span>{t.orders.editListing}</span></button>}
       {/* A flagged row's removal is the repair it asks for and goes on one press. */}
       <ConfirmButton
-        label="Remove listing"
-        confirmLabel="Confirm remove"
+        label={t.orders.removeListing}
+        confirmLabel={t.orders.confirmRemove}
         skip={entry.status.state === 'missing'}
         busy={busy}
         onConfirm={() => onRemove(entry.order.id)}
@@ -228,17 +231,18 @@ function PresenceSwitch({ presence, busy, onPresence }: {
   busy: boolean
   onPresence: (status: Presence | null, auto: boolean) => Promise<void>
 }) {
+  const t = useMessages()
   const choices: { value: Presence | null; label: string }[] = [
-    { value: null, label: 'Offline' },
-    { value: 'online', label: 'Online' },
-    { value: 'ingame', label: 'In game' },
-    { value: 'invisible', label: 'Invisible' },
+    { value: null, label: t.orders.presence.offline },
+    { value: 'online', label: t.orders.presence.online },
+    { value: 'ingame', label: t.orders.presence.ingame },
+    { value: 'invisible', label: t.orders.presence.invisible },
   ]
   const wanted = presence.wanted ?? null
   const settled = presence.status === wanted
   return <div className="presence">
     <div className="presence-head">
-      <span className="presence-label" id="presence-label">Market status</span>
+      <span className="presence-label" id="presence-label">{t.orders.presence.label}</span>
       {/* A real checkbox: it is a mode with two states, a reader announces it as one without
           being told to, and the space bar works on it for free. */}
       <label className="presence-auto">
@@ -248,7 +252,7 @@ function PresenceSwitch({ presence, busy, onPresence }: {
           disabled={busy}
           onChange={event => onPresence(event.target.checked ? null : wanted, event.target.checked)}
         />
-        <span>Follow the game</span>
+        <span>{t.orders.presence.auto}</span>
       </label>
     </div>
     <div className="presence-choices" role="group" aria-labelledby="presence-label" data-auto={presence.auto || undefined}>
@@ -264,17 +268,12 @@ function PresenceSwitch({ presence, busy, onPresence }: {
       ><span>{choice.label}</span></button>)}
     </div>
     <p className="presence-note" role="status">{
-      !settled ? 'Asking warframe.market…'
-        : presence.auto ? `Following this device's Warframe process. Others see you as ${statusWord(wanted)}.`
-          : wanted ? 'Held for as long as TennoScope is running.'
-            : 'Nothing is announced to warframe.market while offline.'
+      !settled ? t.orders.presence.asking
+        : presence.auto ? t.orders.presence.following(t.orders.presence.words[wanted ?? 'offline'])
+          : wanted ? t.orders.presence.held
+            : t.orders.presence.silent
     }</p>
   </div>
-}
-
-/** The status as it is said aloud in a sentence, rather than as the wire spells it. */
-function statusWord(status: Presence | null): string {
-  return status === 'ingame' ? 'in game' : status ?? 'offline'
 }
 
 /**
@@ -301,6 +300,7 @@ function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
   onSell: SellHandler
   onUpdate: UpdateHandler
 }) {
+  const t = useMessages()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState('')
@@ -317,7 +317,7 @@ function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
 
   if (!open) {
     return <div className="toolbar">
-      <button type="button" className="stamp" disabled={busy} onClick={() => setOpen(true)}><span>New listing</span></button>
+      <button type="button" className="stamp" disabled={busy} onClick={() => setOpen(true)}><span>{t.orders.newListing}</span></button>
     </div>
   }
 
@@ -331,24 +331,24 @@ function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
 
   return <div className="new-listing">
     <div className="new-listing-head">
-      <h2>New listing</h2>
-      <button type="button" className="stamp" disabled={busy} onClick={close}><span>Cancel</span></button>
+      <h2>{t.orders.newListing}</h2>
+      <button type="button" className="stamp" disabled={busy} onClick={close}><span>{t.orders.cancel}</span></button>
     </div>
     {item
       ? <>
         <p className="new-listing-chosen">
-          <b>{item.name}</b> <i>· {item.quantity} held</i>
-          <button type="button" className="link-button" disabled={busy} onClick={() => setChosen('')}>Choose another</button>
+          <b>{item.name}</b> <i>· {t.orders.held(item.quantity)}</i>
+          <button type="button" className="link-button" disabled={busy} onClick={() => setChosen('')}>{t.orders.chooseAnother}</button>
         </p>
         <SellForm item={item} listing={listing ?? undefined} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={close}/>
       </>
       : <>
         <label className="dial-slot">
-          <span>Item</span>
+          <span>{t.orders.item}</span>
           <input
             type="search"
-            aria-label="Item"
-            placeholder="Type part of a name…"
+            aria-label={t.orders.item}
+            placeholder={t.orders.itemPlaceholder}
             value={query}
             autoFocus
             onChange={event => setQuery(event.target.value)}
@@ -360,12 +360,12 @@ function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
             {shown.map(entry => <li key={entry.id}>
               <button type="button" disabled={busy} onClick={() => setChosen(entry.id)}>
                 <span className="pick-name">{entry.name}</span>
-                <span className="pick-held">{entry.quantity} held</span>
+                <span className="pick-held">{t.orders.held(entry.quantity)}</span>
               </button>
             </li>)}
           </ul>
-          : <p className="pick-empty">Nothing sellable here matches that. Sets, part-ranked copies and star-set Ayatan sculptures cannot be listed from TennoScope.</p>)}
-        {matches.length > shown.length && <p className="pick-more">{matches.length - shown.length} more match. Keep typing to narrow it.</p>}
+          : <p className="pick-empty">{t.orders.noneSellable}</p>)}
+        {matches.length > shown.length && <p className="pick-more">{t.orders.moreMatch(matches.length - shown.length)}</p>}
       </>}
   </div>
 }
@@ -376,10 +376,11 @@ function UnlinkedPanel({ onSignIn, onLinkToken, busy, error }: {
   busy: boolean
   error: string | null
 }) {
+  const t = useMessages()
   return <section className="page" aria-labelledby="orders-title">
     <div className="page-head">
-      <h1 id="orders-title" className="page-title">Market orders</h1>
-      <p className="page-note">Optional: TennoScope has no account of its own. Linking connects straight to warframe.market and sends your order data (listings, quantities, prices) to its servers.</p>
+      <h1 id="orders-title" className="page-title">{t.orders.title}</h1>
+      <p className="page-note">{t.orders.optionalNote}</p>
     </div>
 
     {error && <p className="error-banner" role="alert">{error}</p>}
@@ -398,48 +399,48 @@ function LinkForms({ onSignIn, onLinkToken, busy }: {
   onLinkToken: (token: string) => Promise<void>
   busy: boolean
 }) {
+  const t = useMessages()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [token, setToken] = useState('')
 
   return <div className="clause-pair">
     <article>
-      <h2>Sign in</h2>
-      <p className="prose">Your warframe.market email and password, sent once to warframe.market and never stored here.</p>
+      <h2>{t.orders.signIn}</h2>
+      <p className="prose">{t.orders.signInNote}</p>
       <form onSubmit={event => { event.preventDefault(); void onSignIn(email, password) }}>
         <label className="dial-slot">
-          <span>Email</span>
-          <input type="email" aria-label="Email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy} />
+          <span>{t.orders.email}</span>
+          <input type="email" aria-label={t.orders.email} value={email} onChange={event => setEmail(event.target.value)} disabled={busy} />
         </label>
         <label className="dial-slot">
-          <span>Password</span>
-          <input type="password" aria-label="Password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
+          <span>{t.orders.password}</span>
+          <input type="password" aria-label={t.orders.password} value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
         </label>
-        <button type="submit" className="stamp" disabled={busy}><span>{busy ? 'Signing in…' : 'Sign in'}</span></button>
+        <button type="submit" className="stamp" disabled={busy}><span>{busy ? t.orders.signingIn : t.orders.signIn}</span></button>
       </form>
     </article>
     <article>
-      <h2>Use a token instead</h2>
-      <p className="prose">Sign in on the warframe.market website and paste the token your browser was given. Your password never reaches TennoScope.</p>
+      <h2>{t.orders.useToken}</h2>
+      <p className="prose">{t.orders.tokenNote}</p>
       {/* A native disclosure: the steps are needed once, by the people who want this path, and
           they are long enough that leaving them open would bury the field they explain. No
           popover library for something `<details>` already does with a keyboard and a reader. */}
       <details className="token-help">
-        <summary>Where do I find the token?</summary>
+        <summary>{t.orders.whereToken}</summary>
         <ol>
-          <li>Sign in at <b>warframe.market</b> in your browser.</li>
-          <li>Open developer tools with <kbd>F12</kbd>.</li>
-          <li>Go to <b>Application</b> (Chrome) or <b>Storage</b> (Firefox), then <b>Cookies → warframe.market</b>.</li>
-          <li>Copy the value of the cookie named <b>JWT</b>.</li>
+          {Object.entries(t.orders.tokenSteps).map(([step, parts]) => <li key={step}>
+            {parts.map((part, index) => index % 2 === 0 ? part : step === 'devTools' ? <kbd key={index}>{part}</kbd> : <b key={index}>{part}</b>)}
+          </li>)}
         </ol>
-        <p>Treat it like a password: anyone holding it can post and delete your orders. It is kept in your system keyring, or in the local database without one; hover Linked on this page to see which.</p>
+        <p>{t.orders.tokenWarning}</p>
       </details>
       <form onSubmit={event => { event.preventDefault(); void onLinkToken(token) }}>
         <label className="dial-slot">
-          <span>Token</span>
-          <input type="password" aria-label="Token" value={token} onChange={event => setToken(event.target.value)} disabled={busy} />
+          <span>{t.orders.token}</span>
+          <input type="password" aria-label={t.orders.token} value={token} onChange={event => setToken(event.target.value)} disabled={busy} />
         </label>
-        <button type="submit" className="stamp" disabled={busy}><span>{busy ? 'Linking…' : 'Link with token'}</span></button>
+        <button type="submit" className="stamp" disabled={busy}><span>{busy ? t.orders.linking : t.orders.linkToken}</span></button>
       </form>
     </article>
   </div>

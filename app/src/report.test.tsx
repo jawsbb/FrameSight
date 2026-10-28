@@ -9,6 +9,7 @@ const backend = vi.hoisted(() => ({
   setMarketPresence: vi.fn(), createOrder: vi.fn(),
   getVersionInfo: vi.fn(), updateCheck: vi.fn(), updateDownloadAndInstall: vi.fn(),
   collectReport: vi.fn(), collectReportText: vi.fn(),
+  getPreferences: vi.fn(() => Promise.resolve({ mastery_marks: true })),
 }))
 const overlay = vi.hoisted(() => ({ showRewardOverlay: vi.fn(), hideRewardOverlay: vi.fn() }))
 const report = vi.hoisted(() => ({

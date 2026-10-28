@@ -1,7 +1,10 @@
 import type { AccessMode } from './backend'
+import { en, type Messages } from './i18n/en'
+
+/** The three levels, least first: each includes the one before it. Their words live in the catalog. */
+export const ACCESS_MODES: readonly AccessMode[] = ['companion', 'overlay', 'full']
 
 export interface AccessModeDefinition {
-  id: AccessMode
   name: string
   boundary: string
   added: readonly string[]
@@ -9,45 +12,14 @@ export interface AccessModeDefinition {
   caution?: string
 }
 
-export const ALWAYS_OFF = [
-  'Memory writes or injection',
-  'Game-file writes',
-  'Automated input',
-  'Traffic redirection',
-  'TennoScope telemetry',
-] as const
-
-export const ACCESS_MODES: readonly AccessModeDefinition[] = [
-  {
-    id: 'companion',
-    name: 'Companion',
-    boundary: 'No Warframe reads, tools stay available',
-    added: ['Reads nothing from Warframe. Saved data, prices and trading stay available.'],
-  },
-  {
-    id: 'overlay',
-    name: 'Overlay',
-    boundary: "Adds the game's log and the reward screen",
-    added: ['Warframe process presence', "The game's log (EE.log)", 'Text on the reward screen', 'Click-through overlay'],
-  },
-  {
-    id: 'full',
-    name: 'Full',
-    boundary: 'Adds read-only memory + inventory',
-    added: ['Read-only process memory', 'Inventory acquisition'],
-    caution: 'Sends your account ID and a nonce to mobile.warframe.com, and nowhere else. Process inspection may carry account-policy or anti-cheat risk, even though no game memory is modified.',
-  },
-] as const
-
-export function accessMode(id: AccessMode): AccessModeDefinition {
-  return ACCESS_MODES.find(mode => mode.id === id)!
+export function accessMode(id: AccessMode, t: Messages = en): AccessModeDefinition {
+  return t.access.modes[id]
 }
 
 export function accessLevel(id: AccessMode): number {
-  return ACCESS_MODES.findIndex(mode => mode.id === id)
+  return ACCESS_MODES.indexOf(id)
 }
 
-export function accessGrantedBetween(from: AccessMode, to: AccessMode): readonly string[] {
-  const fromLevel = accessLevel(from)
-  return ACCESS_MODES.slice(fromLevel + 1, accessLevel(to) + 1).flatMap(mode => mode.added)
+export function accessGrantedBetween(from: AccessMode, to: AccessMode, t: Messages = en): readonly string[] {
+  return ACCESS_MODES.slice(accessLevel(from) + 1, accessLevel(to) + 1).flatMap(id => t.access.modes[id].added)
 }

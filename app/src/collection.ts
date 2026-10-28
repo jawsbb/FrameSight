@@ -1,3 +1,5 @@
+import { en, type Messages } from './i18n/en'
+
 export const COLLECTION_PAGE_SIZE = 48
 
 /** What the pile is worth, or null when the item has no price. */
@@ -108,9 +110,9 @@ export function atMaxRank(item: { rank?: number; max_rank?: number }): boolean |
  * state and most of the collection. Labelling 674 cards "Rank 0/10" would bury the 268 that say
  * something.
  */
-export function rankLabel(item: { rank?: number; max_rank?: number }): string | null {
+export function rankLabel(item: { rank?: number; max_rank?: number }, t: Messages = en): string | null {
   if (item.rank === undefined) return null
-  return item.max_rank === undefined ? `Rank ${item.rank}` : `Rank ${item.rank}/${item.max_rank}`
+  return t.card.rank(item.rank, item.max_rank)
 }
 
 export function pageCount(itemCount: number): number {
@@ -149,7 +151,8 @@ export function pageNumbers(currentPage: number, totalPages: number): number[] {
   return [...new Set([1, ...middle, total])].sort((left, right) => left - right)
 }
 
-/** Figures are grouped: a five-digit total is read, not counted. */
-export function figure(value: number): string {
-  return value.toLocaleString('en-US')
+/** Figures are grouped: a five-digit total is read, not counted. Grouped the catalog's way, so
+ * the same language reads the same on every machine, whatever the system locale. */
+export function figure(value: number, t: Messages = en): string {
+  return value.toLocaleString(t.locale)
 }

@@ -20,3 +20,8 @@ if (typeof localStorage === 'undefined') {
     } satisfies Storage,
   })
 }
+
+// The interface follows the system language when the backend holds no choice. The suites assert
+// English, so the system they run on reads English whatever the machine's own locale; a test of
+// the French interface sets its own.
+Object.defineProperty(navigator, 'language', { configurable: true, value: 'en-US' })
