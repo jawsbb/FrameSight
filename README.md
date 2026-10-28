@@ -1,139 +1,150 @@
 <div align="center">
 
-# TennoScope
+<img src="docs/readme/banner.svg" alt="FrameSight: a Warframe companion for Linux, Windows and the Steam Deck. No Overwolf, no account, no telemetry." width="100%">
 
-**A free and open-source, Rust-based Warframe companion for Linux, Windows and the Steam Deck.
-No Overwolf, no account, no telemetry.**
+<br>
 
-[![CI](https://github.com/Deftera186/tennoscope/actions/workflows/ci.yml/badge.svg)](https://github.com/Deftera186/tennoscope/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/Deftera186/tennoscope)](https://github.com/Deftera186/tennoscope/releases/latest)
-[![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg)](LICENSE)
-[![Platform: Linux | Windows | Steam Deck](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20Steam%20Deck-informational.svg)](#install)
-[![Built with Rust](https://img.shields.io/badge/built%20with-Rust-dea584)](https://www.rust-lang.org/)
+[![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-d8b04a?style=for-the-badge&labelColor=15181c)](LICENSE)
+[![Built with Rust](https://img.shields.io/badge/built%20with-Rust-e8ebef?style=for-the-badge&logo=rust&logoColor=e8ebef&labelColor=15181c)](https://www.rust-lang.org/)
+[![Tauri 2](https://img.shields.io/badge/Tauri-2-5f9fdb?style=for-the-badge&logo=tauri&logoColor=5f9fdb&labelColor=15181c)](https://tauri.app/)
+[![Platforms](https://img.shields.io/badge/Linux%20%C2%B7%20Windows%20%C2%B7%20Steam%20Deck-9aa1ab?style=for-the-badge&labelColor=15181c)](#-deploy)
 
-</div>
+<br>
 
-<div align="center">
-
-## Reward overlay
+*Tenno. The Void hides what every reward is worth.*<br>
+*FrameSight reads it for you, and never touches the game.*
 
 </div>
 
-See platinum and ducats under each reward the moment it appears. TennoScope sees the
-reward arrive in `EE.log`, reads the cards with Tesseract and draws the values under the
-row. With Full access it also marks what you own, what you are missing and what you still
-need for mastery. It prices the whole squad's relic pool using sellers who are in game
-right now, without taking focus from the game.
+<br>
 
-![The reward overlay on a Warframe Void Fissure reward screen, with platinum and ducat values and a mastery or ownership mark under each card](docs/screenshots/reward-overlay.png)
+<img src="docs/readme/divider.svg" alt="" width="100%">
 
-<div align="center">
+## ◈ Arsenal
 
-## Ducat Kiosk overlay
+<table>
+<tr>
+<td width="50%" valign="top">
 
-</div>
+### ◇ Void Fissure rewards
 
-Before you trade a Prime part for ducats, check what it is worth in platinum. TennoScope
-puts a platinum figure on every tile of the grid, carries each pick into the sell list, and
-totals the sell list as it fills. With Full access, tiles for parts of items you have not
-mastered, built or started building read Unmastered beside the price.
+Platinum and ducats under each reward card the moment the screen opens. FrameSight sees
+the reward arrive in `EE.log`, reads the cards with Tesseract and prices the whole squad's
+relic pool from sellers who are in game right now. With Full access it also marks what you
+own, what you are missing and what you still need for mastery.
 
-![The Ducat Kiosk overlay, with a platinum figure or an Unmastered strip on every Prime part tile, the picked items and their values in a sell list on the right, and a running total at the bottom](docs/screenshots/ducat-kiosk.png)
+</td>
+<td width="50%" valign="top">
 
-<div align="center">
+<img src="docs/screenshots/reward-overlay.png" alt="The reward overlay on a Void Fissure reward screen, with platinum and ducat values and a mastery or ownership mark under each card">
 
-## Collection
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-</div>
+<img src="docs/screenshots/ducat-kiosk.png" alt="The Ducat Kiosk overlay, with a platinum figure on every Prime part tile, a sell list on the right and a running total">
 
-Open one screen for gear, Prime parts, relics, resources, blueprints, mods and arcanes.
-Search by name, or filter to owned, mastered or missing gear. Full mode synchronizes when
-the game starts; Companion and Overlay keep the last collection visible as a timestamped
-saved snapshot.
+</td>
+<td width="50%" valign="top">
 
-![The collection browser, with tracked, mastered and missing counts, a collection worth in platinum and ducats at stake across the top, and platinum and ducat values on every item card](docs/screenshots/collection.png)
+### ◇ Baro Ki'Teer's Ducat Kiosk
 
-See platinum and ducat values side by side, per item and across your collection. Market
-prices come from a daily warframe.market trade summary, served by relics.run, with mods and
-arcanes priced at their actual rank.
+Before trading a Prime part for ducats, see what it is worth in platinum. Every tile gets a
+platinum figure, each pick lands in a sell list, and the list totals itself as it fills.
+With Full access, parts of gear you have not mastered or built read **Unmastered**.
 
-Prime parts use Baro Ki'Teer's posted ducat values. Sort by either currency or hide the
-ducat figures when you only care about platinum.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-<div align="center">
+### ◇ Collection & mastery
 
-## warframe.market integration
+Gear, Prime parts, relics, resources, blueprints, mods and arcanes on one screen. Search,
+filter to owned, mastered or missing, and sort by platinum or ducats. Prices come from a
+daily warframe.market summary served by relics.run, mods and arcanes at their actual rank.
 
-</div>
+</td>
+<td width="50%" valign="top">
 
-Connect warframe.market only if you want to. Once linked, TennoScope flags listings for
-items you no longer own or that oversell what you hold. You can also list, delist and change
-your online status without leaving the app.
+<img src="docs/screenshots/collection.png" alt="The collection browser, with tracked, mastered and missing counts, a collection worth in platinum and ducats, and values on every item card">
 
-![The warframe.market orders page, with the listed platinum total, a count needing attention, the online status buttons, and each sell order with a remove button](docs/screenshots/market-orders.png)
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-<div align="center">
+<img src="docs/screenshots/market-orders.png" alt="The warframe.market orders page, with the listed platinum total, a count needing attention, the online status buttons and each sell order">
 
-## You decide what it may touch
+</td>
+<td width="50%" valign="top">
 
-</div>
+### ◇ warframe.market
 
-Worried about third-party tools and your Warframe account? Fair. TennoScope asks
-up front: run as a Companion that never looks at the game, add Overlay screen
-reading for the reward advisor, or go Full for automatic inventory sync. Nothing
-starts until you confirm, and no mode ever writes to the game, automates input,
-or sends telemetry. Change your mind later and the lower mode retires everything it
-no longer permits before the switch completes.
+Link your account only if you want to. FrameSight flags listings for items you no longer
+own or that oversell what you hold, and lets you list, delist and change your online
+status without leaving the app.
 
-![The one-time setup screen, with Companion, Overlay and Full as the three access levels, and the list of what Full adds once it is picked](docs/screenshots/warframe-access.png)
+</td>
+</tr>
+</table>
+
+<img src="docs/readme/divider.svg" alt="" width="100%">
+
+## ◈ Access levels
+
+You choose what FrameSight may touch, before it observes Warframe. Nothing starts until you
+confirm, and lowering the level retires everything it no longer permits.
+
+| | Level | Reads | For |
+| :---: | --- | --- | --- |
+| ◇ | **Companion** | Nothing from the game | Collection snapshot, prices, market orders |
+| ◈ | **Overlay** | The screen and `EE.log` | Reward overlay, Ducat Kiosk overlay |
+| ◆ | **Full** | An account ID and nonce from the Warframe process | Automatic inventory sync, ownership and mastery marks |
 
 > [!IMPORTANT]
-> **Choose the access you want before TennoScope observes Warframe.** First run
-> selects no level and starts no running-game access until you pick and confirm one. Full reads an
-> account ID and a nonce from the Warframe process and sends them to
-> `mobile.warframe.com`'s inventory endpoint and nowhere else. Overlay does not read process
-> memory. TennoScope never writes to the game or automates an action. It is an unofficial
-> project and is not endorsed by Digital Extremes.
+> Full sends that account ID and nonce to `mobile.warframe.com`'s inventory endpoint and
+> nowhere else. Overlay never reads process memory. No level writes to the game, automates
+> input or sends telemetry.
+
+<img src="docs/readme/divider.svg" alt="" width="100%">
+
+## ◈ Deploy
+
+FrameSight has no packaged release of its own yet. Build it from source:
+
+```bash
+corepack enable
+cd app && pnpm install --frozen-lockfile
+pnpm tauri dev
+```
+
+You need Rust (pinned in [`rust-toolchain.toml`](rust-toolchain.toml)), Node with pnpm, the
+Tauri 2 system libraries, and `tesseract` with English data for the overlays. Per-system
+details are in the [install guide](docs/install.md) and [`packaging/`](packaging/README.md).
+
+- **Windows:** play Warframe in Borderless mode; exclusive fullscreen hides the overlay.
+- **Linux:** Warframe runs through Wine or Proton. Wine virtual-desktop mode also needs `xwininfo`.
+- **Language:** the screen readers match English item names, so a non-English client is not read.
+
+<img src="docs/readme/divider.svg" alt="" width="100%">
+
+## ◈ Origins
+
+FrameSight continues [TennoScope](https://github.com/Deftera186/tennoscope), created by
+Deftera186 and its contributors. The app and its packages still carry the TennoScope name
+while the rename lands.
 
 <div align="center">
 
-## Install
+<br>
+
+[Install guide](docs/install.md) ◇ [Docs](docs/README.md) ◇ [Contributing](CONTRIBUTING.md) ◇ [Changelog](CHANGELOG.md) ◇ [Security](SECURITY.md)
+
+<br>
+
+<sub>[GPL-3.0-only](LICENSE). FrameSight is an unofficial fan project, not affiliated with or endorsed by Digital Extremes.<br>
+Warframe and its artwork belong to Digital Extremes; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).</sub>
 
 </div>
-
-| System | How |
-| --- | --- |
-| Windows 10 or 11 | [Installer](https://github.com/Deftera186/tennoscope/releases/latest) |
-| Debian, Ubuntu | `sudo apt install tenno-scope` from this project's [APT repository](docs/install.md#debian-ubuntu-fedora) |
-| Fedora | `sudo dnf copr enable deftera/tennoscope && sudo dnf install tennoscope` |
-| Arch-based, incl. Steam Deck | `curl -O https://raw.githubusercontent.com/Deftera186/tennoscope/main/packaging/arch-bin/PKGBUILD && makepkg -si` |
-| Gentoo | `games-util/tennoscope-bin` from the [`deftera`](https://github.com/Deftera186/deftera-overlay) overlay |
-| Any other Linux | [AppImage](https://github.com/Deftera186/tennoscope/releases/latest) |
-
-- **Windows:** use Borderless display mode in Warframe. Exclusive fullscreen prevents
-  the overlay from appearing. SmartScreen will warn about the unsigned installer; choose
-  "More info", then "Run anyway".
-- **Linux:** Warframe runs through Wine or Proton. The overlays need `tesseract` with
-  English language data, and Wine virtual-desktop mode also needs `xwininfo`. The
-  collection works without either.
-- **Screens:** both readers match the English item names in the catalog, so a
-  non-English Warframe client is not read.
-
-Need help with a particular distribution, building from source or process permissions?
-See the [full install guide](docs/install.md).
-
-<div align="center">
-
-## License
-
-</div>
-
-[GPL-3.0-only](LICENSE). TennoScope is an unofficial project and is not endorsed by
-Digital Extremes. Warframe and its artwork belong to Digital Extremes; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-<p align="center">
-
-[Install guide](docs/install.md) · [Docs](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
-
-</p>
