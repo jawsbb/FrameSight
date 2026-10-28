@@ -1000,7 +1000,7 @@ function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effectiveMode
   return <div className="page">
     <div className="page-head">
       <h1 id="diagnostics-title" className="page-title">Diagnostics</h1>
-      <p className="page-note">Status messages never show temporary access values.</p>
+      <p className="page-note">Each service TennoScope depends on, and when it last worked. Messages never show tokens or other secrets.</p>
     </div>
     <ReportBlock health={view.health}/>
     <section className="page-section" aria-label="Diagnostics">
