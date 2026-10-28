@@ -585,6 +585,15 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
   .update-dot { background: ButtonText; }
 }
 
+/* A coarse pointer (the Steam Deck's touch screen): every control the main window offers is at
+   least 44px tall, and the title bar grows to hold its window controls. */
+@media (pointer: coarse) {
+  .shell { grid-template-rows: 44px minmax(0, 1fr); }
+  .nav-item, .stamp, .chip, .segmented button, .display-switch, .update-mark,
+  .link-button, .search input, .select select, .pagination button, .window-control { min-height: 44px; }
+  .pagination button { min-width: 44px; }
+}
+
 /* ------------------------------------------------------------------------------------------
    Reward slips, on the Rewards page and over the game, then the kiosk chips.
    Every size on a slip is a count of `--u`, one design pixel of the 1080p overlay: 1px on the
