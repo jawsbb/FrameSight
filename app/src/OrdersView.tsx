@@ -82,9 +82,7 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
       <button type="button" className="stamp" onClick={onRefresh} disabled={busy}>
         <span>{busy ? 'Refreshing…' : 'Refresh orders'}</span>
       </button>
-      <button type="button" className="stamp" onClick={onSignOut} disabled={busy}>
-        <span>Unlink account</span>
-      </button>
+      <ConfirmButton label="Unlink account" confirmLabel="Confirm unlink" busy={busy} onConfirm={onSignOut}/>
     </div>
 
     {!needsRelink && <PresenceSwitch presence={account.presence} busy={busy} onPresence={onPresence}/>}
@@ -165,10 +163,13 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
         disabled={busy}
         onClick={() => setEditing(true)}
       ><span>Edit listing</span></button>}
-      <RemoveControl
-        entry={entry}
+      {/* A flagged row's removal is the repair it asks for and goes on one press. */}
+      <ConfirmButton
+        label="Remove listing"
+        confirmLabel="Confirm remove"
+        skip={entry.status.state === 'missing'}
         busy={busy}
-        onRemove={onRemove}
+        onConfirm={() => onRemove(entry.order.id)}
       />
     </span>
     {held && editing && <SellForm
@@ -183,20 +184,20 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
 }
 
 /**
- * Taking a listing down, on any row rather than only the ones carrying a claim.
- *
- * A flagged row's removal is the repair the row is asking for and goes on one press. An ordinary
- * row's is a change of mind about something that is currently selling, and only that one can be a
- * misclick, so it asks again, in place. A modal for this would be a heavier interruption than
- * the action deserves, and would take the pointer away from the row it belongs to.
+ * A press that can be a misclick on something live (taking down a listing that is selling,
+ * unlinking the account), so it asks again, in place: the first press arms it, the second acts.
+ * A modal for this would be a heavier interruption than the action deserves, and would take the
+ * pointer away from what it belongs to. `skip` is for the case where the press is the repair the
+ * screen is asking for.
  */
-function RemoveControl({ entry, busy, onRemove }: {
-  entry: ReturnType<typeof sortOrders>[number]
+function ConfirmButton({ label, confirmLabel, skip = false, busy, onConfirm }: {
+  label: string
+  confirmLabel: string
+  skip?: boolean
   busy: boolean
-  onRemove: (orderId: string) => Promise<void>
+  onConfirm: () => Promise<void>
 }) {
   const [armed, setArmed] = useState(false)
-  const asked = entry.status.state === 'missing'
   return <button
     type="button"
     className={`stamp${armed ? ' armed' : ''}`}
@@ -205,10 +206,10 @@ function RemoveControl({ entry, busy, onRemove }: {
     // fire on whatever slid into its place.
     onBlur={() => setArmed(false)}
     onClick={() => {
-      if (asked || armed) return void onRemove(entry.order.id)
+      if (skip || armed) return void onConfirm()
       setArmed(true)
     }}
-  ><span>{armed ? 'Confirm remove' : 'Remove listing'}</span></button>
+  ><span>{armed ? confirmLabel : label}</span></button>
 }
 
 /**

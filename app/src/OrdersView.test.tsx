@@ -165,6 +165,22 @@ describe('the linked screen', () => {
     expect(handlers.onRemove).toHaveBeenCalledWith('fine')
   })
 
+  // Unlinking drops the credential, so it is a press that asks again, in place, like removing a
+  // listing that is selling. Moving focus away disarms it.
+  it('asks again before unlinking the account, and forgets the question on blur', async () => {
+    render(<OrdersView account={account()} {...handlers} busy={false} error={null} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Unlink account' }))
+    expect(handlers.onSignOut).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Confirm unlink' })).toHaveFocus()
+    await userEvent.tab()
+    expect(screen.getByRole('button', { name: 'Unlink account' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Unlink account' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm unlink' }))
+    expect(handlers.onSignOut).toHaveBeenCalledTimes(1)
+  })
+
   it('offers to lower an order that lists more than is owned', async () => {
     render(
       <OrdersView

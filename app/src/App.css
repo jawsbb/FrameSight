@@ -114,6 +114,7 @@
 }
 .stamp:hover:not(:disabled) { border-color: var(--text-faint); background: var(--line); }
 .stamp:disabled { opacity: .5; cursor: not-allowed; }
+.stamp.armed, .stamp.armed:hover { border-color: var(--danger); color: var(--danger); }
 .stamp.primary, .access-detail-body .stamp { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .stamp.primary:hover:not(:disabled), .access-detail-body .stamp:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
 
@@ -504,7 +505,6 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
 .line-claim { min-width: 0; overflow: hidden; color: var(--danger); font-size: .8125rem; text-overflow: ellipsis; white-space: nowrap; }
 .line-fix { display: flex; justify-content: flex-end; gap: 4px; min-width: 0; }
 .line-fix .stamp { min-height: 30px; white-space: nowrap; }
-.line-fix .stamp.armed { border-color: var(--danger); color: var(--danger); }
 .docket-line .sell-form { grid-column: 1 / -1; }
 
 .sell-form { display: flex; flex-wrap: wrap; gap: var(--tight); padding-top: var(--tight); border-top: 1px solid var(--line); }
