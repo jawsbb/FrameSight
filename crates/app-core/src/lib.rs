@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
 
 mod fake_session;
-mod relics;
 mod foundry;
+mod relics;
 
 pub use foundry::{
     FoundryItem, FoundryPiece, FoundryResource, FoundryStage, FoundryStatus, FoundryView,

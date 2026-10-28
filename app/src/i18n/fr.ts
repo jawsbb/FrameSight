@@ -226,6 +226,7 @@ export const fr: Messages = {
     emptySnapshot: 'Aucune relique dans l’instantané enregistré',
     emptySnapshotDetail: 'L’accès Complet lit l’inventaire. Les valeurs des reliques fonctionnent aussi depuis un instantané.',
     noMatch: 'Aucune relique ne correspond',
+  },
   foundry: {
     title: 'Fonderie',
     stages: { ready: 'Prêt à construire', almost: 'Presque', set: 'Sets Prime à compléter' },

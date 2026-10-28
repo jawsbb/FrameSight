@@ -610,6 +610,8 @@ async fn get_relics(state: State<'_, SharedRuntime>) -> Result<app_core::RelicsV
     })
     .await
     .map_err(|_| "relics view task failed".to_owned())?
+}
+
 /// The Foundry page: built from the collection, catalogue and prices already in memory.
 #[tauri::command]
 async fn get_foundry(state: State<'_, SharedRuntime>) -> Result<app_core::FoundryView, String> {

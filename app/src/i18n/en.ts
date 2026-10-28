@@ -230,6 +230,7 @@ export const en = {
     emptySnapshot: 'No relics in the saved snapshot',
     emptySnapshotDetail: 'Full access reads the inventory. Relic values work from a saved snapshot too.',
     noMatch: 'No matching relics',
+  },
   foundry: {
     title: 'Foundry',
     stages: { ready: 'Ready to build', almost: 'Almost there', set: 'Prime sets to complete' },
