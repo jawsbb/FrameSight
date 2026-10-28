@@ -95,6 +95,9 @@ see the difference.
 
 ### Fixed
 
+- **The warframe.market status switch reaches the site again.** The presence socket's handshake
+  named no User-Agent, and Cloudflare in front of `ws.warframe.market` answers that with a 403
+  challenge, so online, in game and invisible never left the app. It now sends the app's own.
 - **A day of trades counts once in an item's sales pace.** The daily warframe.market summary is
   published a day or two late, so most launches download the file the cache was built from, and
   each time that same day was averaged into the monthly trade rate again, dragging every listing

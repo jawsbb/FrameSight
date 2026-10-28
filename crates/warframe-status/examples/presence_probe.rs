@@ -112,6 +112,7 @@ fn main() -> Result<(), String> {
         .uri(SOCKET_URL)
         .header("Sec-WebSocket-Protocol", SUBPROTOCOL)
         .header("Host", "ws.warframe.market")
+        .header("User-Agent", warframe_market::USER_AGENT)
         .header("Connection", "Upgrade")
         .header("Upgrade", "websocket")
         .header("Sec-WebSocket-Version", "13")
