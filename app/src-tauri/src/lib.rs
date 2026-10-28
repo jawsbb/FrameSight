@@ -577,6 +577,23 @@ async fn get_view(state: State<'_, SharedRuntime>) -> Result<AppView, String> {
     .map_err(|_| "application view task failed".to_owned())?
 }
 
+/// The Foundry page: built from the collection, catalogue and prices already in memory.
+#[tauri::command]
+async fn get_foundry(state: State<'_, SharedRuntime>) -> Result<app_core::FoundryView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let runtime = shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?;
+        runtime
+            .core
+            .foundry_view()
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|_| "foundry view task failed".to_owned())?
+}
+
 /// Assemble the GitHub-safe report text only (used by "Copy diagnostics").
 #[tauri::command]
 async fn collect_report_text(
@@ -2238,6 +2255,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_view,
+            get_foundry,
             get_setup_status,
             get_preferences,
             set_mastery_marks,

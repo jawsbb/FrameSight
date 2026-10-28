@@ -441,6 +441,11 @@ impl CatalogIndex {
             .collect()
     }
 
+    /// Every Prime recipe the catalogue knows, by parent path.
+    pub fn recipes(&self) -> impl Iterator<Item = &Recipe> {
+        self.recipes.values()
+    }
+
     /// The Prime recipe for a parent item's path, if the catalogue knows one.
     pub fn recipe(&self, parent: &str) -> Option<&Recipe> {
         self.recipes.get(parent)
