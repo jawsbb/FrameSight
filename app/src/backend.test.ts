@@ -8,6 +8,7 @@ import {
   closeOrder,
   getSetupStatus,
   marketLinkToken,
+  marketRowOrders,
   marketSignIn,
   marketSignOut,
   marketStatus,
@@ -124,6 +125,14 @@ describe('typed Tauri command bridge', () => {
     invoke.mockResolvedValueOnce({})
     await closeOrder('order-one', 2)
     expect(invoke).toHaveBeenCalledWith('close_order', { orderId: 'order-one', quantity: 2 })
+  })
+
+  it('asks for a collection row\'s live book by its row id', async () => {
+    invoke.mockResolvedValueOnce({ sell: [], buy: [], fetched_at: 0 })
+    await marketRowOrders('/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod#10')
+    expect(invoke).toHaveBeenCalledWith('market_row_orders', {
+      collectionId: '/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod#10',
+    })
   })
   it('pins the offered version on the install call', async () => {
     invoke.mockResolvedValueOnce({ version: '0.12.0' })

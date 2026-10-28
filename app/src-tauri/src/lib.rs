@@ -2448,6 +2448,7 @@ pub fn run() {
             market_lookup::market_search,
             market_lookup::market_board,
             market_lookup::market_item_orders,
+            market_lookup::market_row_orders,
             market_lookup::market_item_history,
             world_state::get_world_state,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]

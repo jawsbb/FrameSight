@@ -18,9 +18,14 @@ use app_core::{AppCore, MarketBoard};
 use serde::Serialize;
 use tauri::State;
 use warframe_acquisition::{PriceTable, relic_base, slug_and_subtype};
-use warframe_market::{DayTrades, ItemOrders, ItemSummary, MarketHttp, MarketItems};
+use warframe_market::{
+    DayTrades, ItemOrders, ItemSummary, Listing, LiveOrder, MarketHttp, MarketItems,
+};
 
-use crate::{SharedRuntime, market_account::failure_message};
+use crate::{
+    SharedRuntime,
+    market_account::{authorize_sell, failure_message},
+};
 
 const SEARCH_LIMIT: usize = 10;
 /// How long one item's live orders are reused. Long enough that going back and forth between two
@@ -277,6 +282,48 @@ fn orders_blocking(
     )
 }
 
+/// The orders in a book that trade the listing a collection row would publish: the same rank and
+/// the same subtype. A plain item's orders carry no rank where a mod's unranked stack is quoted at
+/// rank 0, and both are the bottom of the item, so the two read as one; a subtype is matched as
+/// the market spells it.
+fn for_listing(book: ItemOrders, listing: Listing<'_>) -> ItemOrders {
+    let same = |order: &LiveOrder| {
+        order.rank.unwrap_or(0) == listing.rank.unwrap_or(0)
+            && order.subtype.as_deref() == listing.subtype
+    };
+    ItemOrders {
+        sell: book.sell.into_iter().filter(same).collect(),
+        buy: book.buy.into_iter().filter(same).collect(),
+    }
+}
+
+/// The live book for one collection row, narrowed to the copy that row holds.
+///
+/// The row resolves the way a sell does, through `authorize_sell`, so a row this device does not
+/// hold or cannot list is refused with the same words, and the book asked for is the one a listing
+/// from it would join. Fetched and cached by slug like any other item, then narrowed: a maxed mod
+/// and its unranked stack share one book and one request.
+fn row_orders_blocking(
+    shared: &SharedRuntime,
+    lookup: &MarketLookup,
+    collection_id: &str,
+) -> Result<MarketItemOrders, String> {
+    let items = item_table(shared, lookup)?;
+    let collection = shared
+        .lock()
+        .map_err(|_| STATE_UNAVAILABLE)?
+        .core
+        .collection_for_reconciliation()
+        .map_err(|_| "the collection could not be read")?;
+    let listing = authorize_sell(&items, &collection, collection_id).map_err(str::to_owned)?;
+    let slug = items.slug(listing.item_id).ok_or(NOT_AN_ITEM)?;
+    let book = orders_blocking(shared, lookup, slug)?;
+    Ok(MarketItemOrders {
+        orders: for_listing(book.orders, listing),
+        ..book
+    })
+}
+
 /// The daily curve of an item the price table names, resolved to a slug here.
 fn history_blocking(
     shared: &SharedRuntime,
@@ -340,6 +387,21 @@ pub async fn market_item_orders(
     tauri::async_runtime::spawn_blocking(move || orders_blocking(&shared, &lookup, &slug))
         .await
         .map_err(|_| "market orders task failed".to_owned())?
+}
+
+/// Who is trading the copy one collection row holds, for the Orders page's rows.
+#[tauri::command]
+pub async fn market_row_orders(
+    collection_id: String,
+    state: State<'_, SharedRuntime>,
+    lookup: State<'_, MarketLookup>,
+) -> Result<MarketItemOrders, String> {
+    let (shared, lookup) = (Arc::clone(state.inner()), lookup.inner().clone());
+    tauri::async_runtime::spawn_blocking(move || {
+        row_orders_blocking(&shared, &lookup, &collection_id)
+    })
+    .await
+    .map_err(|_| "market orders task failed".to_owned())?
 }
 
 #[cfg(test)]
@@ -409,6 +471,67 @@ mod tests {
         assert_eq!(found["Serration"].item.slug, "serration");
         assert_eq!(found["Axi A1 Relic (Radiant)"].item.slug, "axi_a1_relic");
         assert!(!found.contains_key("Unlisted Thing"));
+    }
+
+    fn live(rank: Option<u32>, subtype: Option<&str>) -> LiveOrder {
+        LiveOrder {
+            user: "Trader".to_owned(),
+            status: warframe_market::TraderStatus::Ingame,
+            platinum: 10,
+            quantity: 1,
+            per_trade: 1,
+            rank,
+            subtype: subtype.map(str::to_owned),
+        }
+    }
+
+    fn listing(rank: Option<u32>, subtype: Option<&str>) -> Listing<'_> {
+        Listing {
+            item_id: "item",
+            rank,
+            subtype,
+            per_trade: None,
+        }
+    }
+
+    #[test]
+    fn a_row_keeps_only_the_orders_for_the_copy_it_holds() {
+        let book = ItemOrders {
+            sell: vec![live(Some(0), None), live(Some(10), None), live(None, None)],
+            buy: vec![live(Some(10), None), live(Some(3), None)],
+        };
+
+        // A maxed mod: only its ceiling.
+        let maxed = for_listing(book.clone(), listing(Some(10), None));
+        assert_eq!(maxed.sell, [live(Some(10), None)]);
+        assert_eq!(maxed.buy, [live(Some(10), None)]);
+
+        // The unranked stack and a plain item are both the bottom: rank 0 and no rank alike.
+        let unranked = for_listing(book.clone(), listing(Some(0), None));
+        assert_eq!(unranked.sell, [live(Some(0), None), live(None, None)]);
+        assert!(unranked.buy.is_empty());
+        assert_eq!(
+            for_listing(book, listing(None, None)).sell,
+            unranked.sell,
+            "a plain item reads rank 0 and no rank the same way"
+        );
+    }
+
+    #[test]
+    fn a_relic_row_keeps_only_its_refinement() {
+        let book = ItemOrders {
+            sell: vec![
+                live(None, Some("intact")),
+                live(None, Some("radiant")),
+                live(None, None),
+            ],
+            buy: vec![live(None, Some("radiant"))],
+        };
+
+        let radiant = for_listing(book, listing(None, Some("radiant")));
+
+        assert_eq!(radiant.sell, [live(None, Some("radiant"))]);
+        assert_eq!(radiant.buy, [live(None, Some("radiant"))]);
     }
 
     #[test]

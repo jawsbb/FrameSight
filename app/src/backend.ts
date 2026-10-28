@@ -243,6 +243,8 @@ export interface LiveOrder { user: string; status: TraderStatus; platinum: numbe
 export interface MarketItemOrders { sell: LiveOrder[]; buy: LiveOrder[]; fetched_at: number }
 export const marketSearch = (query: string) => invoke<MarketSearch>('market_search', { query })
 export const marketItemOrders = (slug: string) => invoke<MarketItemOrders>('market_item_orders', { slug })
+/** The live book narrowed to the copy one collection row holds: its rank, its relic refinement. */
+export const marketRowOrders = (collectionId: string) => invoke<MarketItemOrders>('market_row_orders', { collectionId })
 /** One variant's day on warframe.market (a change row: one item). `median` is what it traded at, or on a
  * change row the price the change is measured on; `traded` the platinum that changed hands; `change` the
  * 7-day move, 0.22 for +22%. */
