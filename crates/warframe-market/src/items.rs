@@ -390,6 +390,16 @@ impl MarketItems {
         self.entries.get(item_id)?.name.as_deref()
     }
 
+    /// The URL name of this item, what its live order book is addressed by.
+    pub fn slug(&self, item_id: &str) -> Option<&str> {
+        Some(self.entries.get(item_id)?.slug.as_str()).filter(|slug| !slug.is_empty())
+    }
+
+    /// The absolute address of this item's picture, as a search hit carries it.
+    pub fn thumb_url(&self, item_id: &str) -> Option<String> {
+        self.entries.get(item_id)?.thumb_url()
+    }
+
     pub fn len(&self) -> usize {
         self.entries.len()
     }
@@ -416,9 +426,13 @@ impl ItemEntry {
             id: id.to_owned(),
             slug: self.slug.clone(),
             name: self.name.clone()?,
-            thumb_url: self.thumb.as_ref().map(|thumb| format!("{ASSETS}{thumb}")),
+            thumb_url: self.thumb_url(),
             max_rank: self.max_rank,
         })
+    }
+
+    fn thumb_url(&self) -> Option<String> {
+        self.thumb.as_ref().map(|thumb| format!("{ASSETS}{thumb}"))
     }
 
     /// The listing for a row whose path is this entry's own `gameRef`.

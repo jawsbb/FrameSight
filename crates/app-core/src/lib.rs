@@ -1392,6 +1392,10 @@ pub struct ReconciledOrder {
     /// the order's `item_id` and the row's key are namespaces that share nothing, and only the
     /// item table joins them.
     pub row_id: Option<String>,
+    /// The item's picture on warframe.market, absolute, for the row.
+    pub thumb_url: Option<String>,
+    /// warframe.market's URL name for the item, which addresses its live order book.
+    pub slug: Option<String>,
     pub status: OrderStatus,
 }
 
@@ -1424,6 +1428,8 @@ pub fn reconcile_orders(
             order: order.clone(),
             name: items.name(&order.item_id).map(str::to_owned),
             row_id: items.row_of(&order.item_id, order.rank, order.subtype.as_deref()),
+            thumb_url: items.thumb_url(&order.item_id),
+            slug: items.slug(&order.item_id).map(str::to_owned),
             status: status_for(order, items, &owned, snapshot),
         })
         .collect()
