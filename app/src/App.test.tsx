@@ -443,6 +443,8 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Rewards/ }))
     expect(screen.getByText(/Companion does not read the reward screen/i)).toBeInTheDocument()
     expect(screen.getByRole('article', { name: 'Lex Prime Receiver' })).toHaveTextContent('Unverifiable')
+    // Unverifiable is Companion working as chosen, so it wears the neutral dashed tone, not doubt's.
+    expect(within(screen.getByRole('article', { name: 'Lex Prime Receiver' })).getByText('Unverifiable')).toHaveClass('unverifiable')
     expect(screen.getByRole('article', { name: 'Lex Prime Receiver' })).not.toHaveTextContent(/Owned|Not owned/)
   })
 

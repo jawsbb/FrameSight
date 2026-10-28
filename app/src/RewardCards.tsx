@@ -113,7 +113,8 @@ export function RewardCards({
               ? card.owned > 0
                 ? <span className="hallmark owned">Owned ×{card.owned}</span>
                 : <span className="hallmark absent">Not owned</span>
-              : <span className="hallmark doubt">Unverifiable</span>}
+              // Companion reads nothing from the game, so this is the mode working, not a doubt.
+              : <span className="hallmark unverifiable">Unverifiable</span>}
             {uncertain && <span className="hallmark doubt">Uncertain · {Math.round(card.confidence * 100)}%</span>}
           </div>}
     </article>
