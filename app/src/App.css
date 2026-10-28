@@ -531,6 +531,14 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .access-always-off h3 { margin: 0; color: var(--text-dim); font-size: .75rem; font-weight: 600; white-space: nowrap; }
 .access-always-off ul { display: flex; flex-wrap: wrap; gap: 4px var(--step); margin: 0; padding: 0; list-style: none; }
 
+/* An item picture, contained rather than cropped, on the well so transparent art reads. */
+.thumb {
+  display: grid; place-items: center; width: 56px; height: 56px; flex: none; overflow: hidden;
+  border-radius: var(--radius-sm); background: var(--well);
+  color: var(--text-faint); font-size: .75rem; font-weight: 600;
+}
+.thumb img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
+
 /* orders */
 
 .clause-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--tight); }

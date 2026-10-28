@@ -15,16 +15,9 @@
   min-height: 36px; padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer;
 }
 .market-suggestions li[aria-selected="true"] { background: var(--fill); }
-.market-suggestions .market-thumb { width: 28px; height: 28px; }
+.market-suggestions .thumb { width: 28px; height: 28px; }
 .suggestion-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .suggestion-pace { color: var(--text-faint); font-size: .75rem; font-variant-numeric: tabular-nums; text-align: right; }
-
-.market-thumb {
-  display: grid; place-items: center; width: 56px; height: 56px; flex: none; overflow: hidden;
-  border-radius: var(--radius-sm); background: var(--well);
-  color: var(--text-faint); font-size: .75rem; font-weight: 600;
-}
-.market-thumb img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
 
 .market-recent { display: grid; gap: 4px; }
 .market-back { justify-self: start; }
@@ -103,7 +96,7 @@ button.ranked-row:hover { background: var(--fill); }
 button.ranked-row:focus-visible { outline-offset: -2px; }
 .ranked-head { min-height: 0; padding-block: 8px 6px; color: var(--text-faint); font-size: .75rem; }
 .ranked-head > :nth-child(n+3), .ranked-figure { text-align: right; }
-.ranked-row .market-thumb { width: 28px; height: 28px; }
+.ranked-row .thumb { width: 28px; height: 28px; }
 .ranked-name { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
 .ranked-name > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .ranked-figure { color: var(--text-dim); }

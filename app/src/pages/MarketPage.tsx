@@ -10,6 +10,7 @@ import { Platinum } from '../components/Platinum'
 import { Change } from '../components/Change'
 import { EmptyState } from '../components/EmptyState'
 import { Icon } from '../components/Icon'
+import { Thumb } from '../components/Thumb'
 import { backendReason, shortDate, useMessages, type Messages } from '../i18n'
 import { boardName, rememberViewed, viewedRecently, whisper, type Side, type Viewed } from '../market'
 import './MarketPage.css'
@@ -23,15 +24,6 @@ function withReason(failure: string, reason: unknown, t: Messages): string {
   if (typeof reason !== 'string' || !reason.trim()) return failure
   const text = backendReason(reason.trim().replace(/\.$/, ''), t)
   return `${failure} ${/^\S+\.\S/.test(text) ? text : text[0].toUpperCase() + text.slice(1)}.`
-}
-
-function Thumb({ hit, name = hit?.name ?? '' }: { hit: MarketHit | undefined; name?: string }) {
-  const [failed, setFailed] = useState(false)
-  return <span className="market-thumb">
-    {hit?.thumb_url && !failed
-      ? <img src={hit.thumb_url} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)}/>
-      : <span aria-hidden="true">{name.slice(0, 2)}</span>}
-  </span>
 }
 
 /** Ringed dot in game, plain dot online: the title bar's marks for the same two states. */
@@ -195,7 +187,7 @@ export function MarketPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }
           onMouseEnter={() => setActive(index)}
           onClick={() => pick(hit)}
         >
-          <Thumb hit={hit}/>
+          <Thumb src={hit.thumb_url} name={hit.name}/>
           <span className="suggestion-name">{hit.name}</span>
           {hit.median !== null && <span className="value plat"><MetalMark metal="plat" alt={t.card.platinum}/><b>{figure(hit.median, t)}</b></span>}
           <span className="suggestion-pace">{hit.monthly_trades ? m.pace(hit.monthly_trades) : ''}</span>
@@ -305,7 +297,7 @@ function Ranked({ title, figure: figureTitle, rows, hits, value, note, empty, co
             const hit = hits[row.name]
             const name = boardName(row, t)
             const cells = <>
-              <Thumb hit={hit} name={name}/>
+              <Thumb src={hit?.thumb_url} name={name}/>
               <span className="ranked-name">
                 <span>{name}</span>
                 {row.rank !== null && <span className="tag">{t.marketPage.rank(row.rank)}</span>}
@@ -354,7 +346,7 @@ function ItemSheet({ viewed, view, ownershipVerified, orders, clock, selling, on
 
   return <article className="market-item" aria-labelledby="market-item-name">
     <div className="market-item-head">
-      <Thumb hit={hit}/>
+      <Thumb src={hit.thumb_url} name={hit.name}/>
       <div className="market-item-title">
         <h2 id="market-item-name">{hit.name}</h2>
         <div className="tags">
