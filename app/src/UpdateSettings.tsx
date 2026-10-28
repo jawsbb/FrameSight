@@ -6,9 +6,9 @@ import { dismissedCount, readUpdateAutoCheck, readUpdatePrerelease, writeUpdateA
 import { checkForUpdatesNow, dismissOffered, downloadUpdate, isMeteredConnection, restartToUpdate, useUpdateNotice, useUpdateStore } from './updateStore'
 
 
-/** The masthead's dedicated update mark: offered and downloaded states share one
- *  diamond and never borrow assay-state grammar. The sr-only status line stays
- *  mounted so async arrival is always announced. */
+/** The sidebar's update mark: offered and downloaded states share one dot and
+ *  never borrow the reader-state icons. The sr-only status line stays mounted so
+ *  async arrival is always announced. */
 export function UpdateMark({ onOpen }: { onOpen: () => void }) {
   const notice = useUpdateNotice()
   return <>

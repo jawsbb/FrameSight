@@ -22,7 +22,7 @@ import ducatMark from './assets/ducats.png'
  * Sized by the caller, and never below about 18px: these are rendered objects rather than flat
  * marks, and below that the canister loses its dark chip and reads as a grey lozenge. That floor is
  * why every placement sizes the mark independently of the text it sits with, instead of scaling
- * with it. See `.metal-label`, `.price` and `.band-figure` in App.css.
+ * with it. See `.metal-label`, `.value` and `.stat` in App.css.
  */
 export function MetalMark({ metal, alt = '', className = 'metal-mark' }: {
   metal: 'plat' | 'ducat'

@@ -112,7 +112,7 @@ describe('report block on Diagnostics', () => {
     expect(screen.queryByRole('group', { name: 'Report a problem' })).toBeNull()
   })
 
-  it('copy shows the COPIED. PASTE IT INTO THE DIAGNOSTICS FIELD status', async () => {
+  it('copy says to paste it into the diagnostics field', async () => {
     const health = readyHealth()
     health.market = { state: 'failed', message: 'market offline', last_success: null }
     backend.getView.mockResolvedValue(makeView(health))
@@ -120,7 +120,7 @@ describe('report block on Diagnostics', () => {
     const user = await openDiagnostics()
     await user.click(within(screen.getByRole('group', { name: 'Report a problem' })).getByRole('button', { name: 'Copy diagnostics' }))
     expect(report.copyReport).toHaveBeenCalledOnce()
-    expect(screen.getByText('COPIED. PASTE IT INTO THE DIAGNOSTICS FIELD OF THE ISSUE FORM.')).toBeVisible()
+    expect(screen.getByText('Copied. Paste it into the diagnostics field of the issue form.')).toBeVisible()
   })
 
   it('save shows the folder path and the sanitized note when EE.log is included', async () => {
@@ -131,8 +131,8 @@ describe('report block on Diagnostics', () => {
     const user = await openDiagnostics()
     await user.click(within(screen.getByRole('group', { name: 'Report a problem' })).getByRole('button', { name: 'Save logs' }))
     expect(report.saveReport).toHaveBeenCalledOnce()
-    expect(screen.getByText(/SAVED TO \/tmp\/reports\/2026-08-05-141233/)).toBeVisible()
-    expect(screen.getByText(/EE\.LOG INCLUDED \(SANITIZED\)\. SAFE TO ATTACH TO THE ISSUE\./)).toBeVisible()
+    expect(screen.getByText(/Saved to \/tmp\/reports\/2026-08-05-141233/)).toBeVisible()
+    expect(screen.getByText(/EE\.log included \(sanitized\), safe to attach to the issue\./)).toBeVisible()
   })
 
   it('open issue calls openIssue', async () => {

@@ -383,7 +383,6 @@ describe('MVP desktop interface', () => {
     expect(screen.getAllByText(/Overlay or Full access is required/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('region', { name: 'What Companion adds' })).toHaveTextContent(/Nothing read from Warframe.*saved data.*prices.*trading/i)
     expect(screen.getByText('Using saved and reference data')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'About' }))
     expect(screen.getByText(/Companion does not observe the running game process or EE\.log/i)).toBeInTheDocument()
     expect(screen.getByText(/Inventory synchronization is available only in Full access/i)).toBeInTheDocument()
   })
@@ -392,7 +391,7 @@ describe('MVP desktop interface', () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'companion', desktop_capture_action_available: false })
     render(<App />)
     // Prices come from the dump and explicit checks, not the game: no ownership to verify.
-    const priceButton = await screen.findByRole('button', { name: /Price these/ })
+    const priceButton = await screen.findByRole('button', { name: /Price this page/ })
     expect(priceButton).toBeEnabled()
     await userEvent.click(priceButton)
     expect(backend.refreshPrices).toHaveBeenCalledOnce()
@@ -419,7 +418,7 @@ describe('MVP desktop interface', () => {
     expect(screen.getByRole('heading', { name: 'Saved snapshot' })).toBeInTheDocument()
     expect(screen.getByText('Companion mode')).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Rewards' }))
+    await userEvent.click(screen.getByRole('button', { name: /^Rewards/ }))
     expect(screen.getByText(/Live reward observation is inactive in Companion/i)).toBeInTheDocument()
     expect(screen.getByRole('article', { name: 'Lex Prime Receiver' })).toHaveTextContent('Unverifiable')
     expect(screen.getByRole('article', { name: 'Lex Prime Receiver' })).not.toHaveTextContent(/Owned|Not owned/)
@@ -447,9 +446,10 @@ describe('MVP desktop interface', () => {
     expect(await screen.findByRole('heading', { name: 'Your collection' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeInTheDocument()
     expect(screen.getByText('8', { selector: '[data-summary="items"] *' })).toBeInTheDocument()
-    expect(screen.getByText('2', { selector: '[data-summary="mastered"] *' })).toBeInTheDocument()
-    expect(screen.getByText('50% of mastery-eligible items')).toBeInTheDocument()
-    expect(screen.getByRole('list', { name: 'Collection items' })).toHaveClass('collection-grid')
+    // Mastery has one home: the collection points there rather than counting it a second time.
+    expect(document.querySelector('[data-summary="mastered"]')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Mastery progress' })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Collection items' })).toHaveClass('card-grid')
     expect(screen.getByRole('article', { name: 'Rhino' })).toHaveTextContent('Mastered')
   })
 
@@ -503,7 +503,7 @@ describe('MVP desktop interface', () => {
     for (const label of ['Frame', 'Weapon', 'Companion', 'Prime Parts', 'Relic', 'Resource', 'Blueprint', 'Vehicle', 'Mod', 'Arcane']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
-    await userEvent.click(within(screen.getByRole('group', { name: 'Sort collection' })).getByRole('button', { name: 'Quantity' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort collection' }), 'Quantity')
     const cards = screen.getAllByRole('article').filter(node => node.closest('[aria-label="Collection items"]'))
     expect(cards[0]).toHaveAccessibleName('Lith A1 Relic')
   })
@@ -516,7 +516,7 @@ describe('MVP desktop interface', () => {
     expect(await screen.findByText('Loading your local collection…')).toBeInTheDocument()
     await act(async () => resolveView?.({ ...view, collection: { items: [], total_entries: 0 }, reward: { cards: [], best_value_index: null, best_ducat_index: null } }))
     expect(screen.getByText(/No inventory items yet/i)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Rewards' }))
+    await userEvent.click(screen.getByRole('button', { name: /^Rewards/ }))
     expect(screen.getByText(/No reward choices detected/i)).toBeInTheDocument()
     backend.refreshInventory.mockRejectedValueOnce(new Error('synthetic'))
     await userEvent.click(screen.getByRole('button', { name: 'Refresh inventory' }))
@@ -530,7 +530,7 @@ describe('MVP desktop interface', () => {
 
     expect(await screen.findByRole('heading', { name: 'No inventory items yet' })).toBeInTheDocument()
     expect(screen.queryByRole('searchbox', { name: 'Search collection' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('group', { name: 'Sort collection' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Sort collection' })).not.toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Item categories' })).not.toBeInTheDocument()
   })
 
@@ -557,7 +557,7 @@ describe('MVP desktop interface', () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App />)
     await screen.findByRole('heading', { name: 'Your collection' })
-    await userEvent.click(screen.getByRole('button', { name: 'Rewards' }))
+    await userEvent.click(screen.getByRole('button', { name: /^Rewards/ }))
     const advisor = screen.getByRole('region', { name: 'Reward advisor' })
     expect(within(advisor).getAllByRole('article')).toHaveLength(4)
     expect(within(advisor).getByRole('article', { name: 'Forma Blueprint' })).toHaveTextContent('Top plat')
@@ -594,7 +594,7 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Hide reward overlay' }))
     expect(overlay.hideRewardOverlay).toHaveBeenCalledOnce()
 
-    await userEvent.click(screen.getByRole('button', { name: 'About' }))
+    expect(screen.getByRole('heading', { name: 'About' })).toBeInTheDocument()
     expect(screen.getByText(/stored on this device/i)).toBeInTheDocument()
   })
 
@@ -693,7 +693,7 @@ describe('MVP desktop interface', () => {
     await screen.findByRole('heading', { name: 'Your collection' })
 
     const navigation = screen.getByRole('navigation', { name: 'Primary' })
-    expect(within(navigation).getAllByRole('button')).toHaveLength(7)
+    expect(within(navigation).getAllByRole('button')).toHaveLength(6)
     expect(within(navigation).queryByRole('button', { name: 'Refresh inventory' })).not.toBeInTheDocument()
     const operations = screen.getByRole('region', { name: 'Runtime operations' })
     expect(within(operations).getByRole('button', { name: 'Refresh inventory' })).toBeInTheDocument()
@@ -821,9 +821,9 @@ describe('MVP desktop interface', () => {
     await screen.findByRole('heading', { name: 'Your collection' })
     await userEvent.click(screen.getByRole('button', { name: 'Refresh inventory' }))
     expect(backend.refreshInventory).toHaveBeenCalledOnce()
-    // The reader's own state is announced in the masthead; the sheet below carries its own status
-    // regions, so this is scoped to the one that speaks for the reader.
-    expect(within(screen.getByRole('banner')).getAllByRole('status').find(node => node.textContent)).toHaveTextContent(/Watching|Attention/)
+    // The reader's own state is announced in the sidebar; the page carries its own status regions,
+    // so this is scoped to the one that speaks for the reader.
+    expect(within(screen.getByRole('region', { name: 'Runtime operations' })).getAllByRole('status').find(node => node.textContent)).toHaveTextContent(/Watching|Attention/)
   })
 
   it('does not let an older poll overwrite a newer manual refresh', async () => {
@@ -867,7 +867,7 @@ describe('MVP desktop interface', () => {
     backend.refreshPrices.mockImplementationOnce(() => new Promise(() => {}))
     render(<App />)
     await act(async () => {})
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Price these/ })) })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Price this page/ })) })
     await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
     expect(backend.getView).toHaveBeenCalledTimes(3)
   })
@@ -920,28 +920,6 @@ describe('MVP desktop interface', () => {
     expect(screen.getByText('5', { selector: '[data-summary="items"] *' })).toBeInTheDocument()
   })
 
-  it('counts mastery only across mastery-eligible categories', async () => {
-    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
-    backend.getView.mockResolvedValue({
-      ...view,
-      collection: {
-        total_entries: 8,
-        items: [
-          { id: 'frame', name: 'Frame', category: 'frame', quantity: 1, mastered: true, live: false },
-          { id: 'weapon', name: 'Weapon', category: 'weapon', quantity: 1, mastered: false, live: false },
-          { id: 'companion', name: 'Companion', category: 'companion', quantity: 1, mastered: false, live: false },
-          { id: 'vehicle', name: 'Vehicle', category: 'vehicle', quantity: 1, mastered: true, live: false },
-          { id: 'part', name: 'Part', category: 'prime_part', quantity: 1, mastered: false, live: false },
-          { id: 'resource', name: 'Resource', category: 'resource', quantity: 1, mastered: false, live: false },
-          { id: 'mod', name: 'Mod', category: 'mod', quantity: 12, mastered: false, live: false },
-          { id: 'arcane', name: 'Arcane', category: 'arcane', quantity: 3, mastered: false, live: false },
-        ],
-      },
-    })
-    render(<App />)
-    expect(await screen.findByText('50% of mastery-eligible items')).toBeInTheDocument()
-  })
-
   it('orders unmastered equipment first, then mastered, then what earns no mastery', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     backend.getView.mockResolvedValue({
@@ -958,7 +936,7 @@ describe('MVP desktop interface', () => {
     })
     render(<App />)
     await screen.findByRole('heading', { name: 'Your collection' })
-    await userEvent.click(within(screen.getByRole('group', { name: 'Sort collection' })).getByRole('button', { name: 'Unmastered first' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort collection' }), 'Unmastered first')
     const names = screen.getAllByRole('article')
       .filter(node => node.closest('[aria-label="Collection items"]'))
       .map(node => node.getAttribute('aria-label'))
@@ -984,7 +962,7 @@ describe('MVP desktop interface', () => {
       .map(node => node.getAttribute('aria-label'))
     expect(names).toEqual(['Skana', 'Excalibur', 'Furis'])
     expect(screen.getByText('2', { selector: '[data-summary="mastered"] *' })).toBeInTheDocument()
-    expect(screen.getByText('40% of 5 masterable items')).toBeInTheDocument()
+    expect(screen.getByText('of 5 mastered · 40%')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Weapon 2/4' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Frame 0/1' }))
     expect(screen.queryByRole('article', { name: 'Skana' })).not.toBeInTheDocument()
@@ -1082,16 +1060,16 @@ describe('MVP desktop interface', () => {
     expect(within(unavailable).getByText('Ducat value unavailable')).toBeInTheDocument()
     expect(unavailable).toHaveTextContent('Prime Parts')
 
-    const band = screen.getByTestId('band-ducats')
+    const band = screen.getByTestId('stat-ducats')
     expect(within(band).getByText('45')).toBeInTheDocument()
-    expect(within(band).getByText('Ducats at stake')).toBeInTheDocument()
+    expect(within(band).getByText('at stake')).toBeInTheDocument()
 
     // The switch is the layer's valve, a two-state control, not a mode among the sorts and
     // filters beside it. Off, every reading above goes, card and band alike.
     const ducatsSwitch = screen.getByRole('switch', { name: 'Ducat values' })
     expect(ducatsSwitch).toHaveAttribute('aria-checked', 'true')
     await user.click(ducatsSwitch)
-    expect(screen.queryByTestId('band-ducats')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('stat-ducats')).not.toBeInTheDocument()
     expect(screen.queryByAltText(/ducat/i)).not.toBeInTheDocument()
     expect(ducatsSwitch).toHaveAttribute('aria-checked', 'false')
   })
@@ -1118,7 +1096,7 @@ describe('MVP desktop interface', () => {
     const user = userEvent.setup()
     render(<App/>)
     await screen.findByRole('heading', { name: 'Your collection' })
-    await user.click(screen.getByRole('button', { name: 'Ducats' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort collection' }), 'Ducats')
 
     const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
     expect(names).toEqual([
@@ -1130,21 +1108,22 @@ describe('MVP desktop interface', () => {
     ])
   })
 
-  // A sort over numbers the screen is not showing would reorder the register invisibly, so the
-  // ducat sort belongs to the layer the switch governs. Off, the chip retires with the badges,
-  // and the pressed chip moves to platinum in plain sight rather than silently.
+  // A sort over numbers the screen is not showing would reorder the grid invisibly, so the ducat
+  // sort belongs to the layer the switch governs. Off, the option retires with the values, and the
+  // sort moves to platinum in plain sight rather than silently.
   it('retires the ducat sort with the values, handing the sort to platinum', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     const user = userEvent.setup()
     render(<App/>)
     await screen.findByRole('heading', { name: 'Your collection' })
-    await user.click(screen.getByRole('button', { name: 'Ducats' }))
-    expect(screen.getByRole('button', { name: 'Ducats' })).toHaveAttribute('aria-pressed', 'true')
+    const sort = screen.getByRole('combobox', { name: 'Sort collection' })
+    await user.selectOptions(sort, 'Ducats')
+    expect(sort).toHaveValue('ducats-desc')
 
     await user.click(screen.getByRole('switch', { name: 'Ducat values' }))
 
-    expect(screen.queryByRole('button', { name: 'Ducats' }), 'no sorting by an invisible reading').not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Platinum' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(sort).queryByRole('option', { name: 'Ducats' }), 'no sorting by an invisible reading').not.toBeInTheDocument()
+    expect(sort).toHaveValue('platinum-desc')
   })
 
   it('says nothing rather than zero for an item with no price', async () => {
@@ -1179,7 +1158,7 @@ describe('MVP desktop interface', () => {
   it('names how many items the refresh will price, and counts only ones it can price', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App/>)
-    expect(await screen.findByRole('button', { name: /Price these 7/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Price this page (7)' })).toBeInTheDocument()
   })
 
   // A relic no dump in the last month saw trade is unpriced, and an unpriced item is precisely
@@ -1189,7 +1168,7 @@ describe('MVP desktop interface', () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     const user = userEvent.setup()
     render(<App/>)
-    await user.click(await screen.findByRole('button', { name: /Price these/ }))
+    await user.click(await screen.findByRole('button', { name: /Price this page/ }))
 
     const requested = backend.refreshPrices.mock.calls[0][0]
     expect(requested).toContain('rhino')             // owned, no price yet
@@ -1213,7 +1192,7 @@ describe('MVP desktop interface', () => {
     })
     const user = userEvent.setup()
     render(<App/>)
-    await user.click(await screen.findByRole('button', { name: 'Platinum' }))
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Sort collection' }), 'Platinum')
 
     const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
     expect(names[0]).toBe('Ash Prime Blueprint')  // 45p × 1
@@ -1241,12 +1220,12 @@ describe('MVP desktop interface', () => {
   it('leads with the market rate and puts what is sellable under it', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App/>)
-    const worth = await screen.findByTestId('band-worth')
+    const worth = await screen.findByTestId('stat-worth')
     expect(within(worth).getByText('159'), 'the worth is a figure, in a row of plain counts').toBeInTheDocument()
     // Both figures carry the game's own icon. Without it the second one reads as another item count,
     // which is exactly what the three cells beside it hold.
     expect(within(worth).getAllByAltText(/platinum/i)).toHaveLength(2)
-    expect(worth.querySelector('.band-aside')?.textContent, 'the achievable total, the size of a footnote').toBe('79 sellable')
+    expect(worth.querySelector('.stat-aside')?.textContent, 'the achievable total, the size of a footnote').toBe('79 sellable')
     expect(within(worth).getByText(/only the copies the market buys in a month/i), 'the cap, on the figure it applies to').toBeInTheDocument()
   })
 
@@ -1263,9 +1242,9 @@ describe('MVP desktop interface', () => {
     expect(screen.getByText(/1 stacks counted · 60 platinum sellable/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Collection' }))
-    const worth = await screen.findByTestId('band-worth')
+    const worth = await screen.findByTestId('stat-worth')
     expect(within(worth).getByText('159'), 'the market rate never moves with the floor').toBeInTheDocument()
-    expect(worth.querySelector('.band-aside')?.textContent).toBe('60 sellable')
+    expect(worth.querySelector('.stat-aside')?.textContent).toBe('60 sellable')
     expect(within(worth).getByText(/at 20 platinum and over/)).toBeInTheDocument()
   })
 
@@ -1289,7 +1268,7 @@ describe('MVP desktop interface', () => {
     render(<App/>)
     await user.click(await screen.findByRole('button', { name: 'Tradeable' }))
     await user.click(await screen.findByRole('button', { name: 'Go to page 2' }))
-    await user.click(screen.getByRole('button', { name: /Price these/ }))
+    await user.click(screen.getByRole('button', { name: /Price this page/ }))
 
     // Page 2 of 53 tradeable items (50 filler + 3 named) holds only the last 5, alphabetically.
     expect(backend.refreshPrices).toHaveBeenCalledWith(['filler-48', 'filler-49', 'lex-prime-receiver', 'lith-a1', 'zenith-prime-receiver'])
@@ -1300,8 +1279,10 @@ describe('MVP desktop interface', () => {
     backend.marketStatus.mockResolvedValue({ ...view, market_account: { ...view.market_account, link: 'linked', flagged: 2 } })
     render(<App/>)
     await screen.findByRole('heading', { name: 'Your collection' })
-    expect(await screen.findByText('2', { selector: '.punch-count' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Orders' }))
+    // The badge is drawn for the eye; the button's name carries the count for everyone else.
+    expect(await screen.findByText('2', { selector: '.nav-count' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Rewards/ })).toHaveAccessibleName('Rewards, 4 choices')
+    await userEvent.click(screen.getByRole('button', { name: 'Orders, 2 need attention' }))
     expect(await screen.findByRole('heading', { name: 'Market orders' })).toBeInTheDocument()
   })
 
@@ -1431,11 +1412,11 @@ describe('MVP desktop interface', () => {
 
   /**
    * The window ships with the compositor's own decorations off, so on KDE there is no titlebar to
-   * take hold of and nothing to press for minimize, maximize or close. The masthead is the
-   * titlebar: it carries the drag region and the three controls, so day-to-day window management
+   * take hold of and nothing to press for minimize, maximize or close. The app draws its own title
+   * bar: it carries the drag region and the three controls, so day-to-day window management
    * needs no keybinding knowledge at all.
    */
-  describe('masthead window management', () => {
+  describe('title bar window management', () => {
     beforeEach(() => {
       backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     })
@@ -1447,13 +1428,13 @@ describe('MVP desktop interface', () => {
      */
     it('offers a way to move the window without compositor keybindings', async () => {
       render(<App/>)
-      const masthead = await screen.findByRole('banner')
-      expect(masthead.querySelector('.masthead-top')).toHaveAttribute('data-tauri-drag-region', 'deep')
-      expect(masthead.querySelector('.office')).not.toHaveAttribute('data-tauri-drag-region')
+      const titlebar = await screen.findByRole('banner')
+      expect(titlebar).toHaveAttribute('data-tauri-drag-region', 'deep')
+      expect(titlebar.querySelector('.wordmark')).not.toHaveAttribute('data-tauri-drag-region')
       expect(document.querySelector('.titlebar-spring')).toBeNull()
     })
 
-    it('minimizes the window from the masthead', async () => {
+    it('minimizes the window from the title bar', async () => {
       render(<App/>)
       await userEvent.click(await screen.findByRole('button', { name: 'Minimize window' }))
       expect(windowApi.minimizeWindow).toHaveBeenCalledOnce()
@@ -1480,14 +1461,14 @@ describe('MVP desktop interface', () => {
       expect(unlisten).toHaveBeenCalledOnce()
     })
 
-    it('closes the window from the masthead', async () => {
+    it('closes the window from the title bar', async () => {
       render(<App/>)
       await userEvent.click(await screen.findByRole('button', { name: 'Close window' }))
       expect(windowApi.closeWindow).toHaveBeenCalledOnce()
     })
   })
 
-  it('sends the masthead update mark to the Settings updates section', async () => {
+  it('sends the sidebar update mark to the Settings updates section', async () => {
     backend.getVersionInfo.mockResolvedValue({ version: '0.11.0', channel: 'stable', kind: 'appimage', writable: true, updatable: true, manager: null, manager_command: null })
     backend.updateCheck.mockResolvedValue({ kind: 'appimage', updatable: true, update: { version: '0.12.0', current_version: '0.11.0', notes: null, date: '2026-09-22T00:00:00Z', feed: 'stable' } })
     const originalScroll = window.HTMLElement.prototype.scrollIntoView

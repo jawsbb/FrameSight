@@ -34,32 +34,32 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
   const ownershipUnverifiable = account.orders.some(entry => entry.status.state === 'unverifiable')
 
   return <section className="page" aria-labelledby="orders-title">
-    <div className="mark-head">
-      <h1 id="orders-title" className="mark">Market orders</h1>
-      <p className="prose">Sell listings on your linked warframe.market account, checked against this device's inventory.</p>
+    <div className="page-head">
+      <h1 id="orders-title" className="page-title">Market orders</h1>
+      <p className="page-note">Sell listings on your linked warframe.market account, checked against this device's inventory.</p>
     </div>
 
-    <div className="assay-band orders-band">
-      <div className="band-cell orders" data-summary="orders">
-        <span className="band-figure">{account.listed_platinum}<MetalMark metal="plat" alt=" platinum"/></span>
-        <span className="band-label">Listed value</span>
-        <p className="band-note">Visible sell listings only. {freshness}</p>
+    <div className="stats">
+      <div className="stat orders" data-summary="orders">
+        <span className="stat-figure">{account.listed_platinum}<MetalMark metal="plat" alt=" platinum"/></span>
+        <span className="stat-label">Listed value</span>
+        <p className="stat-note">Visible sell listings only. {freshness}</p>
       </div>
-      <div className="band-cell flagged" data-summary="flagged" data-count={account.flagged}>
-        <span className="band-figure">{account.flagged}</span>
-        <span className="band-label">Need attention</span>
-        <p className="band-note">{account.flagged
+      <div className="stat flagged" data-summary="flagged" data-count={account.flagged}>
+        <span className="stat-figure">{account.flagged}</span>
+        <span className="stat-label">Need attention</span>
+        <p className="stat-note">{account.flagged
           ? 'Listed above what this device says you hold'
           : ownershipUnverifiable
             ? 'Ownership could not be verified for every listing'
             : 'Every listing matches the collection'}</p>
       </div>
-      <div className="band-cell backing" data-summary="backing">
+      <div className="stat backing" data-summary="backing">
         {/* A refused credential is not a linked account. Reading "Linked" beside a refusal notice
             is the band contradicting the screen it heads. */}
-        <span className="band-figure">{needsRelink ? 'Refused' : 'Linked'}</span>
-        <span className="band-label">Status</span>
-        <p className="band-note">{needsRelink
+        <span className="stat-label">Status</span>
+        <span className="stat-figure">{needsRelink ? 'Refused' : 'Linked'}</span>
+        <p className="stat-note">{needsRelink
           ? 'Sign in again, or link a fresh token'
           : `Credential held in ${backingLabel(account.backing).toLowerCase()}`}</p>
       </div>
@@ -78,7 +78,7 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
       <LinkForms onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} />
     </div>}
 
-    <div className="register-controls">
+    <div className="toolbar">
       <button type="button" className="stamp" onClick={onRefresh} disabled={busy}>
         <span>{busy ? 'Refreshing…' : 'Refresh orders'}</span>
       </button>
@@ -98,7 +98,6 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
         </li>)}
       </ul>
       : <div className="empty-state">
-        <span className="void-mark" aria-hidden="true" />
         <h2>No sell orders found</h2>
         <p>Nothing is currently listed on this account.</p>
       </div>}
@@ -320,7 +319,7 @@ function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
   }
 
   if (!open) {
-    return <div className="register-controls">
+    return <div className="toolbar">
       <button type="button" className="stamp" disabled={busy} onClick={() => setOpen(true)}><span>New listing</span></button>
     </div>
   }
@@ -381,9 +380,9 @@ function UnlinkedPanel({ onSignIn, onLinkToken, busy, error }: {
   error: string | null
 }) {
   return <section className="page" aria-labelledby="orders-title">
-    <div className="mark-head">
-      <h1 id="orders-title" className="mark">Market orders</h1>
-      <p className="prose">
+    <div className="page-head">
+      <h1 id="orders-title" className="page-title">Market orders</h1>
+      <p className="page-note">
         Linking a warframe.market account is entirely optional. TennoScope itself has no accounts of its own:
         this connects to warframe.market directly, and order data (listings, quantities, prices) leaves this
         device to check it against warframe.market's servers.

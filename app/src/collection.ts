@@ -136,6 +136,18 @@ export function pageItems<T>(items: readonly T[], page: number): T[] {
   return items.slice(start, start + COLLECTION_PAGE_SIZE)
 }
 
+/** The slice of `items` shown on `page`, with the numbers the page controls and range line need. */
+export function pageWindow<T>(items: readonly T[], page: number) {
+  const current = clampPage(page, items.length)
+  return {
+    current,
+    total: pageCount(items.length),
+    visible: pageItems(items, current),
+    first: items.length ? (current - 1) * COLLECTION_PAGE_SIZE + 1 : 0,
+    last: Math.min(current * COLLECTION_PAGE_SIZE, items.length),
+  }
+}
+
 export function pageNumbers(currentPage: number, totalPages: number): number[] {
   const total = Math.max(1, totalPages)
   const current = Math.min(Math.max(1, currentPage), total)

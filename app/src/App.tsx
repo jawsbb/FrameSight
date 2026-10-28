@@ -38,7 +38,7 @@ import { MetalMark } from './MetalMark'
 import { OrdersView } from './OrdersView'
 import { isListable, listedLabel, listedOrderFor } from './orders'
 import { SellForm, type SellHandler, type UpdateHandler } from './SellForm'
-import { atMaxRank, clampPage, collectionTotals, COLLECTION_PAGE_SIZE, masteryOrder, pageCount, pageItems, pageNumbers, rankLabel, stackValue } from './collection'
+import { atMaxRank, collectionTotals, masteryOrder, pageNumbers, pageWindow, rankLabel, stackValue } from './collection'
 import { MAX_PRICE_FLOOR, readPriceFloor, readShowDucats, writePriceFloor, writeShowDucats } from './settings'
 import { snapshotFreshness, stampReading } from './freshness'
 import { bootUpdateChecks } from './updateStore'
@@ -48,34 +48,46 @@ import { reportBlockVisible } from './reportable'
 import { AccessSelector } from './AccessSelector'
 import { accessMode } from './access'
 
-type Page = 'collection' | 'mastery' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'about'
+type Page = 'collection' | 'mastery' | 'rewards' | 'orders' | 'diagnostics' | 'settings'
 type Ownership = 'all' | 'owned' | 'mastered' | 'missing' | 'tradeable'
 type Sort = 'name-asc' | 'quantity-desc' | 'category-asc' | 'mastery-asc' | 'platinum-desc' | 'ducats-desc'
+type MasterySort = 'arsenal-first' | 'name-asc' | 'category-asc'
 
-const categories: Array<{ value: ItemCategory | 'all'; label: string; tally: string }> = [
-  { value: 'all', label: 'All categories', tally: '✳' },
-  { value: 'frame', label: 'Frame', tally: 'F' },
-  { value: 'weapon', label: 'Weapon', tally: 'W' },
-  { value: 'companion', label: 'Companion', tally: 'C' },
-  { value: 'prime_part', label: 'Prime Parts', tally: 'P' },
-  { value: 'relic', label: 'Relic', tally: 'R' },
-  { value: 'resource', label: 'Resource', tally: 'S' },
-  { value: 'blueprint', label: 'Blueprint', tally: 'B' },
-  { value: 'vehicle', label: 'Vehicle', tally: 'V' },
-  { value: 'mod', label: 'Mod', tally: 'M' },
-  { value: 'arcane', label: 'Arcane', tally: 'A' },
+/** The filters of each grid page. Held by `App` so they survive a change of tab. */
+type CollectionFilters = { search: string; category: ItemCategory | 'all'; ownership: Ownership; sort: Sort; page: number }
+type MasteryFilters = { search: string; category: ItemCategory | 'all'; sort: MasterySort; page: number }
+const initialCollectionFilters: CollectionFilters = { search: '', category: 'all', ownership: 'all', sort: 'name-asc', page: 1 }
+const initialMasteryFilters: MasteryFilters = { search: '', category: 'all', sort: 'arsenal-first', page: 1 }
+
+const categories: Array<{ value: ItemCategory | 'all'; label: string }> = [
+  { value: 'all', label: 'All categories' },
+  { value: 'frame', label: 'Frame' },
+  { value: 'weapon', label: 'Weapon' },
+  { value: 'companion', label: 'Companion' },
+  { value: 'prime_part', label: 'Prime Parts' },
+  { value: 'relic', label: 'Relic' },
+  { value: 'resource', label: 'Resource' },
+  { value: 'blueprint', label: 'Blueprint' },
+  { value: 'vehicle', label: 'Vehicle' },
+  { value: 'mod', label: 'Mod' },
+  { value: 'arcane', label: 'Arcane' },
 ]
 
-// The two value sorts are named and marked by their own metal: "Value" stopped answering once a
-// card could carry two prices, and a currency's own icon is the disambiguator this screen already
-// teaches. Ducats belongs to the ducat layer, offered only while the values are on screen.
-const sortOptions: Array<{ value: Sort; label: string; metal?: 'plat' | 'ducat' }> = [
+// Ducats is offered only while the ducat values are on screen.
+const sortOptions: Array<{ value: Sort; label: string }> = [
   { value: 'name-asc', label: 'Name A–Z' },
   { value: 'quantity-desc', label: 'Quantity' },
   { value: 'category-asc', label: 'Category' },
   { value: 'mastery-asc', label: 'Unmastered first' },
-  { value: 'platinum-desc', label: 'Platinum', metal: 'plat' },
-  { value: 'ducats-desc', label: 'Ducats', metal: 'ducat' },
+  { value: 'platinum-desc', label: 'Platinum' },
+  { value: 'ducats-desc', label: 'Ducats' },
+]
+
+// What is held can be ranked tonight; what was never held is a hunt. The default order says so.
+const masterySortOptions: Array<{ value: MasterySort; label: string }> = [
+  { value: 'arsenal-first', label: 'In arsenal first' },
+  { value: 'name-asc', label: 'Name A–Z' },
+  { value: 'category-asc', label: 'Category' },
 ]
 
 const categoryName = Object.fromEntries(categories.map(category => [category.value, category.label])) as Record<ItemCategory | 'all', string>
@@ -89,6 +101,8 @@ function shortDumpDate(isoDate: string): string {
   return `${day} ${monthAbbr[month - 1]}`
 }
 
+const pages: Page[] = ['collection', 'mastery', 'rewards', 'orders', 'diagnostics', 'settings']
+
 const pageLabel: Record<Page, string> = {
   collection: 'Collection',
   mastery: 'Mastery',
@@ -96,35 +110,44 @@ const pageLabel: Record<Page, string> = {
   orders: 'Orders',
   diagnostics: 'Diagnostics',
   settings: 'Settings',
-  about: 'About',
 }
 
-/**
- * Assay marks, drawn in the world's own grammar: hard geometry, square caps,
- * no rounded joins. The rewards glyph is the orb of the platinum standard mark.
- */
-function Mark({ name, className = 'punch-glyph' }: { name: Page | 'refresh' | 'search'; className?: string }) {
+/** `1 choice`, `4 choices`: a nav badge's count, said in words for its accessible name. */
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`
+}
+
+/** Line icons on a 24px grid, one round stroke throughout. */
+function Icon({ name }: { name: Page | 'refresh' | 'search' | 'previous' | 'next' }) {
   const paths = {
-    collection: <><path d="M3 4h18M3 10h13M3 16h18M3 22h9"/></>,
-    // A ledger with its ticks: three rules, each struck off where the account has mastered it.
-    mastery: <><path d="M3 5.5l2.5 2.5L10 3.5M13 6h8"/><path d="M3 13l2.5 2.5L10 11M13 13.5h8"/><path d="M3 20.5l2.5 2.5L10 18.5M13 21h8"/></>,
-    rewards: <><circle cx="12" cy="14.5" r="7.5"/><path d="M12 7V1.5M9 4h6"/></>,
-    orders: <><path d="M3 3h18v6H3z"/><path d="M6 9v12h12V9M10 13h4"/></>,
-    diagnostics: <><path d="M2 21h20M6 21 14 3M11 21 19 3"/></>,
-    settings: <><path d="M7 2h10l-2 9H9z"/><path d="M10 11h4v11h-4z"/></>,
-    // The office's own hallmark cartouche, which is what this page is: the register's statement
-    // about itself.
-    about: <><path d="M4 3h16v11.5L12 21 4 14.5z"/><path d="M12 8v6"/></>,
-    refresh: <><path d="M21 5v6h-6"/><path d="M20 11a8 8 0 1 0-1.5 6"/></>,
-    search: <><circle cx="10.5" cy="10.5" r="7"/><path d="M15.5 15.5 22 22"/></>,
+    collection: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></>,
+    mastery: <><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-5.1"/></>,
+    rewards: <><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H5a2.5 2.5 0 0 0 2.6 3.4M16.5 6H19a2.5 2.5 0 0 1-2.6 3.4M12 13.5V17M8.5 20h7"/></>,
+    orders: <><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12.5h4"/></>,
+    diagnostics: <path d="M3 12h4l2.5-6.5 5 13 2.5-6.5h4"/>,
+    settings: <><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></>,
+    refresh: <><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></>,
+    search: <><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></>,
+    previous: <path d="m14.5 6-6 6 6 6"/>,
+    next: <path d="m9.5 6 6 6-6 6"/>,
   }
-  return <svg className={className} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" strokeLinejoin="miter">{paths[name]}</svg>
+  return <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>
+}
+
+/** A health state as a shape and a colour, never colour alone: a full dot is ready, a ring is
+ * idle, a triangle is degraded, a cross is failed. Paired with the state in words wherever used. */
+function StateIcon({ state }: { state: HealthState }) {
+  return <svg className={`state-icon ${state}`} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    {state === 'ready' ? <circle cx="8" cy="8" r="4.5" fill="currentColor" stroke="none"/>
+      : state === 'idle' ? <circle cx="8" cy="8" r="4.25"/>
+        : state === 'degraded' ? <><path d="M8 2.75 14 13.25H2z"/><path d="M8 7v2.5"/><path d="M8 11.4v.1"/></>
+          : <path d="m4 4 8 8M12 4l-8 8"/>}
+  </svg>
 }
 
 /**
- * Minimize, maximize and close, drawn in the same square-stroke grammar as the page marks. The
- * maximize control is named by what it does next (restore while maximized), because a button
- * whose name never changes cannot say which press undoes the other.
+ * Minimize, maximize and close. The maximize control is named by what it does next (restore while
+ * maximized), because a button whose name never changes cannot say which press undoes the other.
  */
 function WindowControls() {
   const [maximized, setMaximized] = useState(false)
@@ -175,6 +198,8 @@ function App() {
   const [ordersError, setOrdersError] = useState<string | null>(null)
   const [ordersNote, setOrdersNote] = useState<string | null>(null)
   const [captureNote, setCaptureNote] = useState<string | null>(null)
+  const [collectionFilters, setCollectionFilters] = useState(initialCollectionFilters)
+  const [masteryFilters, setMasteryFilters] = useState(initialMasteryFilters)
   const viewGeneration = useRef(0)
   const foregroundInFlight = useRef(0)
   const setupGeneration = useRef(0)
@@ -417,7 +442,7 @@ function App() {
     if (next === 'orders') void ordersRefresh()
   }
 
-  // The masthead mark deep-links to the Updates section, not just Settings:
+  // The update mark deep-links to the Updates section, not just Settings:
   // opening the page alone leaves the section below the fold on long settings.
   const updatesFocusPending = useRef(false)
   function openUpdates(): void {
@@ -442,62 +467,60 @@ function App() {
     }
   }, [page])
 
-  if (setupStatus === null && !error) return <main className="holding"><div className="streak" aria-hidden="true"/><p className="register-line">Starting TennoScope…</p></main>
+  if (setupStatus === null && !error) return <main className="holding"><div className="streak" aria-hidden="true"/><p>Starting TennoScope…</p></main>
   if (!setupStatus?.setup_complete) return <SetupScreen selected={selectedMode} busy={modeBusy} error={modeError ?? error} onSelect={setSelectedMode} onContinue={() => { void changeAccessMode(selectedMode) }}/>
-
 
   const effectiveMode = setupStatus.access_mode ?? 'companion'
   const liveState = view?.health.game_reader.state ?? 'degraded'
   const freshness = snapshotFreshness(view?.collection.snapshot, clock)
-  return <div className="assay">
-    <header className="masthead">
-      {/* Window chrome, destination choice, and runtime operations each keep a dedicated row. This
-          leaves every destination visible at the shipped 1180px width and prevents a long reader
-          message or refresh action from clipping the active page. */}
-      <div className="masthead-top" data-tauri-drag-region="deep">
-        <div className="office">
-          <span className="office-name">TennoScope</span>
-          <span className="office-role">Local assay register</span>
-        </div>
-        <WindowControls/>
-      </div>
-      <div className="masthead-work">
-        <nav className="hallmark-row" aria-label="Primary">
-          {(['collection', 'mastery', 'rewards', 'orders', 'diagnostics', 'settings', 'about'] as const).map(item => <button
+  const readerState: HealthState = effectiveMode === 'companion' ? 'idle' : liveState
+  const readerDetail = effectiveMode === 'companion' ? 'Using saved and reference data' : view?.health.game_reader.message ?? 'Connecting to local backend'
+  const navCount: Partial<Record<Page, number>> = { rewards: view?.reward.cards.length, orders: view?.market_account.flagged }
+  return <div className="shell">
+    {/* The window has no compositor decorations: this bar is its titlebar. `deep` makes every part
+        of it a grab handle except the controls standing on it. */}
+    <header className="titlebar" data-tauri-drag-region="deep">
+      <span className="wordmark">TennoScope</span>
+      <WindowControls/>
+    </header>
+
+    <aside className="sidebar">
+      <nav className="nav" aria-label="Primary">
+        {pages.map(item => {
+          const count = navCount[item] ?? 0
+          return <button
             key={item}
             type="button"
-            aria-label={pageLabel[item]}
-            className={page === item ? 'punch struck' : 'punch'}
+            className="nav-item"
+            aria-label={count ? `${pageLabel[item]}, ${item === 'rewards' ? plural(count, 'choice', 'choices') : plural(count, 'needs attention', 'need attention')}` : pageLabel[item]}
+            title={pageLabel[item]}
             aria-current={page === item ? 'page' : undefined}
             onClick={() => openPage(item)}
           >
-            <span className="punch-face">
-              <Mark name={item}/>
-              <span className="punch-name">{pageLabel[item]}</span>
-              {item === 'rewards' && view?.reward.cards.length ? <em className="punch-count">{view.reward.cards.length}</em> : null}
-              {item === 'orders' && view?.market_account.flagged ? <em className="punch-count">{view.market_account.flagged}</em> : null}
-            </span>
-          </button>)}
-        </nav>
-      </div>
-      <section className="masthead-state" aria-label="Runtime operations">
-          <div className={`assay-state ${effectiveMode === 'companion' ? 'idle' : liveState}`}>
-            <span className="state-mark" aria-hidden="true"/>
-            <span className="assay-state-text">
-              <strong role="status">{effectiveMode === 'companion' ? 'Companion mode' : liveState === 'ready' ? 'Watching Warframe' : liveState === 'idle' ? 'Idle' : liveState === 'failed' ? 'Attention: reader failed' : 'Attention needed'}</strong>
-              <small title={effectiveMode === 'companion' ? 'Using saved and reference data' : view?.health.game_reader.message ?? 'Connecting to local backend'}>{effectiveMode === 'companion' ? 'Using saved and reference data' : view?.health.game_reader.message ?? 'Connecting to local backend'}</small>
-            </span>
-          </div>
-          <UpdateMark onOpen={openUpdates}/>
-          {view && <span className="date-letter" title={freshness.detail}>{freshness.label}<span className="sr-only">, {freshness.detail}</span></span>}
-          <button type="button" className="stamp" onClick={refresh} disabled={busy || modeBusy || setupStatus?.access_mode !== 'full'} aria-describedby={setupStatus?.access_mode !== 'full' ? 'inventory-access-note' : undefined}>
-            <Mark name="refresh" className="punch-glyph"/><span>{busy ? 'Refreshing…' : 'Refresh inventory'}</span>
+            <Icon name={item}/>
+            <span className="nav-label">{pageLabel[item]}</span>
+            {count > 0 && <span className="nav-count" aria-hidden="true">{count}</span>}
           </button>
-          {setupStatus?.access_mode !== 'full' && <span id="inventory-access-note" className="sr-only">Full access is required to acquire inventory. The saved snapshot remains available.</span>}
+        })}
+      </nav>
+      <section className="sidebar-foot" aria-label="Runtime operations">
+        <div className={`reader ${readerState}`} title={readerDetail}>
+          <StateIcon state={readerState}/>
+          <span className="reader-text">
+            <strong role="status">{effectiveMode === 'companion' ? 'Companion mode' : readerWord[liveState]}</strong>
+            <small>{readerDetail}</small>
+          </span>
+        </div>
+        {view && <span className="snapshot-age" title={freshness.detail}>{freshness.label}<span className="sr-only">, {freshness.detail}</span></span>}
+        <button type="button" className="stamp refresh" onClick={refresh} disabled={busy || modeBusy || setupStatus?.access_mode !== 'full'} aria-describedby={setupStatus?.access_mode !== 'full' ? 'inventory-access-note' : undefined}>
+          <Icon name="refresh"/><span className="refresh-label">{busy ? 'Refreshing…' : 'Refresh inventory'}</span>
+        </button>
+        {setupStatus?.access_mode !== 'full' && <span id="inventory-access-note" className="sr-only">Full access is required to acquire inventory. The saved snapshot remains available.</span>}
+        <UpdateMark onOpen={openUpdates}/>
       </section>
-    </header>
+    </aside>
 
-    <main className="sheet">
+    <main className="content">
       {error && <p className="error-banner" role="alert">{error}</p>}
       {/* A sell can be started from a collection card, and its failure has to be readable where it
           was started. The orders screen renders this itself, in the block that owns the recovery. */}
@@ -506,13 +529,11 @@ function App() {
           appears and disappears with its content is not announced by every reader. */}
       <p className="sr-only" role="status">{ordersNote}</p>
       {!view ? <LoadingView/> : <>
-        {page === 'collection' && <CollectionPage view={view} effectiveMode={effectiveMode} pricing={pricing} onPriceLive={priceLive} priceFloor={priceFloor} showDucats={showDucats} onToggleDucats={() => {
-          setShowDucats(current => {
-            writeShowDucats(!current)
-            return !current
-          })
-        }} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
-        {page === 'mastery' && <MasteryPage view={view} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
+        {page === 'collection' && <CollectionPage view={view} effectiveMode={effectiveMode} filters={collectionFilters} onFilters={setCollectionFilters} pricing={pricing} onPriceLive={priceLive} priceFloor={priceFloor} showDucats={showDucats} onToggleDucats={() => {
+          writeShowDucats(!showDucats)
+          setShowDucats(!showDucats)
+        }} onOpenMastery={() => openPage('mastery')} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
+        {page === 'mastery' && <MasteryPage view={view} filters={masteryFilters} onFilters={setMasteryFilters} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
         {page === 'rewards' && <RewardPage view={view} effectiveMode={effectiveMode}/>}
         {page === 'orders' && <OrdersView
           account={view.market_account}
@@ -537,58 +558,54 @@ function App() {
           setPriceFloor(floor)
           writePriceFloor(floor)
         }}/>}
-        {page === 'about' && <AboutPage effectiveMode={effectiveMode}/>}
       </>}
     </main>
   </div>
 }
 
 function SetupScreen({ selected, busy, error, onSelect, onContinue }: { selected: AccessMode; busy: boolean; error: string | null; onSelect: (mode: AccessMode) => void; onContinue: () => void }) {
-  return <main className="certificate">
-    <section className="certificate-sheet" aria-labelledby="setup-title">
-      <div className="office">
-        <span className="office-name">TennoScope</span>
-        <span className="office-role">One-time setup</span>
-      </div>
-      <h1 id="setup-title" className="mark">Choose Warframe access</h1>
+  return <main className="setup">
+    <section className="setup-panel" aria-labelledby="setup-title">
+      <p className="setup-brand"><span className="wordmark">TennoScope</span><span>One-time setup</span></p>
+      <h1 id="setup-title" className="page-title">Choose Warframe access</h1>
       <p className="prose">Each level includes the previous level. Nothing starts until you confirm.</p>
       <AccessSelector value={selected} onChange={onSelect} applyingMode={busy ? selected : null} disabled={busy}/>
       {error && <p className="error-banner" role="alert">{error}</p>}
-      <button type="button" className="seal" onClick={onContinue} disabled={busy} aria-busy={busy}>
-        {busy ? `Applying ${accessMode(selected).name}…` : `Confirm ${accessMode(selected).name}`}<span aria-hidden="true">→</span>
+      <button type="button" className="stamp primary setup-confirm" onClick={onContinue} disabled={busy} aria-busy={busy}>
+        {busy ? `Applying ${accessMode(selected).name}…` : `Confirm ${accessMode(selected).name}`}
       </button>
     </section>
   </main>
 }
 
-
 function LoadingView() {
   return <section className="page" aria-live="polite">
-    <div className="mark-head">
-      <h1 className="mark">Loading your local collection…</h1>
-      <p className="prose">Reading the latest saved snapshot.</p>
+    <div className="page-head">
+      <h1 className="page-title">Loading your local collection…</h1>
+      <p className="page-note">Reading the latest saved snapshot.</p>
     </div>
     <div className="streak" aria-hidden="true"/>
   </section>
 }
 
-function CollectionPage({ view, effectiveMode, pricing, onPriceLive, priceFloor, showDucats, onToggleDucats, onSell, onUpdate, ordersBusy }: { view: AppView; effectiveMode: AccessMode; pricing: boolean; onPriceLive: (ids: string[]) => void; priceFloor: number; showDucats: boolean; onToggleDucats: () => void; onSell: SellHandler; onUpdate: UpdateHandler; ordersBusy: boolean }) {
+function SearchField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return <label className="search">
+    <Icon name="search"/>
+    <input type="search" aria-label={label} placeholder="Search items" value={value} onChange={event => onChange(event.target.value)}/>
+  </label>
+}
+
+function CollectionPage({ view, effectiveMode, filters, onFilters, pricing, onPriceLive, priceFloor, showDucats, onToggleDucats, onOpenMastery, onSell, onUpdate, ordersBusy }: { view: AppView; effectiveMode: AccessMode; filters: CollectionFilters; onFilters: (filters: CollectionFilters) => void; pricing: boolean; onPriceLive: (ids: string[]) => void; priceFloor: number; showDucats: boolean; onToggleDucats: () => void; onOpenMastery: () => void; onSell: SellHandler; onUpdate: UpdateHandler; ordersBusy: boolean }) {
   const ownershipVerified = effectiveMode === 'full'
   const snapshotOnly = !ownershipVerified
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState<ItemCategory | 'all'>('all')
-  const [ownership, setOwnership] = useState<Ownership>('all')
-  const [sort, setSort] = useState<Sort>('name-asc')
-  const [page, setPage] = useState(1)
-  const {
-    masteryEligible,
-    mastered,
-    owned,
-    missing,
-    worth,
-    sellable,
-    ducatsAtStake,
-  } = collectionTotals(view.collection.items, priceFloor)
+  const { search, category } = filters
+  // Ownership cannot be filtered on when it cannot be verified, and ducats cannot be sorted on
+  // while their values are hidden: that sort falls back to platinum, in plain sight.
+  const ownership = ownershipVerified ? filters.ownership : 'all'
+  const sort = !showDucats && filters.sort === 'ducats-desc' ? 'platinum-desc' : filters.sort
+  // Any filter change starts again from the first page; only paging keeps the page it asks for.
+  const update = (patch: Partial<CollectionFilters>) => onFilters({ ...filters, page: 1, ...patch })
+  const { owned, missing, worth, sellable, ducatsAtStake } = collectionTotals(view.collection.items, priceFloor)
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
     return view.collection.items
@@ -611,184 +628,113 @@ function CollectionPage({ view, effectiveMode, pricing, onPriceLive, priceFloor,
                 ? (right.ducats ?? -1) - (left.ducats ?? -1) || left.name.localeCompare(right.name)
                 : left.name.localeCompare(right.name))
   }, [view.collection.items, search, category, ownership, sort])
-  const totalPages = pageCount(filtered.length)
-  const currentPage = clampPage(page, filtered.length)
-  const visibleItems = pageItems(filtered, currentPage)
-  const firstResult = filtered.length ? (currentPage - 1) * COLLECTION_PAGE_SIZE + 1 : 0
-  const lastResult = Math.min(currentPage * COLLECTION_PAGE_SIZE, filtered.length)
+  const { current: currentPage, total: totalPages, visible: visibleItems, first: firstResult, last: lastResult } = pageWindow(filtered, filters.page)
   // What the refresh can *attempt*, not what already has a number. A relic is priced only if some
   // dump in the last month saw it trade, so a thinly-traded one is unpriced, and excluding unpriced
-  // items would close the manual path against exactly the items that need it. `priceable` is the backend's own answer to "can warframe.market be asked about
-  // this": it drops every name the price table cannot resolve, so counting owned items instead
-  // promised prices for items no request was ever going to be made for. Quantity 0 is not owned and
-  // is never priceable.
+  // items would close the manual path against exactly the items that need it. `priceable` is the
+  // backend's own answer to "can warframe.market be asked about this": it drops every name the
+  // price table cannot resolve. Quantity 0 is not owned and is never priceable.
   const pricableVisibleIds = visibleItems.filter(item => item.priceable).map(item => item.id)
   // One readout for the whole page, published by the backend rather than counted here: it is the
-  // party that knows the total, and every pass comes out of one rate-limited budget, so a second
-  // counter would be describing one queue twice.
+  // party that knows the total, and every pass comes out of one rate-limited budget.
   const inProgress = view.collection.pricing ?? null
   const dumpDate = view.health.collection_prices.last_success
-  // You can only sort by what is on screen. Hiding ducat values retires their sort with them, and
-  // the pressed chip moves to platinum in plain sight rather than leaving an invisible criterion
-  // reorder the register.
   const sorts = showDucats ? sortOptions : sortOptions.filter(option => option.value !== 'ducats-desc')
-  useEffect(() => {
-    if (!showDucats && sort === 'ducats-desc') setSort('platinum-desc')
-  }, [showDucats, sort])
-  useEffect(() => {
-    if (!ownershipVerified) setOwnership('all')
-  }, [ownershipVerified])
-  useEffect(() => setPage(1), [search, category, ownership, sort])
-  useEffect(() => setPage(value => clampPage(value, filtered.length)), [filtered.length])
 
   return <section className="page" aria-labelledby="collection-title">
-    <div className="mark-head">
-      <h1 id="collection-title" className="mark">{snapshotOnly ? 'Saved snapshot' : 'Your collection'}</h1>
-      <p className="prose">{snapshotOnly ? 'Your stored collection remains available for reference, valuation, and planning.' : 'Canonical equipment, parts and relics observed on this account. Read only, held locally.'}</p>
+    <div className="page-head">
+      <h1 id="collection-title" className="page-title">{snapshotOnly ? 'Saved snapshot' : 'Your collection'}</h1>
+      <div className="stats">
+        <Stat kind="items" value={view.collection.total_entries} label={snapshotOnly ? 'saved entries' : 'items'}/>
+        <Stat kind="owned" value={owned} label="owned" aside={`${figure(missing)} missing`}/>
+        <Stat
+          kind="worth"
+          value={worth}
+          unit={<MetalMark metal="plat" alt=" platinum"/>}
+          label="market value"
+          aside={<>{figure(sellable)}<MetalMark metal="plat" alt=" platinum"/> sellable</>}
+          note={priceFloor
+            ? `Sellable counts only the copies the market buys in a month, at ${priceFloor} platinum and over.`
+            : 'Sellable counts only the copies the market buys in a month.'}
+        />
+        {showDucats && <Stat kind="ducats" value={ducatsAtStake} unit={<MetalMark metal="ducat" alt=" ducats"/>} label="at stake"/>}
+      </div>
+      <button type="button" className="link-button head-link" onClick={onOpenMastery}>Mastery progress<Icon name="next"/></button>
+      {snapshotOnly && <p className="page-note">Read from the saved snapshot. Current ownership can't be verified without Full access.</p>}
     </div>
 
-    <div className={`assay-band${showDucats ? ' with-ducats' : ''}`}>
-      <BandCell kind="items" value={view.collection.total_entries} label={snapshotOnly ? 'Saved entries' : 'Items tracked'} note={snapshotOnly ? 'Entries retained in the saved snapshot' : `${owned} currently owned`}/>
-      <BandCell kind="mastered" value={mastered} label={snapshotOnly ? 'Mastery records' : 'Mastered'} note={snapshotOnly ? 'Historical snapshot; current mastery is unverifiable' : masteryEligible ? `${Math.round(mastered / masteryEligible * 100)}% of mastery-eligible items` : 'No mastery-eligible items'}/>
-      <BandCell kind="missing" value={missing} label={snapshotOnly ? 'Zero-quantity records' : 'Missing'} note={snapshotOnly ? 'Historical snapshot; current ownership is unverifiable' : 'From known collection data'}/>
-      {/* Two figures and the one clause that qualifies them. The cell had five numbers in it and
-          read as an argument about the collection rather than a valuation of it; the live-pass count
-          was a second copy of the register line below, and the priced-item count mostly measured how
-          much of a collection is untradeable. The cap is stated here, on the figure it applies to,
-          rather than down among the filters where it was answering a question nobody had asked yet. */}
-      <BandCell
-        kind="worth"
-        value={worth}
-        unit={<MetalMark metal="plat" alt=" platinum"/>}
-        aside={<>{figure(sellable)}<MetalMark metal="plat" alt=" platinum"/> sellable</>}
-        label={snapshotOnly ? 'Saved snapshot value' : 'Collection worth'}
-        note={snapshotOnly
-          ? 'Valuation uses saved quantities; current ownership is unverifiable'
-          : priceFloor
-            ? `Sellable counts only the copies the market buys in a month, at ${priceFloor} platinum and over`
-            : 'Sellable counts only the copies the market buys in a month'}
-      />
-      {showDucats && <BandCell
-        kind="ducats"
-        value={ducatsAtStake}
-        unit={<MetalMark metal="ducat" alt=" ducats"/>}
-        label={snapshotOnly ? 'Saved snapshot ducats' : 'Ducats at stake'}
-        note={snapshotOnly ? 'Total uses saved quantities; current ownership is unverifiable' : "Every owned prime part, at Baro Ki'Teer's posted prices"}
-      />}
-    </div>
-
-    <div className="register">
-      {view.collection.items.length ? <>
-      <div className="register-controls">
-        <label className="search-slot">
-          <Mark name="search" className="punch-glyph"/>
-          <span className="sr-only">Search collection</span>
-          <input type="search" aria-label="Search collection" placeholder="Search canonical item names…" value={search} onChange={event => setSearch(event.target.value)}/>
+    {view.collection.items.length ? <>
+      <div className="toolbar">
+        <SearchField label="Search collection" value={search} onChange={value => update({ search: value })}/>
+        <label className="select">
+          <span aria-hidden="true">Sort</span>
+          <select aria-label="Sort collection" value={sort} onChange={event => update({ sort: event.target.value as Sort })}>
+            {sorts.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
         </label>
-        <div className="sort-slot" role="group" aria-label="Sort collection">
-          <span>Sort</span>
-          <div className="tally">
-            {sorts.map(option => <button
-              type="button"
-              key={option.value}
-              aria-pressed={sort === option.value}
-              onClick={() => setSort(option.value)}
-            >{option.metal && <MetalMark metal={option.metal}/>}{option.label}</button>)}
-          </div>
-        </div>
-        {/* The ducat layer's valve, drawn as a switch because it has two states rather than a
-            place among the sort and filter modes beside it. The label names what it shows; on,
-            its thumb crosses the track's midline in the gold every ducat reading on this sheet
-            already wears. */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={showDucats}
-          className="display-switch"
-          onClick={onToggleDucats}
-        >
-          <span className="display-face"><MetalMark metal="ducat"/>Ducat values</span>
-          <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
-        </button>
-      </div>
-
-      <div className="shield-strip" role="group" aria-label="Item categories">
-        {categories.map(item => <button
-          type="button"
-          key={item.value}
-          className="shield"
-          aria-label={item.label}
-          aria-pressed={category === item.value}
-          onClick={() => setCategory(item.value)}
-        ><span className="shield-face"><b aria-hidden="true">{item.tally}</b>{item.label}</span></button>)}
-      </div>
-
-      {/* The bar's own bottom rule doubles as the gauge: while a pass runs it fills with platinum
-          from the left. An engraved hairline is what this system already uses to divide the sheet,
-          so a reading struck into one needs no new component and nothing that spins. */}
-      <div className="register-bar" style={inProgress ? { '--assay-progress': inProgress.done / Math.max(inProgress.total, 1) } as CSSProperties : undefined}>
-        {ownershipVerified && <div className="tally" role="group" aria-label="Ownership filters">
+        {ownershipVerified && <div className="segmented" role="group" aria-label="Ownership filters">
           {(['all', 'owned', 'mastered', 'missing', 'tradeable'] as const).map(filter => <button
             type="button"
             key={filter}
             aria-pressed={ownership === filter}
-            onClick={() => setOwnership(filter)}
+            onClick={() => update({ ownership: filter })}
           >{filter[0].toUpperCase() + filter.slice(1)}</button>)}
         </div>}
-        <div className="provenance-row">
-          <div className="register-status">
-            <span className="register-line">{dumpDate ? `Prices from the ${shortDumpDate(dumpDate)} market summary` : 'No price summary loaded yet'}</span>
-            <span className="register-line">{firstResult}–{lastResult} of {filtered.length}</span>
-            {inProgress && <span className="register-line pricing" role="status">Checking live prices · {inProgress.done} of {inProgress.total}</span>}
-          {/* Live prices come from the market dump and explicit price checks, neither of which
-              reads the game or needs verified ownership: Companion and Overlay keep valuation.
-              Selling still needs Full, and that gate lives on the sell controls, not here. */}
-          <button
-            type="button"
-            className="stamp"
-            disabled={pricing || inProgress !== null || pricableVisibleIds.length === 0}
-            onClick={() => onPriceLive(pricableVisibleIds)}
-          ><span>{pricing || inProgress ? 'Pricing…' : `Price these ${pricableVisibleIds.length}`}</span></button>
-          </div>
-        </div>
+        <button type="button" role="switch" aria-checked={showDucats} className="display-switch" onClick={onToggleDucats}>
+          <span className="display-face"><MetalMark metal="ducat"/>Ducat values</span>
+          <span className="display-track" aria-hidden="true"><span className="display-thumb"/></span>
+        </button>
+        {/* Live prices come from the market dump and explicit price checks, neither of which
+            reads the game or needs verified ownership: Companion and Overlay keep valuation.
+            Selling still needs Full, and that gate lives on the sell controls, not here. */}
+        <button
+          type="button"
+          className="stamp primary price-page"
+          disabled={pricing || inProgress !== null || pricableVisibleIds.length === 0}
+          onClick={() => onPriceLive(pricableVisibleIds)}
+        >{pricing || inProgress ? 'Pricing…' : `Price this page (${pricableVisibleIds.length})`}</button>
       </div>
 
-        {filtered.length
-          ? <>
-            <ul className="collection-grid" aria-label="Collection items">{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified={ownershipVerified} showDucats={showDucats} listedOrder={listedOrderFor(view.market_account.orders, item.id)} sellable={ownershipVerified && view.market_account.link === 'linked' && isListable(item, view.market_account.listable)} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
-            <Pagination current={currentPage} total={totalPages} onChange={setPage}/>
-          </>
-          : <EmptyState title="No matching items" detail="Try another search or clear a filter."/>}
-      </> : <EmptyState
-        title={snapshotOnly ? 'No saved inventory snapshot yet' : 'No inventory items yet'}
-        detail={snapshotOnly ? 'Full access can acquire one; Companion remains useful for reference, prices, and planning.' : 'Start Warframe and refresh to create your first local snapshot.'}
-      />}
-    </div>
+      <div className="chips" role="group" aria-label="Item categories">
+        {categories.map(item => <button
+          type="button"
+          key={item.value}
+          className="chip"
+          aria-pressed={category === item.value}
+          onClick={() => update({ category: item.value })}
+        >{item.label}</button>)}
+      </div>
+
+      <div className="status-line">
+        <span>{dumpDate ? `Prices from the ${shortDumpDate(dumpDate)} market summary` : 'No price summary loaded yet'}</span>
+        <span>{firstResult}–{lastResult} of {filtered.length}</span>
+        {inProgress && <span className="pricing" role="status">
+          <progress max={Math.max(inProgress.total, 1)} value={inProgress.done} aria-label="Live price check"/>
+          <span>Checking live prices · {inProgress.done} of {inProgress.total}</span>
+        </span>}
+      </div>
+
+      {filtered.length
+        ? <>
+          <ul className="card-grid" aria-label="Collection items">{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified={ownershipVerified} showDucats={showDucats} listedOrder={listedOrderFor(view.market_account.orders, item.id)} sellable={ownershipVerified && view.market_account.link === 'linked' && isListable(item, view.market_account.listable)} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
+          <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
+        </>
+        : <EmptyState title="No matching items" detail="Try another search or clear the filters." action={<button type="button" className="stamp" onClick={() => update({ search: '', category: 'all', ownership: 'all' })}>Clear filters</button>}/>}
+    </> : <EmptyState
+      title={snapshotOnly ? 'No saved inventory snapshot yet' : 'No inventory items yet'}
+      detail={snapshotOnly ? 'Full access can acquire one; Companion remains useful for reference, prices, and planning.' : 'Start Warframe and refresh to create your first local snapshot.'}
+    />}
   </section>
 }
 
-/** Struck figures are grouped: a five-digit total is read, not counted. */
+/** Figures are grouped: a five-digit total is read, not counted. */
 function figure(value: number): string {
   return value.toLocaleString('en-US')
 }
 
-// The worth cell sits in a row of plain counts, where a bare number reads as one more count.
-// `aside` takes the slot the other cells put their note in, so four labels still strike one line
-// across the band: a second figure wedged between mark and label would drop this label alone.
-type MasterySort = 'arsenal-first' | 'name-asc' | 'category-asc'
-
-// What is held can be ranked tonight; what was never held is a hunt. The default order says so.
-const masterySortOptions: Array<{ value: MasterySort; label: string }> = [
-  { value: 'arsenal-first', label: 'In arsenal first' },
-  { value: 'name-asc', label: 'Name A–Z' },
-  { value: 'category-asc', label: 'Category' },
-]
-
-function MasteryPage({ view, onSell, onUpdate, ordersBusy }: { view: AppView; onSell: SellHandler; onUpdate: UpdateHandler; ordersBusy: boolean }) {
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState<ItemCategory | 'all'>('all')
-  const [sort, setSort] = useState<MasterySort>('arsenal-first')
-  const [page, setPage] = useState(1)
+function MasteryPage({ view, filters, onFilters, onSell, onUpdate, ordersBusy }: { view: AppView; filters: MasteryFilters; onFilters: (filters: MasteryFilters) => void; onSell: SellHandler; onUpdate: UpdateHandler; ordersBusy: boolean }) {
+  const { search, category, sort } = filters
+  const update = (patch: Partial<MasteryFilters>) => onFilters({ ...filters, page: 1, ...patch })
   const { available, items, totals } = view.mastery
   const mastered = totals.reduce((sum, entry) => sum + entry.mastered, 0)
   const total = totals.reduce((sum, entry) => sum + entry.total, 0)
@@ -804,157 +750,133 @@ function MasteryPage({ view, onSell, onUpdate, ordersBusy }: { view: AppView; on
           ? left.category.localeCompare(right.category) || left.name.localeCompare(right.name)
           : left.name.localeCompare(right.name))
   }, [items, search, category, sort])
-  const totalPages = pageCount(filtered.length)
-  const currentPage = clampPage(page, filtered.length)
-  const visibleItems = pageItems(filtered, currentPage)
-  const firstResult = filtered.length ? (currentPage - 1) * COLLECTION_PAGE_SIZE + 1 : 0
-  const lastResult = Math.min(currentPage * COLLECTION_PAGE_SIZE, filtered.length)
-  useEffect(() => setPage(1), [search, category, sort])
-  useEffect(() => setPage(value => clampPage(value, filtered.length)), [filtered.length])
+  const { current: currentPage, total: totalPages, visible: visibleItems, first: firstResult, last: lastResult } = pageWindow(filtered, filters.page)
 
   return <section className="page" aria-labelledby="mastery-title">
-    <div className="mark-head">
-      <h1 id="mastery-title" className="mark">Mastery</h1>
-      <p className="prose">Every piece of masterable equipment this account has yet to master: rank what it holds, find what it has never held.</p>
+    <div className="page-head">
+      <h1 id="mastery-title" className="page-title">Mastery</h1>
+      {available && <div className="stats">
+        <Stat kind="mastered" value={mastered} label={`of ${figure(total)} mastered${total ? ` · ${Math.round(mastered / total * 100)}%` : ''}`}/>
+        <Stat kind="items" value={items.length} label="remaining"/>
+        <Stat kind="arsenal" value={inArsenal} label="in arsenal"/>
+        <Stat kind="missing" value={items.length - inArsenal} label="never held"/>
+      </div>}
     </div>
 
     {!available
       ? <EmptyState title="Mastery needs an inventory read under Full access" detail="Refresh the inventory once under Full access. Companion and Overlay show the saved snapshot only."/>
       : <>
-        <div className="assay-band">
-          <BandCell kind="items" value={items.length} label="Remaining" note="Equipment this account has never mastered"/>
-          <BandCell kind="mastered" value={mastered} label="Mastered" note={total ? `${Math.round(mastered / total * 100)}% of ${total} masterable items` : 'No masterable items'}/>
-          <BandCell kind="arsenal" value={inArsenal} label="In arsenal" note="Held and unranked: the quickest progress"/>
-          <BandCell kind="missing" value={items.length - inArsenal} label="Never held"/>
+        <div className="toolbar">
+          <SearchField label="Search mastery" value={search} onChange={value => update({ search: value })}/>
+          <label className="select">
+            <span aria-hidden="true">Sort</span>
+            <select aria-label="Sort mastery" value={sort} onChange={event => update({ sort: event.target.value as MasterySort })}>
+              {masterySortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>
         </div>
 
-        <div className="register">
-          <div className="register-controls">
-            <label className="search-slot">
-              <Mark name="search" className="punch-glyph"/>
-              <span className="sr-only">Search mastery</span>
-              <input type="search" aria-label="Search mastery" placeholder="Search canonical item names…" value={search} onChange={event => setSearch(event.target.value)}/>
-            </label>
-            <div className="sort-slot" role="group" aria-label="Sort mastery">
-              <span>Sort</span>
-              <div className="tally">
-                {masterySortOptions.map(option => <button
-                  type="button"
-                  key={option.value}
-                  aria-pressed={sort === option.value}
-                  onClick={() => setSort(option.value)}
-                >{option.label}</button>)}
-              </div>
-            </div>
-          </div>
-
-          {/* The category shields carry the progress: mastered over total, as the profile would. */}
-          <div className="shield-strip" role="group" aria-label="Mastery categories">
-            <button
-              type="button"
-              className="shield"
-              aria-label="All categories"
-              aria-pressed={category === 'all'}
-              onClick={() => setCategory('all')}
-            ><span className="shield-face"><b aria-hidden="true">✳</b>All categories</span></button>
-            {totals.map(entry => <button
-              type="button"
-              key={entry.category}
-              className="shield"
-              aria-label={`${categoryName[entry.category]} ${entry.mastered}/${entry.total}`}
-              aria-pressed={category === entry.category}
-              onClick={() => setCategory(entry.category)}
-            ><span className="shield-face"><b aria-hidden="true">{entry.mastered}/{entry.total}</b>{categoryName[entry.category]}</span></button>)}
-          </div>
-
-          <div className="register-bar">
-            <div className="provenance-row">
-              <div className="register-status">
-                <span className="register-line">{firstResult}–{lastResult} of {filtered.length}</span>
-              </div>
-            </div>
-          </div>
-
-          {filtered.length
-            ? <>
-              <ul className="collection-grid" aria-label="Mastery items">{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified showDucats={false} listedOrder={null} sellable={false} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
-              <Pagination current={currentPage} total={totalPages} onChange={setPage}/>
-            </>
-            : <EmptyState title="Nothing left in this view" detail={items.length ? 'Try another search or clear a filter.' : 'Every masterable item the catalog knows is mastered.'}/>}
+        {/* The category chips carry the progress: mastered over total, as the profile would. */}
+        <div className="chips" role="group" aria-label="Mastery categories">
+          <button type="button" className="chip" aria-pressed={category === 'all'} onClick={() => update({ category: 'all' })}>All categories</button>
+          {totals.map(entry => <button
+            type="button"
+            key={entry.category}
+            className="chip"
+            aria-label={`${categoryName[entry.category]} ${entry.mastered}/${entry.total}`}
+            aria-pressed={category === entry.category}
+            onClick={() => update({ category: entry.category })}
+          >{categoryName[entry.category]}<span className="chip-count">{entry.mastered}/{entry.total}</span></button>)}
         </div>
+
+        <div className="status-line">
+          <span>{firstResult}–{lastResult} of {filtered.length}</span>
+        </div>
+
+        {filtered.length
+          ? <>
+            <ul className="card-grid" aria-label="Mastery items">{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified missingLabel="Never held" showDucats={false} listedOrder={null} sellable={false} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
+            <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
+          </>
+          : <EmptyState
+            title="Nothing left in this view"
+            detail={items.length ? 'Try another search or clear the filters.' : 'Every masterable item the catalog knows is mastered.'}
+            action={items.length > 0 && <button type="button" className="stamp" onClick={() => update({ search: '', category: 'all' })}>Clear filters</button>}
+          />}
       </>}
   </section>
 }
 
-function BandCell({ kind, value, unit, aside, label, note }: { kind: string; value: number; unit?: ReactNode; aside?: ReactNode; label: string; note?: string }) {
-  return <div className={`band-cell ${kind}`} data-summary={kind} data-testid={`band-${kind}`}>
-    <span className="band-figure">{figure(value)}{unit}</span>
-    <span className="band-label">{label}</span>
-    {aside && <span className="band-aside">{aside}</span>}
-    {note && <p className="band-note">{note}</p>}
+/** One summary figure, inline in a page head: the figure, what it counts, and an optional
+ * qualification on it. */
+function Stat({ kind, value, unit, label, aside, note }: { kind: string; value: number; unit?: ReactNode; label: string; aside?: ReactNode; note?: string }) {
+  return <div className={`stat ${kind}`} data-summary={kind} data-testid={`stat-${kind}`}>
+    <span className="stat-figure">{figure(value)}{unit}</span>
+    <span className="stat-label">{label}</span>
+    {aside && <span className="stat-aside">{aside}</span>}
+    {note && <p className="stat-note">{note}</p>}
   </div>
 }
 
-function CollectionEntry({ item, ownershipVerified, showDucats, listedOrder, sellable, onSell, onUpdate, busy }: { item: CollectionItem; ownershipVerified: boolean; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }) {
+function CollectionEntry({ item, ownershipVerified, missingLabel = 'Missing', showDucats, listedOrder, sellable, onSell, onUpdate, busy }: { item: CollectionItem; ownershipVerified: boolean; missingLabel?: string; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }) {
   const missing = item.quantity === 0
   const [artFailed, setArtFailed] = useState(false)
   const [selling, setSelling] = useState(false)
-  // The rank belongs in the accessible name, not only in the marks: a mod held at two ranks is two
-  // cards headed the same word, and without it they are indistinguishable to anyone not reading
-  // the cartouches.
+  // The rank belongs in the accessible name: a mod held at two ranks is two cards headed the same
+  // word, and without it they are indistinguishable to anyone not reading the badges.
   const label = rankLabel(item) ? `${item.name}, ${rankLabel(item)}` : item.name
-  // Nothing offered on a card whose whole holding is already listed: the badge above says so, and
-  // the market allows one sell order per item, so a second listing is not what "sell more" can
-  // mean. A listing that covers part of the holding keeps the control, as an edit of the listing
-  // that already stands. Raising the count is the only honest way to sell the remainder.
+  // Nothing offered on a card whose whole holding is already listed: the badge says so, and the
+  // market allows one sell order per item. A listing that covers part of the holding keeps the
+  // control, as an edit of the listing that already stands.
   const remaining = sellable && (!listedOrder || listedOrder.quantity < item.quantity)
-  return <article className={`entry cat-${item.category}`} aria-label={label} data-held={item.quantity > 0 ? 'true' : 'false'}>
-    <div className="entry-well">
+  return <article className="card" aria-label={label} data-held={item.quantity > 0 ? 'true' : 'false'}>
+    <div className="card-art">
       {item.image_url && !artFailed
         ? <img src={item.image_url} alt={item.name} loading="lazy" decoding="async" onError={() => setArtFailed(true)}/>
-        : <span className="well-mark" aria-hidden="true">{categoryName[item.category].slice(0, 2).toUpperCase()}</span>}
+        : <span aria-hidden="true">{categoryName[item.category].slice(0, 2)}</span>}
     </div>
-    <div className="entry-body">
-      <span className="entry-cat">{categoryName[item.category]}</span>
-      <h2 className="entry-name">{item.name}</h2>
-      <div className="marks">
+    <div className="card-body">
+      <h2 className="card-name" title={item.name}>{item.name}</h2>
+      <span className="card-meta">{categoryName[item.category]}</span>
+      <div className="tags">
         {ownershipVerified
           ? missing
-            ? <span className="hallmark absent">Missing</span>
-            : <span className="hallmark owned">Owned ×{item.quantity}</span>
+            ? <span className="tag absent">{missingLabel}</span>
+            : <span className="tag">Owned ×{item.quantity}</span>
           : null}
-        {rankLabel(item) && <span className={`hallmark rank${atMaxRank(item) ? ' maxed' : ''}`}>{rankLabel(item)}</span>}
-        {ownershipVerified && item.mastered && <span className="hallmark mastered">Mastered</span>}
-        {listedOrder && <span className="hallmark">{listedLabel(listedOrder, item.quantity)}</span>}
-        {item.platinum !== undefined && <span className={`price${item.live ? ' live' : ''}`}>
-          <MetalMark metal="plat" alt="platinum "/>
-          {item.platinum_ceiling === undefined
-            ? <>
-              <b>{item.platinum}</b>
-              {ownershipVerified && item.quantity > 1 && <em>{stackValue(item)} total</em>}
-            </>
-            // Nobody sells a half-ranked card, so the market brackets it without ever quoting it.
-            // The two ends are what is known; a single number here would be invented.
-            : <b title="Sellers list unranked and fully ranked copies only, so this rank sits between the two">
-              {item.platinum}–{item.platinum_ceiling}
-            </b>}
-        </span>}
-        {/* Baro's price, beside the market's. It is a fact of the item rather than of a holding,
-            so it reads on a missing part too, where the platinum span above stays silent, and it
-            totals like platinum does, because a stack of parts banks a stack of ducats. */}
-        {showDucats && (item.ducats !== undefined
-          ? <span className="price ducat-reading">
-            <MetalMark metal="ducat" alt="ducat "/>
-            <b>{item.ducats}</b>
-            {ownershipVerified && item.quantity > 1 && <em>{item.ducats * item.quantity} total</em>}
-          </span>
-          : item.category === 'prime_part' && <span className="ducat-unavailable">Ducat value unavailable</span>)}
+        {rankLabel(item) && <span className={`tag rank${atMaxRank(item) ? ' maxed' : ''}`}>{rankLabel(item)}</span>}
+        {ownershipVerified && item.mastered && <span className="tag mastered">Mastered</span>}
+        {listedOrder && <span className="tag listed">{listedLabel(listedOrder, item.quantity)}</span>}
       </div>
-      {item.live && <p className="freshness">checked live</p>}
-      {remaining && (selling
-        ? <SellForm item={item} listing={listedOrder ?? undefined} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={() => setSelling(false)}/>
-        : <button type="button" className="stamp sell-open" disabled={busy} onClick={() => setSelling(true)}><span>{listedOrder ? 'Sell more' : 'Sell'}</span></button>)}
     </div>
+    <div className="card-values">
+      {item.platinum !== undefined && <span className="value plat">
+        <MetalMark metal="plat" alt="platinum "/>
+        {item.platinum_ceiling === undefined
+          ? <>
+            <b>{item.platinum}</b>
+            {ownershipVerified && item.quantity > 1 && <em>{stackValue(item)} total</em>}
+          </>
+          // Nobody sells a half-ranked card, so the market brackets it without ever quoting it.
+          // The two ends are what is known; a single number here would be invented.
+          : <b title="Sellers list unranked and fully ranked copies only, so this rank sits between the two">
+            {item.platinum}–{item.platinum_ceiling}
+          </b>}
+      </span>}
+      {/* Baro's price, beside the market's. It is a fact of the item rather than of a holding,
+          so it reads on a missing part too, and it totals like platinum does. */}
+      {showDucats && (item.ducats !== undefined
+        ? <span className="value ducat">
+          <MetalMark metal="ducat" alt="ducat "/>
+          <b>{item.ducats}</b>
+          {ownershipVerified && item.quantity > 1 && <em>{item.ducats * item.quantity} total</em>}
+        </span>
+        : item.category === 'prime_part' && <span className="value-missing">Ducat value unavailable</span>)}
+      {item.live && <span className="checked-live">Checked live</span>}
+    </div>
+    {remaining && (selling
+      ? <SellForm item={item} listing={listedOrder ?? undefined} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={() => setSelling(false)}/>
+      : <button type="button" className="stamp sell-open" disabled={busy} onClick={() => setSelling(true)}>{listedOrder ? 'Sell more' : 'Sell'}</button>)}
   </article>
 }
 
@@ -962,12 +884,12 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
   if (total <= 1) return null
   const pages = pageNumbers(current, total)
   return <nav className="pagination" aria-label="Collection pages">
-    <button type="button" disabled={current === 1} aria-label="Previous page" onClick={() => onChange(current - 1)}>←</button>
+    <button type="button" disabled={current === 1} aria-label="Previous page" onClick={() => onChange(current - 1)}><Icon name="previous"/></button>
     {pages.map((page, index) => <span key={page} className="page-slot">
       {index > 0 && page - pages[index - 1] > 1 ? <i aria-hidden="true">…</i> : null}
-      <button type="button" className={page === current ? 'current' : ''} aria-current={page === current ? 'page' : undefined} aria-label={`Go to page ${page}`} onClick={() => onChange(page)}>{page}</button>
+      <button type="button" aria-current={page === current ? 'page' : undefined} aria-label={`Go to page ${page}`} onClick={() => onChange(page)}>{page}</button>
     </span>)}
-    <button type="button" disabled={current === total} aria-label="Next page" onClick={() => onChange(current + 1)}>→</button>
+    <button type="button" disabled={current === total} aria-label="Next page" onClick={() => onChange(current + 1)}><Icon name="next"/></button>
   </nav>
 }
 
@@ -975,33 +897,35 @@ function RewardPage({ view, effectiveMode }: { view: AppView; effectiveMode: Acc
   const ownershipVerified = effectiveMode === 'full'
   const companion = effectiveMode === 'companion'
   return <div className="page">
-    <div className="mark-head">
-      <h1 id="reward-title" className="mark">Reward advisor</h1>
-      <p className="prose">{companion
-        ? 'Live reward observation is inactive in Companion. Historical reward cards remain available with saved ownership marked unverifiable.'
-        : 'TennoScope watches EE.log for a Void Fissure reward, reads the reward cards off the screen with OCR, and places advice below the reward row.'}</p>
+    <div className="page-head">
+      <h1 id="reward-title" className="page-title">Reward advisor</h1>
+      <p className="page-note">{companion
+        ? 'Live reward observation is inactive in Companion. Saved ownership is shown as unverifiable.'
+        : 'Reads the Void Fissure reward screen and shows each choice’s value here and over the game.'}</p>
     </div>
     <section aria-label="Reward advisor">
       {view.reward.cards.length
         ? <RewardCards cards={view.reward.cards} bestValueIndex={view.reward.best_value_index} bestDucatIndex={view.reward.best_ducat_index} ownershipVerified={ownershipVerified}/>
-        : <EmptyState title="No reward choices detected" detail={companion ? 'Live reward observation is inactive in Companion; reference data remains available.' : 'The observer is waiting for an English Void Fissure reward screen.'}/>}
+        : <EmptyState title="No reward choices detected" detail={companion ? 'Live reward observation is inactive in Companion; reference data remains available.' : 'Waiting for an English Void Fissure reward screen.'}/>}
     </section>
   </div>
 }
 
-function AssayRow({ label, health }: { label: string; health: BackendHealth | { state: HealthState; message: string; last_success?: string | null } }) {
-  return <article className={`assay-row ${health.state}`}>
-    <span className="state-mark" aria-hidden="true"/>
+const stateWord: Record<HealthState, string> = { ready: 'Ready', idle: 'Idle', degraded: 'Degraded', failed: 'Failed' }
+const readerWord: Record<HealthState, string> = { ready: 'Watching Warframe', idle: 'Idle', degraded: 'Attention needed', failed: 'Attention: reader failed' }
+
+function HealthRow({ label, health }: { label: string; health: BackendHealth | { state: HealthState; message: string; last_success?: string | null } }) {
+  return <article className={`health-row ${health.state}`}>
+    <StateIcon state={health.state}/>
     <div>
       <h3>{label}</h3>
       <p title={health.message}>{health.message}</p>
       {/* Rows record their success time in whatever form their own source keeps: most write Unix
-          seconds, the price table an ISO date. Printed raw, one row reads
-          "Last success: 1785492000". The relative reading is the useful one here; the exact stamp
-          rides along for anyone comparing a row against a log. */}
+          seconds, the price table an ISO date. The relative reading is the useful one here; the
+          exact stamp rides along for anyone comparing a row against a log. */}
       {health.last_success && <small>Last success: {healthSuccessLabel(health.last_success)}</small>}
     </div>
-    <span className="assay-verdict">{health.state}</span>
+    <span className="verdict">{stateWord[health.state]}</span>
   </article>
 }
 
@@ -1030,19 +954,19 @@ function ReportBlock({ health, alwaysVisible }: { health: AppView['health']; alw
     }
   }
   return (
-    <section className={`report-plate${broken ? ' broken' : ''}`} role="group" aria-label="Report a problem">
+    <section className={`report${broken ? ' broken' : ''}`} role="group" aria-label="Report a problem">
       <div className="report-head">
-        <span className={`state-mark ${broken ? 'failed' : 'ready'}`} aria-hidden="true"/>
-        <h2 className="report-title">Report a problem</h2>
+        <StateIcon state={broken ? 'failed' : 'ready'}/>
+        <h2 className="section-title">Report a problem</h2>
         <p className="prose">{broken
-          ? 'Strike a record of what failed. Review it before it leaves this machine. Nothing is sent anywhere.'
+          ? 'Collect a report of what failed and review it before it leaves this machine. Nothing is sent anywhere.'
           : 'Something not working right? Bundle your diagnostics and open an issue. Nothing leaves this machine without you sending it.'}</p>
       </div>
       <div className="report-actions">
-        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(openIssue, () => 'OPENED THE ISSUE FORM IN YOUR BROWSER.')}>Open an issue</button>
-        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(copyReport, () => 'COPIED. PASTE IT INTO THE DIAGNOSTICS FIELD OF THE ISSUE FORM.')}>Copy diagnostics</button>
+        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(openIssue, () => 'Opened the issue form in your browser.')}>Open an issue</button>
+        <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(copyReport, () => 'Copied. Paste it into the diagnostics field of the issue form.')}>Copy diagnostics</button>
         <button type="button" className="stamp" disabled={status.kind === 'busy'} onClick={() => void run(saveReport, result =>
-          `SAVED TO ${result?.folder_path ?? '…'}${result?.ee_log_included ? '. EE.LOG INCLUDED (SANITIZED). SAFE TO ATTACH TO THE ISSUE.' : ''}`,
+          `Saved to ${result?.folder_path ?? '…'}${result?.ee_log_included ? '. EE.log included (sanitized), safe to attach to the issue.' : ''}`,
         )}>Save logs</button>
       </div>
       {status.kind === 'done' && <p className="report-status" role="status">{status.message}</p>}
@@ -1066,30 +990,27 @@ function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effectiveMode
   const systems = effectiveMode === 'companion' ? referenceSystems : [...liveSystems, ...referenceSystems]
   const showAcquisition = effectiveMode === 'full'
   return <div className="page">
-    <div className="mark-head">
-      <h1 id="diagnostics-title" className="mark">Diagnostics</h1>
-      <p className="prose">Status messages are deliberately scrubbed of temporary access values.</p>
+    <div className="page-head">
+      <h1 id="diagnostics-title" className="page-title">Diagnostics</h1>
+      <p className="page-note">Status messages never show temporary access values.</p>
     </div>
     <ReportBlock health={view.health}/>
-    <section aria-label="Diagnostics">
+    <section className="page-section" aria-label="Diagnostics">
       {effectiveMode === 'companion' && <p className="prose">Live Warframe diagnostics are inactive in Companion. Local and reference services remain visible.</p>}
-      <div className="procedure-head">
-        <h2 className="column-head">Core services</h2>
-      </div>
-      <div className="assay-list">{systems.map(([label, health]) => <AssayRow key={label} label={label} health={health}/>)}</div>
+      <h2 className="section-title">Services</h2>
+      <div className="health-list">{systems.map(([label, health]) => <HealthRow key={label} label={label} health={health}/>)}</div>
 
       {showAcquisition && <>
-        <div className="procedure-head second">
-          <h2 className="column-head">Acquisition pipeline</h2>
-        </div>
+        <h2 className="section-title">Inventory acquisition</h2>
         {view.health.acquisition_stages.length
           ? <ol className="stages">{view.health.acquisition_stages.map((stage, index) => {
             const words = stage.stage.replaceAll('_', ' ')
             const label = words[0].toUpperCase() + words.slice(1)
             return <li key={stage.stage} className={stage.state}>
-              <span className={`ordinal ${stage.state}`}>{index + 1}</span>
+              <span className="stage-index">{index + 1}</span>
+              <StateIcon state={stage.state}/>
               <div><strong>{label}</strong><p>{stage.message}</p></div>
-              <span className="assay-verdict">{stage.state}</span>
+              <span className="verdict">{stateWord[stage.state]}</span>
             </li>
           })}</ol>
           : <EmptyState title="No acquisition attempt yet" detail="Start Warframe or request a refresh to populate the five pipeline stages."/>}
@@ -1101,17 +1022,13 @@ function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effectiveMode
 function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy, modeError, onSelectMode, onConfirmMode, desktopCaptureActionAvailable, captureAuthorizationBusy, captureNote, onCaptureNote, onAuthorizeCapture, onPriceFloor }: { view: AppView; priceFloor: number; effectiveMode: AccessMode; selectedMode: AccessMode; modeBusy: boolean; modeError: string | null; onSelectMode: (mode: AccessMode) => void; onConfirmMode: () => void; desktopCaptureActionAvailable: boolean; captureAuthorizationBusy: boolean; captureNote: string | null; onCaptureNote: (note: string | null) => void; onAuthorizeCapture: () => Promise<void>; onPriceFloor: (floor: number) => void }) {
   const { sellable: total, sellableCount: counted } = collectionTotals(view.collection.items, priceFloor)
   return <section className="page" aria-labelledby="settings-title">
-    <div className="mark-head">
-      <h1 id="settings-title" className="mark">Settings</h1>
-      <p className="prose">Preferences are held on this device, and take effect as they are set.</p>
+    <div className="page-head">
+      <h1 id="settings-title" className="page-title">Settings</h1>
+      <p className="page-note">Saved on this device and applied as you set them.</p>
     </div>
-    <section className="mode-setting" aria-labelledby="access-setting-title">
-      <div className="procedure-head access-setting-head">
-        <div>
-          <h2 id="access-setting-title" className="column-head">Warframe access</h2>
-          <p className="band-note">Every change needs confirmation. Nothing applies until you confirm.</p>
-        </div>
-      </div>
+    <section className="page-section" aria-labelledby="access-setting-title">
+      <h2 id="access-setting-title" className="section-title">Warframe access</h2>
+      <p className="band-note">Every change needs confirmation. Nothing applies until you confirm.</p>
       <AccessSelector
         value={selectedMode}
         effectiveMode={effectiveMode}
@@ -1124,10 +1041,8 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
     </section>
 
 
-    <section aria-label="Preferences">
-      <div className="procedure-head">
-        <h2 className="column-head">Preferences</h2>
-      </div>
+    <section className="page-section" aria-label="Preferences">
+      <h2 className="section-title">Preferences</h2>
       <div className="setting">
         <div>
           <h3>Collection price floor</h3>
@@ -1168,12 +1083,12 @@ function SettingsPage({ view, priceFloor, effectiveMode, selectedMode, modeBusy,
       <UpdatesSetting observesGame={effectiveMode !== 'companion'}/>
     </section>
 
-    <section aria-label="Support">
-      <div className="procedure-head">
-        <h2 className="column-head">Support</h2>
-      </div>
+    <section className="page-section" aria-label="Support">
+      <h2 className="section-title">Support</h2>
       <ReportBlock health={view.health} alwaysVisible/>
     </section>
+
+    <AboutSection effectiveMode={effectiveMode}/>
   </section>
 }
 
@@ -1261,8 +1176,8 @@ function DesktopCaptureSetting({ actionAvailable, prohibited, busy, note, onNote
   </div>
 }
 
-/** What the office says about itself: what it is, and what it does to your machine to say it. */
-function AboutPage({ effectiveMode }: { effectiveMode: AccessMode }) {
+/** What TennoScope is, and what it does to this machine in the current mode. */
+function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
   const observesGame = effectiveMode !== 'companion'
   const acquiresInventory = effectiveMode === 'full'
   const [versionLine, setVersionLine] = useState<string>(`Version ${APP_VERSION}`)
@@ -1284,47 +1199,31 @@ function AboutPage({ effectiveMode }: { effectiveMode: AccessMode }) {
       })
       .catch(() => {})
   }, [])
-  return <section className="page" aria-labelledby="about-title">
-    <div className="mark-head">
-      <h1 id="about-title" className="mark">About</h1>
-      <div>
-        <p className="prose">TennoScope is a free, open-source, local-first companion. GPLv3 · MVP.</p>
-        <p className="prose">{versionLine}</p>
-      </div>
-    </div>
+  return <section className="page-section" aria-labelledby="about-title">
+    <h2 id="about-title" className="section-title">About</h2>
+    <p className="prose">TennoScope is a free, open-source, local-first companion. GPLv3 · MVP.</p>
+    <p className="band-note">{versionLine}</p>
 
     <div className="clauses">
       <article className="clause">
-        <span className="clause-index" aria-hidden="true">I</span>
-        <div>
-          <h3>Local-first storage</h3>
-          <p className="prose">Your inventory snapshot and preferences are stored on this device in the application data directory. The UI has no telemetry or cloud account.</p>
-        </div>
+        <h3>Local-first storage</h3>
+        <p className="prose">Your inventory snapshot and preferences are stored on this device in the application data directory. The UI has no telemetry or cloud account.</p>
       </article>
       <article className={observesGame ? 'clause caution' : 'clause'}>
-        <span className="clause-index" aria-hidden="true">{observesGame ? 'Caution' : 'II'}</span>
-        <div>
-          <h3>{observesGame ? 'Warframe access disclosure' : 'Companion access'}</h3>
-          <p className="prose">{effectiveMode === 'full'
-            ? 'Full access inspects the running game process using read-only memory access. Third-party software and process inspection may carry account-policy or anti-cheat risk even when no game memory is modified.'
-            : effectiveMode === 'overlay'
-              ? 'Overlay observes process presence, EE.log, and visible pixels to provide live reward assistance. It does not read process memory or acquire inventory.'
-              : 'Companion does not observe the running game process or EE.log, capture the screen, display overlays, read process memory, or acquire inventory.'}</p>
-        </div>
+        <h3>{observesGame ? 'Warframe access disclosure' : 'Companion access'}</h3>
+        <p className="prose">{effectiveMode === 'full'
+          ? 'Full access inspects the running game process using read-only memory access. Third-party software and process inspection may carry account-policy or anti-cheat risk even when no game memory is modified.'
+          : effectiveMode === 'overlay'
+            ? 'Overlay observes process presence, EE.log, and visible pixels to provide live reward assistance. It does not read process memory or acquire inventory.'
+            : 'Companion does not observe the running game process or EE.log, capture the screen, display overlays, read process memory, or acquire inventory.'}</p>
       </article>
       <article className="clause">
-        <span className="clause-index" aria-hidden="true">III</span>
-        <div>
-          <h3>Inventory synchronization</h3>
-          <p className="prose">{acquiresInventory ? 'Full access can synchronize inventory automatically and through the manual refresh in the masthead.' : 'Inventory synchronization is available only in Full access. Your existing saved snapshot remains available here.'}</p>
-        </div>
+        <h3>Inventory synchronization</h3>
+        <p className="prose">{acquiresInventory ? 'Full access can synchronize inventory automatically and through Refresh inventory in the sidebar.' : 'Inventory synchronization is available only in Full access. Your existing saved snapshot remains available here.'}</p>
       </article>
       <article className="clause">
-        <span className="clause-index" aria-hidden="true">IV</span>
-        <div>
-          <h3>Reward assistance</h3>
-          <p className="prose">{observesGame ? 'Reward names can be read from visible screen pixels with OCR and matched against the squad’s relic pool. The overlay is non-focusable and click-through, so it never takes input from the game.' : 'The catalog and relic reference remain available for planning. Live screen recognition and the click-through overlay are available in Overlay and Full access.'}</p>
-        </div>
+        <h3>Reward assistance</h3>
+        <p className="prose">{observesGame ? 'Reward names can be read from visible screen pixels with OCR and matched against the squad’s relic pool. The overlay is non-focusable and click-through, so it never takes input from the game.' : 'The catalog and relic reference remain available for planning. Live screen recognition and the click-through overlay are available in Overlay and Full access.'}</p>
       </article>
     </div>
   </section>
@@ -1354,17 +1253,17 @@ function OverlayPreviewToggle({ prohibited, busy }: { prohibited: boolean; busy:
           .then(() => setShown(next))
           .catch(() => setBlocked(true))
       }}
-    ><span>{shown ? 'Hide reward overlay' : 'Preview reward overlay'}</span></button>
+    >{shown ? 'Hide reward overlay' : 'Preview reward overlay'}</button>
     {prohibited && <p id="overlay-prohibited" className="prohibition-note">Overlay or Full access is required because Companion does not create overlays.</p>}
     {!prohibited && blocked && <p id="overlay-blocked" className="band-note" role="status">The overlay is unavailable while access is changing. Try again once the new mode is effective.</p>}
   </div>
 }
 
-function EmptyState({ title, detail }: { title: string; detail: string }) {
+function EmptyState({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) {
   return <div className="empty-state">
-    <span className="void-mark" aria-hidden="true"/>
     <h2>{title}</h2>
     <p>{detail}</p>
+    {action}
   </div>
 }
 
