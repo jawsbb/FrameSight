@@ -39,6 +39,7 @@ mod kiosk_view;
 #[cfg(target_os = "linux")]
 pub mod linux_renderer;
 pub mod market_account;
+mod market_lookup;
 pub mod monitor;
 mod overlay_window;
 mod preferences;
@@ -2236,6 +2237,8 @@ pub fn run() {
             // The kiosk window's whole IPC surface: `get_kiosk_view` pulls whatever the poller
             // last published, so the cell exists from the start, empty until a kiosk opens.
             app.manage(kiosk_view::KioskState::default());
+            // The Market page's short cache of live orders.
+            app.manage(market_lookup::MarketLookup::default());
             if let Some(access_mode) = startup.access_mode {
                 start_collection_prices(Arc::clone(app.state::<SharedRuntime>().inner()));
                 // The stored mode is installed here without a transition, so the switch a
@@ -2297,6 +2300,8 @@ pub fn run() {
             create_order,
             set_order_quantity,
             update_order,
+            market_lookup::market_search,
+            market_lookup::market_item_orders,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             update::get_version_info,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]

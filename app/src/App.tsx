@@ -41,6 +41,7 @@ import { MarketStatus } from './components/MarketStatus'
 import { CollectionPage, type CollectionFilters } from './pages/CollectionPage'
 import { MasteryPage, type MasteryFilters } from './pages/MasteryPage'
 import { RelicsPage } from './pages/RelicsPage'
+import { MarketPage } from './pages/MarketPage'
 import { RewardPage } from './pages/RewardPage'
 import { OrdersView } from './pages/OrdersView'
 import { DiagnosticsPage } from './pages/DiagnosticsPage'
@@ -56,7 +57,7 @@ const initialMasteryFilters: MasteryFilters = { search: '', category: 'all', sor
  * here; `tsc` then asks for its icon (`components/Icon.tsx`) and its name (`nav.pages` in each
  * catalog), and the page switch in `App` renders it.
  */
-const railPages = ['collection', 'mastery', 'relics', 'rewards', 'orders'] as const
+const railPages = ['collection', 'mastery', 'relics', 'market', 'rewards', 'orders'] as const
 const railEndPages = ['diagnostics', 'settings'] as const
 type Page = typeof railPages[number] | typeof railEndPages[number]
 
@@ -445,6 +446,7 @@ function App() {
         }} onOpenMastery={() => openPage('mastery')} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
         {page === 'mastery' && <MasteryPage view={view} filters={masteryFilters} onFilters={setMasteryFilters} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
         {page === 'relics' && <RelicsPage view={view} effectiveMode={effectiveMode}/>}
+        {page === 'market' && <MarketPage view={view} effectiveMode={effectiveMode} onSell={ordersSell} onUpdate={ordersUpdate} ordersBusy={ordersBusy}/>}
         {page === 'rewards' && <RewardPage view={view} effectiveMode={effectiveMode}/>}
         {page === 'orders' && <OrdersView
           account={view.market_account}
