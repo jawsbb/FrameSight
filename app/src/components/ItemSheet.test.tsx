@@ -54,12 +54,12 @@ const view: AppView = {
   },
 }
 
-const filters: CollectionFilters = { search: '', category: 'all', ownership: 'all', sort: 'name-asc', page: 1 }
+const filters: CollectionFilters = { search: '', category: 'all', ownership: 'all', sort: 'name-asc', masterySort: 'arsenal-first', page: 1 }
 
 function page() {
   return render(<CollectionPage
     view={view} effectiveMode="full" filters={filters} onFilters={vi.fn()} pricing={false} onPriceLive={vi.fn()}
-    priceFloor={0} showDucats onToggleDucats={vi.fn()} onOpenMastery={vi.fn()}
+    priceFloor={0} showDucats onToggleDucats={vi.fn()}
     onSell={vi.fn()} onUpdate={vi.fn()} ordersBusy={false}
   />)
 }
@@ -85,6 +85,23 @@ describe('the item sheet', () => {
 
     expect(screen.getByRole('dialog', { name: 'Rhino Prime' })).toBeInTheDocument()
     expect(backend.getItemDetail).toHaveBeenCalledWith('rhino-prime')
+  })
+
+  it('opens from a To master card too, which nothing is sold from', async () => {
+    const user = userEvent.setup()
+    const excalibur = { id: 'excalibur', name: 'Excalibur', category: 'frame' as const, quantity: 0, mastered: false, live: false, priceable: false }
+    render(<CollectionPage
+      view={{ ...view, mastery: { available: true, items: [excalibur], totals: [{ category: 'frame', mastered: 0, total: 1 }] } }}
+      effectiveMode="full" filters={{ ...filters, ownership: 'toMaster' }} onFilters={vi.fn()} pricing={false} onPriceLive={vi.fn()}
+      priceFloor={0} showDucats onToggleDucats={vi.fn()}
+      onSell={vi.fn()} onUpdate={vi.fn()} ordersBusy={false}
+    />)
+
+    await user.click(within(card('Excalibur')).getByRole('button', { name: 'Excalibur' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Excalibur' })
+    expect(backend.getItemDetail).toHaveBeenCalledWith('excalibur')
+    expect(within(dialog).queryByRole('button', { name: /^Sell/ })).not.toBeInTheDocument()
   })
 
   it('opens from the keyboard, and Escape gives focus back to the card it came from', async () => {

@@ -1,8 +1,10 @@
-export type IconName = 'collection' | 'mastery' | 'relics' | 'foundry' | 'market' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'close'
+export type IconName = 'dashboard' | 'collection' | 'mastery' | 'relics' | 'foundry' | 'market' | 'rewards' | 'orders' | 'diagnostics' | 'settings' | 'refresh' | 'search' | 'previous' | 'next' | 'close'
 
 /** Line icons on a 24px grid, one round stroke throughout. */
 export function Icon({ name }: { name: IconName }) {
   const paths = {
+    // A gauge: its dial, the needle and the hub it turns on.
+    dashboard: <><path d="M3.5 14.5a8.5 8.5 0 0 1 17 0"/><path d="m12 14.5 4-4.5"/><circle cx="12" cy="14.5" r="1.25"/><path d="M7 18.5h10"/></>,
     collection: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></>,
     mastery: <><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-5.1"/></>,
     relics: <><path d="M12 3 18.5 8v8L12 21l-6.5-5V8z"/><path d="m5.5 8 6.5 4 6.5-4M12 12v9"/></>,
