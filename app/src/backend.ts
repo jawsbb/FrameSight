@@ -140,6 +140,31 @@ export const createOrder = (collectionId: string, platinum: number, quantity: nu
 export const updateOrder = (orderId: string, platinum: number, quantity: number) =>
   invoke<AppView>('update_order', { orderId, platinum, quantity })
 
+/** The item sheet: what the catalogue already loaded says about one row, and what the collection
+ * holds of its recipe. Optional fields are absent where the catalogue gives nothing. */
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary'
+/** `chance` is in percent; `vaulted` is known for relics only. */
+export interface DropSource { location: string; chance?: number; rarity?: Rarity; vaulted?: boolean }
+export type StatKey = 'health' | 'shield' | 'armor' | 'energy' | 'sprint_speed' | 'damage' | 'critical_chance' | 'critical_multiplier' | 'status_chance' | 'fire_rate' | 'magazine' | 'reload'
+/** `held` is absent without a collection to count from. */
+export interface ComponentDetail { name: string; image_url?: string; count: number; held?: number; drops: DropSource[] }
+export interface ItemDetail {
+  /** The wiki's render; the wiki has none under the name for many mods and parts. */
+  wiki_image_url?: string
+  image_url?: string
+  description?: string
+  mastery_req?: number
+  vaulted?: boolean
+  prime: boolean
+  introduced?: { name: string; date?: string }
+  wiki_url?: string
+  abilities: Array<{ name: string; description: string }>
+  stats: Array<{ key: StatKey; value: number }>
+  components: ComponentDetail[]
+  drops: DropSource[]
+}
+export const getItemDetail = (itemId: string) => invoke<ItemDetail>('get_item_detail', { itemId })
+
 export type InstallKind = 'appimage' | 'system_linux' | 'portable_win' | 'system_win' | 'unknown'
 export interface VersionInfo { version: string; channel: string; kind: InstallKind; writable: boolean; updatable: boolean; manager: string | null; manager_command: string | null }
 export interface UpdateSummary { version: string; current_version: string; notes: string | null; date: string | null; feed: string }

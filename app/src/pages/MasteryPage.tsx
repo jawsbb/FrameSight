@@ -2,7 +2,9 @@ import { useMemo } from 'react'
 import type { AppView, ItemCategory } from '../backend'
 import { pageWindow } from '../collection'
 import type { SellHandler, UpdateHandler } from '../SellForm'
-import { CollectionEntry } from '../components/CollectionEntry'
+import { CollectionEntry, type EntryContext } from '../components/CollectionEntry'
+import { ItemSheet } from '../components/ItemSheet'
+import { useItemSheet } from '../components/useItemSheet'
 import { EmptyState } from '../components/EmptyState'
 import { Pagination } from '../components/Pagination'
 import { SearchField } from '../components/SearchField'
@@ -35,6 +37,9 @@ export function MasteryPage({ view, filters, onFilters, onSell, onUpdate, orders
           : left.name.localeCompare(right.name))
   }, [items, search, category, sort])
   const { current: currentPage, total: totalPages, visible: visibleItems, first: firstResult, last: lastResult } = pageWindow(filtered, filters.page)
+  const sheet = useItemSheet(filtered)
+  // Nothing on this list is sold from it: every row is either unheld or still to rank.
+  const entry: EntryContext = { ownershipVerified: true, missingLabel: t.card.neverHeld, showDucats: false, listedOrder: null, sellable: false, onSell, onUpdate, busy: ordersBusy }
 
   return <section className="page" aria-labelledby="mastery-title">
     <div className="page-head">
@@ -75,7 +80,7 @@ export function MasteryPage({ view, filters, onFilters, onSell, onUpdate, orders
 
         {filtered.length
           ? <>
-            <ul className="card-grid" aria-label={t.mastery.list}>{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified missingLabel={t.card.neverHeld} showDucats={false} listedOrder={null} sellable={false} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
+            <ul className="card-grid" aria-label={t.mastery.list}>{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} {...entry} onOpen={trigger => sheet.open(item.id, trigger)}/></li>)}</ul>
             <p className="result-count">{t.grid.range(firstResult, lastResult, filtered.length)}</p>
             <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
           </>
@@ -86,5 +91,6 @@ export function MasteryPage({ view, filters, onFilters, onSell, onUpdate, orders
             action={items.length > 0 && <button type="button" className="stamp" onClick={() => update({ search: '', category: 'all' })}>{t.grid.clearFilters}</button>}
           />}
       </>}
+    {sheet.item && <ItemSheet item={sheet.item} index={sheet.index} total={sheet.total} onStep={sheet.step} onClose={sheet.close} {...entry}/>}
   </section>
 }

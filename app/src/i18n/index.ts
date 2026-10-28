@@ -58,6 +58,15 @@ export function backendReason(reason: string, t: Messages): string {
 
 /** `2026-07-27` as `27 Jul` or `27 juil.`: the calendar date itself, never shifted by a time zone. */
 export function shortDate(isoDate: string, t: Messages): string {
-  return new Intl.DateTimeFormat(t.locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })
+  return calendarDate(isoDate, t, { day: 'numeric', month: 'short' })
+}
+
+/** `2014-03-05` as `5 March 2014` or `5 mars 2014`, the same way. */
+export function longDate(isoDate: string, t: Messages): string {
+  return calendarDate(isoDate, t, { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function calendarDate(isoDate: string, t: Messages, format: Intl.DateTimeFormatOptions): string {
+  return new Intl.DateTimeFormat(t.locale, { ...format, timeZone: 'UTC' })
     .format(new Date(`${isoDate.slice(0, 10)}T00:00:00Z`))
 }

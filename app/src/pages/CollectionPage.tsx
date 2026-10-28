@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
-import type { AccessMode, AppView, ItemCategory } from '../backend'
+import type { AccessMode, AppView, CollectionItem, ItemCategory } from '../backend'
 import { collectionTotals, figure, masteryOrder, pageWindow } from '../collection'
 import { isListable, listedOrderFor } from '../orders'
 import { MetalMark } from '../MetalMark'
 import type { SellHandler, UpdateHandler } from '../SellForm'
-import { CollectionEntry } from '../components/CollectionEntry'
+import { CollectionEntry, type EntryContext } from '../components/CollectionEntry'
+import { ItemSheet } from '../components/ItemSheet'
+import { useItemSheet } from '../components/useItemSheet'
 import { EmptyState } from '../components/EmptyState'
 import { Icon } from '../components/Icon'
 import { Pagination } from '../components/Pagination'
@@ -60,6 +62,16 @@ export function CollectionPage({ view, effectiveMode, filters, onFilters, pricin
                 : left.name.localeCompare(right.name))
   }, [view.collection.items, search, category, ownership, sort])
   const { current: currentPage, total: totalPages, visible: visibleItems, first: firstResult, last: lastResult } = pageWindow(filtered, filters.page)
+  const sheet = useItemSheet(filtered)
+  const entry = (item: CollectionItem): EntryContext => ({
+    ownershipVerified,
+    showDucats,
+    listedOrder: listedOrderFor(view.market_account.orders, item.id),
+    sellable: ownershipVerified && view.market_account.link === 'linked' && isListable(item, view.market_account.listable),
+    onSell,
+    onUpdate,
+    busy: ordersBusy,
+  })
   // What the refresh can *attempt*, not what already has a number. A relic is priced only if some
   // dump in the last month saw it trade, so a thinly-traded one is unpriced, and excluding unpriced
   // items would close the manual path against exactly the items that need it. `priceable` is the
@@ -149,7 +161,7 @@ export function CollectionPage({ view, effectiveMode, filters, onFilters, pricin
 
       {filtered.length
         ? <>
-          <ul className="card-grid" aria-label={t.collection.list}>{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} ownershipVerified={ownershipVerified} showDucats={showDucats} listedOrder={listedOrderFor(view.market_account.orders, item.id)} sellable={ownershipVerified && view.market_account.link === 'linked' && isListable(item, view.market_account.listable)} onSell={onSell} onUpdate={onUpdate} busy={ordersBusy}/></li>)}</ul>
+          <ul className="card-grid" aria-label={t.collection.list}>{visibleItems.map(item => <li key={item.id}><CollectionEntry item={item} {...entry(item)} onOpen={trigger => sheet.open(item.id, trigger)}/></li>)}</ul>
           <p className="result-count">{t.grid.range(firstResult, lastResult, filtered.length)}</p>
           <Pagination current={currentPage} total={totalPages} onChange={page => onFilters({ ...filters, page })}/>
         </>
@@ -159,5 +171,6 @@ export function CollectionPage({ view, effectiveMode, filters, onFilters, pricin
       title={snapshotOnly ? t.collection.emptySnapshot : t.collection.empty}
       detail={snapshotOnly ? t.collection.emptySnapshotDetail : t.collection.emptyDetail}
     />}
+    {sheet.item && <ItemSheet item={sheet.item} index={sheet.index} total={sheet.total} onStep={sheet.step} onClose={sheet.close} {...entry(sheet.item)}/>}
   </section>
 }

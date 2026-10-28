@@ -594,6 +594,90 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .pick-empty, .pick-more { margin: 0; color: var(--text-dim); font-size: .75rem; }
 
 
+/* item sheet */
+
+/* A card opens its sheet: the name is the keyboard's control, and its focus rings the whole card. */
+.card:has(.card-open) { cursor: pointer; }
+.card-open {
+  display: -webkit-box; padding: 0; overflow: hidden; border: 0; background: none;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+  -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere;
+}
+.card-open:focus-visible { outline: none; }
+.card:has(.card-open:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* One item in full, over the page's right edge, under the title bar: the grid stays in place. */
+.sheet {
+  position: fixed; top: 36px; right: 8px; bottom: 8px; z-index: 2;
+  display: grid; grid-auto-rows: max-content; align-content: start; gap: 12px; width: min(460px, calc(100vw - 16px));
+  padding: 0 16px 20px; overflow-y: auto; overscroll-behavior: contain;
+  border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--bg-1);
+  animation: sheet-in .22s cubic-bezier(.16, 1, .3, 1);
+}
+.sheet:focus { outline: none; }
+.sheet:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@keyframes sheet-in { from { opacity: 0; transform: translateX(24px); } }
+.sheet-bar {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 4px;
+  margin: 0 -16px; padding: 10px 12px 8px; background: var(--bg-1);
+}
+.sheet-icon { min-height: 28px; width: 28px; padding: 0; }
+.sheet-icon[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.sheet-close { margin-left: auto; }
+.sheet-position { min-width: 4.5rem; color: var(--text-faint); font-size: .75rem; font-variant-numeric: tabular-nums; text-align: center; }
+.sheet-head { display: grid; gap: 4px; }
+.sheet-head .tags { margin-top: 0; }
+.sheet-title { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.3; letter-spacing: -.01em; text-wrap: balance; }
+/* The wiki's render is the whole model: a Warframe stands, a rifle lies, so the box keeps either. */
+.sheet-art {
+  display: flex; align-items: center; justify-content: center; height: 300px; overflow: hidden;
+  border-radius: var(--radius); background: var(--well);
+  color: var(--text-faint); font-size: 1.25rem; font-weight: 600;
+}
+.sheet-art img { width: 100%; height: 100%; padding: 12px; object-fit: contain; }
+.sheet-description { font-size: .8125rem; }
+.sheet-section { display: grid; gap: 6px; }
+.sheet-row, .sheet-component > summary, .sheet-ability {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 12px;
+  min-width: 0; padding: 10px 14px;
+}
+.sheet-label { color: var(--text-dim); }
+.sheet-value { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 8px; font-variant-numeric: tabular-nums; text-align: right; }
+.sheet-note { color: var(--text-faint); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.sheet-mono { font-family: var(--face-mono); font-size: .75rem; }
+.sheet-yes { color: var(--ok); }
+.sheet-actions { justify-content: flex-start; }
+.sheet-sell { padding: 10px 14px; }
+.sheet-component > summary { min-height: 0; color: var(--text); }
+/* A slot with no sources lines its name up with the ones behind a chevron (6px and its 8px gap). */
+.sheet-row.sheet-component { padding-left: 28px; }
+.sheet-component-name { display: inline-flex; flex: 1 1 auto; align-items: center; gap: 8px; min-width: 0; }
+.sheet-component-name img, .sheet-component-blank { width: 28px; height: 28px; flex: none; padding: 2px; border-radius: var(--radius-xs); background: var(--well); object-fit: contain; }
+.sheet-held { color: var(--text-dim); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.sheet-held.complete { color: var(--ok); }
+.sheet-drops { display: grid; margin: 0; padding: 0 14px 8px; list-style: none; }
+.group > .sheet-drops { padding-top: 4px; }
+.sheet-drops li {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px;
+  padding: 5px 0; border-top: 1px solid var(--line);
+}
+.group > .sheet-drops li:first-child { border-top: 0; }
+.sheet-drop-place { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sheet-ability { display: grid; justify-content: stretch; gap: 2px; }
+.sheet-ability .prose { font-size: .75rem; }
+
+@media (pointer: coarse) {
+  .sheet { top: 44px; }
+  .sheet-icon { width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet { animation: none; }
+}
+@media (forced-colors: active) {
+  .sheet { border-color: CanvasText; }
+  .card:has(.card-open:focus-visible) { outline-color: Highlight; }
+}
+
 /* responsive */
 
 @media (max-width: 900px) {

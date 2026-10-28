@@ -111,3 +111,12 @@ export function backingLabel(backing: CredentialBacking | undefined, t: Messages
 export function isListable(item: CollectionItem, listable: readonly string[]): boolean {
   return item.quantity > 0 && listable.includes(item.id)
 }
+
+/**
+ * Whether a row offers to sell. Nothing is offered once the whole holding is listed: the badge
+ * says so, and the market allows one sell order per item. A listing that covers part of the
+ * holding keeps the control, as an edit of the listing that already stands.
+ */
+export function canSell(item: { quantity: number }, { sellable, listedOrder }: { sellable: boolean; listedOrder: MarketOrder | null }): boolean {
+  return sellable && (!listedOrder || listedOrder.quantity < item.quantity)
+}

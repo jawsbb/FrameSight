@@ -1,13 +1,19 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { CollectionItem, MarketOrder } from '../backend'
 import { atMaxRank, rankLabel, stackValue } from '../collection'
-import { listedLabel } from '../orders'
+import { canSell, listedLabel } from '../orders'
 import { MetalMark } from '../MetalMark'
 import { SellForm, type SellHandler, type UpdateHandler } from '../SellForm'
 import { useMessages } from '../i18n'
 
-export function CollectionEntry({ item, ownershipVerified, missingLabel, showDucats, listedOrder, sellable, onSell, onUpdate, busy }: { item: CollectionItem; ownershipVerified: boolean; missingLabel?: string; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }) {
+/** What a page knows about one row beyond the row itself; the card and its sheet both read it. */
+export type EntryContext = { ownershipVerified: boolean; missingLabel?: string; showDucats: boolean; listedOrder: MarketOrder | null; sellable: boolean; onSell: SellHandler; onUpdate: UpdateHandler; busy: boolean }
+
+/** `onOpen` opens the item's sheet, with the control focus goes back to when it closes. */
+export function CollectionEntry({ item, onOpen, ...context }: EntryContext & { item: CollectionItem; onOpen?: (trigger: HTMLElement) => void }) {
+  const { ownershipVerified, missingLabel, showDucats, listedOrder, onSell, onUpdate, busy } = context
   const t = useMessages()
+  const opener = useRef<HTMLButtonElement>(null)
   const missing = item.quantity === 0
   const [artFailed, setArtFailed] = useState(false)
   const [selling, setSelling] = useState(false)
@@ -15,18 +21,21 @@ export function CollectionEntry({ item, ownershipVerified, missingLabel, showDuc
   // word, and without it they are indistinguishable to anyone not reading the badges.
   const rank = rankLabel(item, t)
   const label = rank ? `${item.name}, ${rank}` : item.name
-  // Nothing offered on a card whose whole holding is already listed: the badge says so, and the
-  // market allows one sell order per item. A listing that covers part of the holding keeps the
-  // control, as an edit of the listing that already stands.
-  const remaining = sellable && (!listedOrder || listedOrder.quantity < item.quantity)
-  return <article className="card" aria-label={label} data-held={item.quantity > 0 ? 'true' : 'false'}>
+  const remaining = canSell(item, context)
+  // The name is the keyboard's way in; anywhere else on the card that is not a control of its own
+  // opens the same sheet for the pointer.
+  return <article className="card" aria-label={label} data-held={item.quantity > 0 ? 'true' : 'false'} onClick={onOpen && (event => {
+    if (opener.current && !(event.target as Element).closest('button, input, select, textarea, label, a, form')) onOpen(opener.current)
+  })}>
     <div className="card-art">
       {item.image_url && !artFailed
         ? <img src={item.image_url} alt={item.name} loading="lazy" decoding="async" onError={() => setArtFailed(true)}/>
         : <span aria-hidden="true">{t.categories[item.category].slice(0, 2)}</span>}
     </div>
     <div className="card-body">
-      <h2 className="card-name" title={item.name}>{item.name}</h2>
+      <h2 className="card-name" title={item.name}>{onOpen
+        ? <button ref={opener} type="button" className="card-open" aria-haspopup="dialog" onClick={event => onOpen(event.currentTarget)}>{item.name}</button>
+        : item.name}</h2>
       <span className="card-meta">{t.categories[item.category]}</span>
       <div className="tags">
         {ownershipVerified
