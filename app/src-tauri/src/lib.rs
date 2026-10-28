@@ -1923,7 +1923,7 @@ fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
     if actions.is_empty() {
         return Some(view);
     }
-    let mut synced = Vec::new();
+    let (mut synced, at) = (Vec::new(), now_unix_seconds());
     for (entry, action) in actions {
         let name = entry.name.as_deref().unwrap_or(&entry.order.item_id);
         let (kind, to) = match action {
@@ -1946,7 +1946,7 @@ fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
                     thumb_url: entry.thumb_url.clone(),
                     from: entry.order.quantity,
                     to,
-                    at: now_unix_seconds(),
+                    at: at.clone(),
                 });
             }
             Err(error) => log::warn!("market: sync {name} failed: {error}"),

@@ -386,6 +386,7 @@ fn serialized_view_has_stable_wire_values_and_consistent_derived_fields() {
                 "listed_platinum": 0,
                 "listable": [],
                 "presence": { "status": null, "wanted": null, "auto": false },
+                "synced": [],
                 "flagged": 0
             }
         })
