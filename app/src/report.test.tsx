@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const backend = vi.hoisted(() => ({
-  // The dashboard the app opens on asks for both once.
+  // The dashboard the app opens on asks for these once.
+  getFarm: vi.fn(() => Promise.resolve({ prices_date: null, earlier_date: null, drops: false, relic_tables: false, sell: [], open: [], farm: [], trends: [] })),
   getRelics: vi.fn(() => Promise.resolve({ catalog: true, prices_date: null, ducats: false, relics: [] })), getFoundry: vi.fn(() => Promise.resolve({ status: 'ready', items: [] })),
   getSetupStatus: vi.fn(), setAccessMode: vi.fn(), authorizeScreenCapture: vi.fn(), getView: vi.fn(), refreshInventory: vi.fn(), refreshPrices: vi.fn(),
   marketStatus: vi.fn(), marketSignIn: vi.fn(), marketLinkToken: vi.fn(), marketSignOut: vi.fn(),

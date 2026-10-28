@@ -188,6 +188,7 @@ export const fr: Messages = {
       toMaster: 'Voir ce qui reste à maîtriser',
       relics: 'Voir les reliques',
       foundry: 'Voir la fonderie',
+      farm: 'Voir Farm & ventes',
       orders: 'Voir les ordres',
       rewards: 'Voir les récompenses',
       diagnostics: 'Voir le diagnostic',

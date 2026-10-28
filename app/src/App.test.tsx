@@ -8,7 +8,7 @@ const backend = vi.hoisted(() => ({
   refreshOrders: vi.fn(), removeOrder: vi.fn(), setOrderQuantity: vi.fn(),
   setMarketPresence: vi.fn(), createOrder: vi.fn(), updateOrder: vi.fn(),
   getVersionInfo: vi.fn(), updateCheck: vi.fn(), updateDownloadAndInstall: vi.fn(),
-  getPreferences: vi.fn(), setMasteryMarks: vi.fn(), getRelics: vi.fn(), getFoundry: vi.fn(),
+  getPreferences: vi.fn(), setMasteryMarks: vi.fn(), getRelics: vi.fn(), getFoundry: vi.fn(), getFarm: vi.fn(),
 }))
 const overlay = vi.hoisted(() => ({ showRewardOverlay: vi.fn(), hideRewardOverlay: vi.fn() }))
 const windowApi = vi.hoisted(() => ({
@@ -28,7 +28,7 @@ vi.mock('@tauri-apps/plugin-process', () => ({ relaunch: vi.fn(() => Promise.res
 
 import App from './App'
 import { resetUpdateStoreForTests } from './updateStore'
-import type { AppView, FoundryItem, FoundryView, Relic, RelicsView } from './backend'
+import type { AppView, FarmView, FoundryItem, FoundryView, Relic, RelicsView } from './backend'
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void
   let reject!: (reason?: unknown) => void
@@ -137,6 +137,20 @@ const foundryView: FoundryView = {
   status: 'ready',
   items: [build('ash-prime', 'Ash Prime', 'ready', 60), build('nova-prime', 'Nova Prime', 'ready'), build('nikana-prime', 'Nikana Prime', 'almost'), build('lex-prime', 'Lex Prime', 'set')],
 }
+// Each list as the backend ranks it: its first row is what the dashboard shows.
+const farmView: FarmView = {
+  prices_date: '2026-07-27', earlier_date: null, drops: true, relic_tables: true,
+  sell: [
+    { id: 'serration', name: 'Serration', quantity: 4, platinum: 30, monthly_trades: 90, value: 120, pace: 'fast', change: null, market: 'Serration' },
+    { id: 'scan', name: 'Scan Matter', quantity: 5, platinum: 2, monthly_trades: 3, value: 6, pace: 'slow', change: null, market: null },
+  ],
+  open: [{ id: 'axi-b2', name: 'Axi B2', refinement: 'radiant', quantity: 2, vaulted: false, value: 31.2, pace: 'fair', change: null, market: null }],
+  farm: [
+    { location: 'Void/Mot (Survival), Rotation C', value: 2.3, pace: 'fast', drops: [{ name: 'Lith T1 Relic', chance: 20, unit: 11.6, value: 2.3, relic: true, monthly_trades: 120, change: null }] },
+    { location: 'Lua/Apollo (Disruption), Rotation B', value: 1.1, pace: 'fair', drops: [{ name: 'Meso N1 Relic', chance: 10, unit: 11, value: 1.1, relic: true, monthly_trades: 60, change: null }] },
+  ],
+  trends: [],
+}
 
 /** The app opens on the dashboard; most of what is tested here is the collection behind it. */
 async function openCollection(user: Pick<ReturnType<typeof userEvent.setup>, 'click'> = userEvent) {
@@ -173,6 +187,7 @@ describe('MVP desktop interface', () => {
     backend.getPreferences.mockResolvedValue({ mastery_marks: true })
     backend.getRelics.mockResolvedValue(relicsView)
     backend.getFoundry.mockResolvedValue(foundryView)
+    backend.getFarm.mockResolvedValue(farmView)
     backend.setMasteryMarks.mockResolvedValue({ mastery_marks: true })
     overlay.hideRewardOverlay.mockResolvedValue(undefined)
     // Every mount reads the window's state once and subscribes for more; tests that never touch
@@ -964,6 +979,15 @@ describe('MVP desktop interface', () => {
       expect(row(foundry, 'Almost there')).toHaveTextContent(/Nikana Prime.*1/)
       expect(within(foundry).queryByText('Lex Prime')).not.toBeInTheDocument()
 
+      const farm = screen.getByRole('region', { name: 'Farm & sales' })
+      expect(await within(farm).findByText('4 × Serration')).toBeInTheDocument()
+      // The best of each list only, its unit as the Farm page names it, an average marked as one.
+      expect(row(farm, '4 × Serration')).toHaveTextContent(/Sell · this month, best stack.*120/)
+      expect(row(farm, '4 × Serration')).not.toHaveTextContent('≈')
+      expect(row(farm, 'Axi B2')).toHaveTextContent(/Radiant.*Open · per opening, best relic.*≈ 31.2/)
+      expect(row(farm, 'Void/Mot (Survival), Rotation C')).toHaveTextContent(/Farm · per run, best place.*≈ 2.3/)
+      expect(within(farm).queryByText(/Scan Matter|Lua\/Apollo/)).not.toBeInTheDocument()
+
       const orders = screen.getByRole('region', { name: 'Orders' })
       expect(row(orders, 'Not linked')).toHaveTextContent('Link an account in Orders')
 
@@ -977,7 +1001,7 @@ describe('MVP desktop interface', () => {
       expect(row(state, 'Market prices')).toHaveTextContent('27 Jul')
     })
 
-    it('asks for relics and builds when it opens, not on every poll', async () => {
+    it('asks for relics, builds and farm rankings when it opens, not on every poll', async () => {
       vi.useFakeTimers()
       render(<App />)
       await act(async () => {})
@@ -985,6 +1009,7 @@ describe('MVP desktop interface', () => {
       expect(backend.getView.mock.calls.length).toBeGreaterThanOrEqual(3)
       expect(backend.getRelics).toHaveBeenCalledOnce()
       expect(backend.getFoundry).toHaveBeenCalledOnce()
+      expect(backend.getFarm).toHaveBeenCalledOnce()
 
       fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
       fireEvent.click(screen.getByRole('button', { name: 'Dashboard' }))
@@ -1002,7 +1027,7 @@ describe('MVP desktop interface', () => {
 
       const back = async () => user.click(screen.getByRole('button', { name: 'Dashboard' }))
       for (const [link, heading] of [
-        ['See the collection', 'Your collection'], ['See relics', 'Relics'], ['See the foundry', 'Foundry'],
+        ['See the collection', 'Your collection'], ['See relics', 'Relics'], ['See the foundry', 'Foundry'], ['See farm & sales', 'Farm & sales'],
         ['See orders', 'Market orders'], ['See rewards', 'Reward advisor'], ['See diagnostics', 'Diagnostics'],
       ]) {
         await back()
@@ -1017,11 +1042,13 @@ describe('MVP desktop interface', () => {
       backend.getView.mockResolvedValue({ ...view, mastery: { available: false, items: [], totals: [] }, reward: { cards: [], best_value_index: null, best_ducat_index: null } })
       backend.getRelics.mockRejectedValue('no database')
       backend.getFoundry.mockReturnValue(new Promise(() => {}))
+      backend.getFarm.mockRejectedValue('no prices')
       render(<App />)
 
       const relics = await screen.findByRole('region', { name: 'Relics' })
       expect(await within(relics).findByText('Relics could not be loaded.')).toBeInTheDocument()
       expect(within(screen.getByRole('region', { name: 'Foundry' })).getByText('Loading the foundry…')).toBeInTheDocument()
+      expect(await within(screen.getByRole('region', { name: 'Farm & sales' })).findByText('Farm and sales could not be loaded.')).toBeInTheDocument()
       expect(within(screen.getByRole('region', { name: 'Mastery' })).getByText('Mastery needs an inventory read under Full access')).toBeInTheDocument()
       expect(within(screen.getByRole('region', { name: 'Last reward screen' })).getByText('No reward choices detected')).toBeInTheDocument()
       // The collection's figures stand whatever the slower sources do.
@@ -1038,6 +1065,11 @@ describe('MVP desktop interface', () => {
       expect(await within(foundry).findByText('No inventory read yet')).toBeInTheDocument()
       expect(await within(screen.getByRole('region', { name: 'Relics' })).findByText('No relics in the saved snapshot')).toBeInTheDocument()
       expect(row(screen.getByRole('region', { name: 'State' }), 'Game reader')).toHaveTextContent('Companion mode')
+      // Selling and opening read the inventory; farming does not, as on the Farm page.
+      const farm = screen.getByRole('region', { name: 'Farm & sales' })
+      expect(within(farm).getAllByText('Needs Full access').map(label => label.closest('.dash-row')?.textContent)).toEqual(['Needs Full accessSell', 'Needs Full accessOpen'])
+      expect(row(farm, 'Void/Mot (Survival), Rotation C')).toHaveTextContent('≈ 2.3')
+      expect(within(farm).queryByText('4 × Serration')).not.toBeInTheDocument()
     })
 
     it('puts orders to fix forward, in a sentence and a tint', async () => {

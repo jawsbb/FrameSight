@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { getFoundry, getRelics, type AccessMode, type AppView } from '../backend'
+import { getFarm, getFoundry, getRelics, type AccessMode, type AppView, type Refinement } from '../backend'
 import { collectionTotals, figure, masteryProgress } from '../collection'
 import { snapshotFreshness } from '../freshness'
 import { Icon } from '../components/Icon'
@@ -8,9 +8,11 @@ import { StateIcon } from '../components/StateIcon'
 import { shortDate, useMessages } from '../i18n'
 import './DashboardPage.css'
 
-type Target = 'collection' | 'relics' | 'foundry' | 'orders' | 'rewards' | 'diagnostics'
+type Target = 'collection' | 'relics' | 'foundry' | 'farm' | 'orders' | 'rewards' | 'diagnostics'
+type FarmAction = 'sell' | 'open' | 'farm'
+const farmActions: FarmAction[] = ['sell', 'open', 'farm']
 
-/** Relics and foundry builds are asked for once, when the page opens: the 2.5s poll does not repeat them. */
+/** Relics, foundry builds and farm rankings are asked for once, when the page opens: the 2.5s poll does not repeat them. */
 function useOnOpen<T>(fetch: () => Promise<T>): { data: T | null; failed: boolean } {
   const [state, setState] = useState<{ data: T | null; failed: boolean }>({ data: null, failed: false })
   useEffect(() => {
@@ -42,6 +44,12 @@ function Row({ label, note, tone, children }: { label: ReactNode; note?: ReactNo
   </div>
 }
 
+/** A relic's name, its refinement in the colour the Relics page gives it. */
+function RelicName({ name, refinement }: { name: string; refinement: Refinement | null }) {
+  const t = useMessages()
+  return <span className="dash-relic">{name}{refinement && <span className={`tag refinement ${refinement}`}>{t.relics.refinements[refinement]}</span>}</span>
+}
+
 /** One of the progress rows: a thin bar and the fraction it draws. */
 function Progress({ label, mastered, total, percent = null }: { label: string; mastered: number; total: number; percent?: number | null }) {
   const t = useMessages()
@@ -61,6 +69,7 @@ export function DashboardPage({ view, effectiveMode, priceFloor, now, onOpen, on
   const d = t.dashboard
   const relics = useOnOpen(getRelics)
   const foundry = useOnOpen(getFoundry)
+  const farm = useOnOpen(getFarm)
   const snapshotOnly = effectiveMode !== 'full'
 
   const { owned, worth, sellable, ducatsAtStake } = collectionTotals(view.collection.items, priceFloor)
@@ -98,7 +107,7 @@ export function DashboardPage({ view, effectiveMode, priceFloor, now, onOpen, on
       {valued && <Row label={d.openingTotal} note={t.relics.averageNote}><Platinum value={Math.round(opening)}/></Row>}
       {valued && best.length > 0 && <>
         <p className="dash-caption">{d.bestToOpen}</p>
-        {best.map(({ relic, value }) => <Row key={relic.id} label={<span className="dash-relic">{relic.name}{relic.refinement && <span className={`tag refinement ${relic.refinement}`}>{t.relics.refinements[relic.refinement]}</span>}</span>} note={t.relics.quantity(relic.quantity)}><Platinum value={value} approx/></Row>)}
+        {best.map(({ relic, value }) => <Row key={relic.id} label={<RelicName {...relic}/>} note={t.relics.quantity(relic.quantity)}><Platinum value={value} approx/></Row>)}
       </>}
     </>
   }
@@ -118,6 +127,28 @@ export function DashboardPage({ view, effectiveMode, priceFloor, now, onOpen, on
       </Row>)}
       <Row label={t.foundry.stages.almost} note={almost.slice(0, 3).map(item => item.name).join(' · ') || undefined}>{figure(almost.length, t)}</Row>
     </>
+  }
+
+  /** The top of each Farm & sales list, ranked there by what the market takes. */
+  function farmRows() {
+    const f = t.farm
+    if (farm.failed) return <Row label={f.failed}/>
+    if (!farm.data) return <Row label={f.loading}/>
+    const { sell: [sell], open: [relic], farm: [place], prices_date } = farm.data
+    const best = {
+      sell: sell && { name: f.table.stack(sell.quantity, sell.name), value: sell.value },
+      open: relic && { name: <RelicName {...relic}/>, value: relic.value },
+      farm: place && { name: place.location, value: place.value },
+    }
+    return farmActions.map(action => {
+      // Selling and opening read the inventory; farming does not, as on the Farm page.
+      if (action !== 'farm' && snapshotOnly) return <Row key={action} label={f.fullRequired} note={f.actions[action]}/>
+      const top = best[action]
+      if (!top || top.value <= 0) return <Row key={action} label={f.table.empty[action]} note={prices_date ? undefined : f.table.waiting}/>
+      return <Row key={action} label={top.name} note={`${f.actions[action]} · ${f.chart.key[action]}`}>
+        <Platinum value={top.value} approx={action !== 'sell'}/>
+      </Row>
+    })
   }
 
   const account = view.market_account
@@ -157,6 +188,7 @@ export function DashboardPage({ view, effectiveMode, priceFloor, now, onOpen, on
       </div>
       <div className="dash-column">
         <Block id="orders" title={t.nav.pages.orders} link={d.open.orders} onOpen={() => onOpen('orders')}>{orders}</Block>
+        <Block id="farm" title={t.nav.pages.farm} link={d.open.farm} onOpen={() => onOpen('farm')}>{farmRows()}</Block>
         <Block id="foundry" title={t.nav.pages.foundry} link={d.open.foundry} onOpen={() => onOpen('foundry')}>{foundryRows()}</Block>
         <Block id="rewards" title={d.lastRewards} link={d.open.rewards} onOpen={() => onOpen('rewards')}>{rewards}</Block>
         <Block id="state" title={d.state} link={d.open.diagnostics} onOpen={() => onOpen('diagnostics')}>

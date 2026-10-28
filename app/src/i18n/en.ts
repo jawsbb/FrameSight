@@ -192,6 +192,7 @@ export const en = {
       toMaster: 'See what is left to master',
       relics: 'See relics',
       foundry: 'See the foundry',
+      farm: 'See farm & sales',
       orders: 'See orders',
       rewards: 'See rewards',
       diagnostics: 'See diagnostics',
