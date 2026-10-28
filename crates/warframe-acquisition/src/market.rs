@@ -28,18 +28,37 @@ const USER_AGENT: &str = concat!(
     " (+https://github.com/Deftera186/tennoscope)"
 );
 
-/// warframe.market's slug for a reward name: lowercase, non-alphanumerics collapsed to underscore.
+/// warframe.market's slug for a reward name: lowercase, apostrophes dropped, `&` spelled `and`,
+/// accents folded, every other non-alphanumeric run collapsed to one underscore (`Hell's Chamber`
+/// is `hells_chamber`, `Cobra & Crane Prime Set` is `cobra_and_crane_prime_set`).
 ///
-/// Verified against the live API for every reward name observed so far. Items that are not
+/// Checked on 2026-10-28 against every item `/v2/items` lists: 3,890 of 3,893 match. The other
+/// three are Itzal parts, whose slug carries a `_blueprint` their name does not. Items that are not
 /// tradeable, Forma among them, simply have no entry and price as unknown.
 pub fn market_slug(name: &str) -> String {
     let mut slug = String::with_capacity(name.len());
     for character in name.chars() {
-        if character.is_ascii_alphanumeric() {
-            slug.extend(character.to_lowercase());
-        } else if !slug.ends_with('_') {
-            slug.push('_');
-        }
+        let spelled = match character {
+            '\'' | '’' => continue,
+            '&' => "and",
+            'é' | 'è' | 'ê' | 'ë' => "e",
+            'ö' | 'ô' => "o",
+            'ä' | 'à' | 'â' => "a",
+            'ü' | 'û' | 'ù' => "u",
+            'ï' | 'î' => "i",
+            'ç' => "c",
+            letter if letter.is_ascii_alphanumeric() => {
+                slug.push(letter.to_ascii_lowercase());
+                continue;
+            }
+            _ => {
+                if !slug.ends_with('_') {
+                    slug.push('_');
+                }
+                continue;
+            }
+        };
+        slug.push_str(spelled);
     }
     slug.trim_matches('_').to_owned()
 }
