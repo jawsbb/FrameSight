@@ -703,8 +703,13 @@ svg.set-glyph { background: none; fill: currentColor; padding: calc(2 * var(--u)
    exactly like the game's own HUD. The strip translates during scrolls and
    re-anchors on each published epoch. */
 
-.kiosk-shell { position: fixed; inset: 0; overflow: hidden; background: transparent; pointer-events: none; }
-.kiosk-shell { --h: calc(100vh / 1080); }
+.kiosk-shell {
+  --h: calc(100vh / 1080);
+  /* The figures take the app's face; the strip's words keep a condensed one, because the strip's
+     room in a tile was budgeted on it (docs/specs/kiosk-overlay.md). */
+  --face-condensed: "Liberation Sans Narrow", "DejaVu Sans Condensed", "Archivo Narrow", "Roboto Condensed", var(--face-text);
+  position: fixed; inset: 0; overflow: hidden; background: transparent; pointer-events: none;
+}
 
 .kiosk-strip {
   position: absolute; inset: 0;
@@ -723,7 +728,7 @@ svg.set-glyph { background: none; fill: currentColor; padding: calc(2 * var(--u)
   background: rgb(8 16 26 / 84%);
   box-shadow: inset 0 0 0 1px rgb(120 180 220 / 35%);
   color: #deecfc;
-  font-family: var(--face-figure, var(--face-register));
+  font-family: var(--face-text); font-weight: 600; font-variant-numeric: tabular-nums;
   font-size: calc(17 * var(--h));
   line-height: 1;
   white-space: nowrap;
@@ -742,7 +747,7 @@ svg.set-glyph { background: none; fill: currentColor; padding: calc(2 * var(--u)
   background: rgb(8 16 26 / 84%);
   box-shadow: inset 0 0 0 1px rgb(120 180 220 / 35%);
   color: rgb(222 238 252);
-  font-family: var(--face-figure, var(--face-register));
+  font-family: var(--face-text); font-weight: 600; font-variant-numeric: tabular-nums;
   font-size: calc(15 * var(--h));
   line-height: 1;
   white-space: nowrap;
@@ -755,20 +760,20 @@ svg.set-glyph { background: none; fill: currentColor; padding: calc(2 * var(--u)
 .kiosk-total .kiosk-mark { height: calc(19 * var(--h)); }
 
 /* An unmastered part's strip takes the price chip's plate and anchor and grows left up to the owned
-   badge, in the condensed mark face: the register mono cannot fit the worst case in the tile. */
+   badge, its words in the condensed face. */
 .kiosk-strip-chip { overflow: hidden; gap: calc(5 * var(--h)); align-items: baseline; }
 /* The fit is measured before the PNG arrives, so the mark's box takes the asset's ratio up front. */
 .kiosk-strip-chip .kiosk-mark { height: calc(14 * var(--h)); aspect-ratio: 163 / 160; }
-.kiosk-fact { font: 700 calc(10 * var(--h))/1 var(--face-mark); text-transform: uppercase; }
+.kiosk-fact { font: 700 calc(10 * var(--h))/1 var(--face-condensed); }
 /* Dim, not deep: the plate lets the game show through, and deep fell to 3.6:1 over a light frame. */
-.kiosk-fraction { font: 700 calc(11 * var(--h))/1 var(--face-mark); font-variant-numeric: tabular-nums; color: var(--platinum-dim); }
+.kiosk-fraction { font: 700 calc(11 * var(--h))/1 var(--face-condensed); font-variant-numeric: tabular-nums; color: var(--platinum-dim); }
 .kiosk-strip-chip .kiosk-price { font-size: calc(15 * var(--h)); }
 
 /* Marks are on and no live inventory backs them. The note sits over the pane's header in the chip
    layer, to fade with it, and in the chips' ink: a muted tone measured 2.9:1 on the header's teal. */
 .kiosk-note {
   position: absolute;
-  font: 700 calc(10 * var(--h))/1 var(--face-mark);
-  text-transform: uppercase; color: #deecfc; white-space: nowrap;
+  font: 700 calc(10 * var(--h))/1 var(--face-condensed);
+  color: #deecfc; white-space: nowrap;
   text-shadow: 0 calc(1 * var(--h)) 1px rgb(0 0 0 / 60%);
 }

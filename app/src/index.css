@@ -1,8 +1,7 @@
 /* TennoScope base layer.
    Main window: three graphite grounds, 1px neutral borders, 6px radius, one steel-blue accent for
    selection, focus and the primary action. Platinum and gold colour currency values only.
-   The overlay tokens further down keep the in-game overlays' own look; they are not for the main
-   window. */
+   The in-game overlays draw from the same tokens. */
 
 :root {
   /* Main window */
@@ -35,22 +34,8 @@
   --hair: 4px;
   --tight: 8px;
   --step: 16px;
-  --course: 32px;
 
   --face-text: ui-sans-serif, system-ui, "DejaVu Sans", "Liberation Sans", sans-serif;
-
-  /* Overlay grammar: used by the reward and kiosk overlays and the reward slips only. */
-  --touchstone: #0b0c0e;
-  --plate: #131417;
-  --raised: #1a1c20;
-  --rule: #2a2d33;
-  --platinum-deep: #868d97;
-  --gold-dim: #a8863a;
-  --oxblood: #dd6f60;
-  --strike: inset 0 1px 0 rgb(0 0 0 / 78%), inset 0 -1px 0 rgb(232 235 239 / 9%);
-  --cartouche: polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%);
-  --face-mark: "Liberation Sans Narrow", "DejaVu Sans Condensed", "Archivo Narrow", "Roboto Condensed", ui-sans-serif, system-ui, sans-serif;
-  --face-register: ui-monospace, "DejaVu Sans Mono", "Liberation Mono", "Cascadia Mono", monospace;
 
   font-family: var(--face-text);
   color: var(--text);
