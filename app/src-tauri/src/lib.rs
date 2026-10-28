@@ -59,7 +59,7 @@ pub use kiosk_view::{KioskState, KioskView};
 pub use overlay_window::{
     OverlayGeometry, WindowRect, kiosk_overlay_geometry, placement_notice, reward_overlay_geometry,
 };
-pub use preferences::Preferences;
+pub use preferences::{Language, Preferences};
 pub use reward_capture::x11::{largest_warframe_window, warframe_window_from_xwininfo_tree};
 pub use reward_log::{RewardLogEvent, RewardLogMachine};
 pub use reward_observer::{
@@ -794,14 +794,47 @@ async fn set_mastery_marks(
     .map_err(|_| "preferences task failed".to_owned())?
 }
 
+#[tauri::command]
+async fn set_language(
+    state: State<'_, SharedRuntime>,
+    language: Option<Language>,
+) -> Result<Preferences, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut runtime = shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?;
+        save_language(&mut runtime, language)
+    })
+    .await
+    .map_err(|_| "preferences task failed".to_owned())?
+}
+
 fn save_mastery_marks(runtime: &mut Runtime, enabled: bool) -> Result<Preferences, String> {
-    // The file writes first: a failed save leaves both the file and the state unchanged, so
-    // the switch never claims a choice that did not stick.
     let next = Preferences {
         mastery_marks: enabled,
+        ..runtime.preferences
     };
+    store_preferences(runtime, next, "mastery marks setting could not be saved")
+}
+
+fn save_language(runtime: &mut Runtime, language: Option<Language>) -> Result<Preferences, String> {
+    let next = Preferences {
+        language,
+        ..runtime.preferences
+    };
+    store_preferences(runtime, next, "language setting could not be saved")
+}
+
+/// The file writes first: a failed save leaves both the file and the state unchanged, so a
+/// setting never claims a choice that did not stick.
+fn store_preferences(
+    runtime: &mut Runtime,
+    next: Preferences,
+    failure: &str,
+) -> Result<Preferences, String> {
     preferences::save_preferences(&runtime.preferences_path, next)
-        .map_err(|_| "mastery marks setting could not be saved".to_owned())?;
+        .map_err(|_| failure.to_owned())?;
     runtime.preferences = next;
     Ok(next)
 }
@@ -2208,6 +2241,7 @@ pub fn run() {
             get_setup_status,
             get_preferences,
             set_mastery_marks,
+            set_language,
             set_access_mode,
             authorize_screen_capture,
             refresh_inventory,
@@ -2560,7 +2594,8 @@ mod tests {
         assert_eq!(
             save_mastery_marks(&mut runtime, false),
             Ok(Preferences {
-                mastery_marks: false
+                mastery_marks: false,
+                language: None,
             })
         );
         assert!(!runtime.preferences.mastery_marks);
@@ -2568,6 +2603,47 @@ mod tests {
             !preferences::load_preferences(&writable).mastery_marks,
             "the file holds the new choice"
         );
+    }
+
+    /// Each setting writes only itself: choosing a language keeps the marks choice, and the
+    /// reverse, and a failed save moves neither.
+    #[test]
+    fn the_language_saves_beside_the_mastery_marks() {
+        let directory = tempfile::tempdir().expect("temp dir");
+        let shared = test_runtime(directory.path());
+        let mut runtime = shared.lock().expect("lock");
+        let writable = directory.path().join("tennoscope-preferences.json");
+        runtime.preferences_path = writable.clone();
+        save_mastery_marks(&mut runtime, false).expect("marks saved");
+
+        let both = Preferences {
+            mastery_marks: false,
+            language: Some(Language::Fr),
+        };
+        assert_eq!(save_language(&mut runtime, Some(Language::Fr)), Ok(both));
+        assert_eq!(preferences::load_preferences(&writable), both);
+        assert_eq!(
+            save_mastery_marks(&mut runtime, true).map(|saved| saved.language),
+            Ok(Some(Language::Fr)),
+            "the marks switch keeps the language"
+        );
+
+        let regular_file = directory.path().join("not-a-directory");
+        fs::write(&regular_file, b"").expect("regular file");
+        runtime.preferences_path = regular_file.join("tennoscope-preferences.json");
+        assert_eq!(
+            save_language(&mut runtime, None).err().as_deref(),
+            Some("language setting could not be saved")
+        );
+        assert_eq!(runtime.preferences.language, Some(Language::Fr));
+
+        runtime.preferences_path = writable.clone();
+        assert_eq!(
+            save_language(&mut runtime, None).map(|saved| saved.language),
+            Ok(None),
+            "None goes back to following the system"
+        );
+        assert_eq!(preferences::load_preferences(&writable).language, None);
     }
 
     /// A refresh that is already running, and one that just finished, are both reasons not to

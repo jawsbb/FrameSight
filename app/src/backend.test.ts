@@ -14,6 +14,7 @@ import {
   refreshOrders,
   removeOrder,
   setAccessMode,
+  setLanguage,
   setOrderQuantity,
   updateOrder,
   updateDownloadAndInstall,
@@ -42,6 +43,14 @@ describe('typed Tauri command bridge', () => {
     expect(invoke).toHaveBeenCalledWith('refresh_inventory')
   })
 
+  it('sends the interface language as its code, and null to follow the system', async () => {
+    invoke.mockResolvedValueOnce({ mastery_marks: true, language: 'fr' })
+    await expect(setLanguage('fr')).resolves.toEqual({ mastery_marks: true, language: 'fr' })
+    expect(invoke).toHaveBeenCalledWith('set_language', { language: 'fr' })
+    invoke.mockResolvedValueOnce({ mastery_marks: true, language: null })
+    await setLanguage(null)
+    expect(invoke).toHaveBeenLastCalledWith('set_language', { language: null })
+  })
 
   it('waits out a backend that has not finished starting', async () => {
     invoke

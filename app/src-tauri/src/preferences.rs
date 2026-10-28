@@ -4,11 +4,24 @@ use std::path::Path;
 use atomicwrites::{AtomicFile, OverwriteBehavior};
 use serde::{Deserialize, Serialize};
 
-/// Overlay preferences the backend owns, so the overlays never read browser storage for them.
+/// Preferences the backend owns, so the overlays never read browser storage for them.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Preferences {
     #[serde(default = "marks_on")]
     pub mastery_marks: bool,
+    /// The interface language the player chose. `None` follows the system language; a file
+    /// written before the setting existed has no key and reads as `None`.
+    #[serde(default)]
+    pub language: Option<Language>,
+}
+
+/// The interface languages the frontend ships catalogs for. An enum rather than a string so a
+/// value outside the list is refused when the command's arguments are read, before any save.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+    En,
+    Fr,
 }
 
 fn marks_on() -> bool {
@@ -19,6 +32,7 @@ impl Default for Preferences {
     fn default() -> Self {
         Self {
             mastery_marks: true,
+            language: None,
         }
     }
 }
@@ -70,9 +84,43 @@ mod tests {
             &path,
             Preferences {
                 mastery_marks: false,
+                language: Some(Language::Fr),
             },
         )
         .unwrap();
-        assert!(!load_preferences(&path).mastery_marks);
+        let read = load_preferences(&path);
+        assert!(!read.mastery_marks);
+        assert_eq!(read.language, Some(Language::Fr));
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            r#"{"mastery_marks":false,"language":"fr"}"#,
+            "the language is stored as the code the frontend sends"
+        );
+    }
+
+    #[test]
+    fn a_file_from_before_the_language_setting_follows_the_system() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("tennoscope-preferences.json");
+        std::fs::write(&path, br#"{"mastery_marks":false}"#).unwrap();
+        assert_eq!(
+            load_preferences(&path),
+            Preferences {
+                mastery_marks: false,
+                language: None,
+            },
+            "the old choice survives and the language follows the system"
+        );
+    }
+
+    #[test]
+    fn only_english_french_or_none_is_a_language() {
+        let parse = |json: &str| serde_json::from_str::<Option<Language>>(json);
+        assert_eq!(parse(r#""en""#).unwrap(), Some(Language::En));
+        assert_eq!(parse(r#""fr""#).unwrap(), Some(Language::Fr));
+        assert_eq!(parse("null").unwrap(), None);
+        for refused in [r#""de""#, r#""FR""#, r#""fr-FR""#, r#""""#, "1"] {
+            assert!(parse(refused).is_err(), "{refused} must be refused");
+        }
     }
 }
