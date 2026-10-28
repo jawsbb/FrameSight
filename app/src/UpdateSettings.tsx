@@ -5,9 +5,10 @@ import { stampReading } from './freshness'
 import { dismissedCount, readUpdateAutoCheck, readUpdatePrerelease, writeUpdateAutoCheck, writeUpdatePrerelease } from './settings'
 import { checkForUpdatesNow, dismissOffered, downloadUpdate, isMeteredConnection, restartToUpdate, useUpdateNotice, useUpdateStore, type UpdateNote } from './updateStore'
 import { useMessages, type Messages } from './i18n'
+import { Tip } from './components/Tip'
 
 
-/** The sidebar's update mark: offered and downloaded states share one dot and
+/** The rail's update mark: offered and downloaded states share one dot and
  *  never borrow the reader-state icons. The sr-only status line stays mounted so
  *  async arrival is always announced. */
 export function UpdateMark({ onOpen }: { onOpen: () => void }) {
@@ -16,10 +17,11 @@ export function UpdateMark({ onOpen }: { onOpen: () => void }) {
   const hint = notice && (notice.downloaded ? t.updates.readyHint(notice.version) : t.updates.availableHint(notice.version))
   return <>
     <span className="sr-only" role="status">{hint ?? ''}</span>
-    {notice && <button type="button" className="update-mark" onClick={onOpen} aria-label={hint ?? undefined}>
-      <span className="update-dot" aria-hidden="true"/>
-      <span className="update-text" aria-hidden="true">{notice.downloaded ? t.updates.ready(notice.version) : t.updates.available(notice.version)}</span>
-    </button>}
+    {notice && <Tip text={notice.downloaded ? t.updates.ready(notice.version) : t.updates.available(notice.version)}>
+      <button type="button" className="rail-item update-mark" onClick={onOpen} aria-label={hint ?? undefined}>
+        <span className="update-dot" aria-hidden="true"/>
+      </button>
+    </Tip>}
   </>
 }
 

@@ -36,6 +36,7 @@ import { accessMode } from './access'
 import { Icon } from './components/Icon'
 import { StateIcon } from './components/StateIcon'
 import { TitleBar } from './components/TitleBar'
+import { Tip } from './components/Tip'
 import { CollectionPage, type CollectionFilters } from './pages/CollectionPage'
 import { MasteryPage, type MasteryFilters } from './pages/MasteryPage'
 import { RewardPage } from './pages/RewardPage'
@@ -48,9 +49,14 @@ import { MessagesContext, backendReason, catalogs, resolveLanguage, useDocumentL
 const initialCollectionFilters: CollectionFilters = { search: '', category: 'all', ownership: 'all', sort: 'name-asc', page: 1 }
 const initialMasteryFilters: MasteryFilters = { search: '', category: 'all', sort: 'arsenal-first', page: 1 }
 
-type Page = 'collection' | 'mastery' | 'rewards' | 'orders' | 'diagnostics' | 'settings'
-
-const pages: Page[] = ['collection', 'mastery', 'rewards', 'orders', 'diagnostics', 'settings']
+/**
+ * The rail, top to bottom, then the pair that stays at its foot. A page joins by adding its id
+ * here; `tsc` then asks for its icon (`components/Icon.tsx`) and its name (`nav.pages` in each
+ * catalog), and the page switch in `App` renders it.
+ */
+const railPages = ['collection', 'mastery', 'rewards', 'orders'] as const
+const railEndPages = ['diagnostics', 'settings'] as const
+type Page = typeof railPages[number] | typeof railEndPages[number]
 
 /**
  * A failure in the app's words, followed by the backend's own reason when it gives one: the Rust
@@ -375,42 +381,49 @@ function App() {
   // The reader's own message is a health message: English, like every Diagnostics line.
   const readerDetail = effectiveMode === 'companion' ? t.sidebar.companionDetail : view?.health.game_reader.message ?? t.sidebar.connecting
   const navCount: Partial<Record<Page, number>> = { rewards: view?.reward.cards.length, orders: view?.market_account.flagged }
+  const readerLabel = effectiveMode === 'companion' ? t.sidebar.companionMode : t.sidebar.reader[liveState]
+  const inventoryReadable = setupStatus.access_mode === 'full'
+  const refreshLabel = busy ? t.sidebar.refreshing : t.sidebar.refreshInventory
+  const navItem = (item: Page) => {
+    const count = navCount[item] ?? 0
+    return <Tip key={item} text={t.nav.pages[item]}>
+      <button
+        type="button"
+        className="rail-item"
+        aria-label={count ? `${t.nav.pages[item]}, ${item === 'rewards' ? t.nav.choices(count) : t.nav.needAttention(count)}` : t.nav.pages[item]}
+        aria-current={page === item ? 'page' : undefined}
+        onClick={() => openPage(item)}
+      >
+        <Icon name={item}/>
+        {count > 0 && <span className="nav-count" aria-hidden="true">{count}</span>}
+      </button>
+    </Tip>
+  }
   const settingsMode = selectedMode ?? effectiveMode
   return <MessagesContext value={t}><div className="shell">
     <TitleBar/>
 
-    <aside className="sidebar">
-      <nav className="nav" aria-label={t.nav.primary}>
-        {pages.map(item => {
-          const count = navCount[item] ?? 0
-          return <button
-            key={item}
-            type="button"
-            className="nav-item"
-            aria-label={count ? `${t.nav.pages[item]}, ${item === 'rewards' ? t.nav.choices(count) : t.nav.needAttention(count)}` : t.nav.pages[item]}
-            title={t.nav.pages[item]}
-            aria-current={page === item ? 'page' : undefined}
-            onClick={() => openPage(item)}
-          >
-            <Icon name={item}/>
-            <span className="nav-label">{t.nav.pages[item]}</span>
-            {count > 0 && <span className="nav-count" aria-hidden="true">{count}</span>}
-          </button>
-        })}
+    <aside className="rail">
+      <nav className="rail-nav" aria-label={t.nav.primary}>
+        <div className="rail-group">{railPages.map(navItem)}</div>
+        <div className="rail-group rail-end">{railEndPages.map(navItem)}</div>
       </nav>
-      <section className="sidebar-foot" aria-label={t.sidebar.runtime}>
-        <div className={`reader ${readerState}`} title={readerDetail}>
-          <StateIcon state={readerState}/>
-          <span className="reader-text">
-            <strong role="status">{effectiveMode === 'companion' ? t.sidebar.companionMode : t.sidebar.reader[liveState]}</strong>
-            <small>{readerDetail}</small>
-          </span>
-        </div>
-        {view && <span className="snapshot-age" title={freshness.detail}>{freshness.label}<span className="sr-only">, {freshness.detail}</span></span>}
-        <button type="button" className="nav-item refresh" onClick={refresh} disabled={busy || modeBusy || setupStatus?.access_mode !== 'full'} aria-describedby={setupStatus?.access_mode !== 'full' ? 'inventory-access-note' : undefined}>
-          <Icon name="refresh"/><span className="refresh-label">{busy ? t.sidebar.refreshing : t.sidebar.refreshInventory}</span>
-        </button>
-        {setupStatus?.access_mode !== 'full' && <span id="inventory-access-note" className="sr-only">{t.sidebar.fullRequired}</span>}
+      <section className="rail-foot" aria-label={t.sidebar.runtime}>
+        <span className="sr-only" role="status">{readerLabel}</span>
+        {/* The detail and the snapshot age are the reader's description, read on focus. */}
+        <span id="reader-detail" hidden>{readerDetail}</span>
+        {view && <span id="inventory-freshness" hidden>{freshness.label}, {freshness.detail}</span>}
+        <Tip text={<><strong>{readerLabel}</strong><span>{readerDetail}</span>{view && <small>{freshness.label} · {freshness.detail}</small>}</>}>
+          <button type="button" className={`rail-item reader ${readerState}`} aria-label={readerLabel} aria-describedby={view ? 'reader-detail inventory-freshness' : 'reader-detail'} onClick={() => openPage('diagnostics')}>
+            <StateIcon state={readerState}/>
+          </button>
+        </Tip>
+        <Tip text={<><strong>{refreshLabel}</strong>{!inventoryReadable && <span>{t.sidebar.fullRequired}</span>}</>}>
+          <button type="button" className="rail-item" aria-label={refreshLabel} onClick={refresh} disabled={busy || modeBusy || !inventoryReadable} aria-describedby={inventoryReadable ? undefined : 'inventory-access-note'}>
+            <Icon name="refresh"/>
+          </button>
+        </Tip>
+        {!inventoryReadable && <span id="inventory-access-note" className="sr-only">{t.sidebar.fullRequired}</span>}
         <UpdateMark onOpen={openUpdates}/>
       </section>
     </aside>

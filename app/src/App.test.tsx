@@ -830,6 +830,31 @@ describe('MVP desktop interface', () => {
     expect(within(operations).getAllByRole('status').find(node => node.textContent)).toBeInTheDocument()
   })
 
+  it('names a rail icon in a tip on keyboard focus, and Escape puts it away', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+
+    // Tab from the title bar's window controls onto the rail's first page.
+    while (document.activeElement !== screen.getByRole('button', { name: 'Collection' })) await user.tab()
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Collection')
+    await user.tab()
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Mastery')
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mastery' })).toHaveFocus()
+  })
+
+  it('gives the reader icon its detail and the snapshot age, in its tip and its description', async () => {
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    const reader = within(screen.getByRole('region', { name: 'Runtime operations' })).getByRole('button', { name: 'Attention needed' })
+    expect(reader).toHaveAccessibleDescription(/Warframe is not running.*(Synced|No successful sync)/)
+    act(() => reader.focus())
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/Attention needed.*Warframe is not running/)
+  })
+
   it('keeps live view polling while desktop authorization is pending', async () => {
     vi.useFakeTimers()
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: true })
@@ -1129,7 +1154,7 @@ describe('MVP desktop interface', () => {
     })
     render(<App />)
 
-    expect(await screen.findByText(/Synced/)).toHaveAttribute('title', expect.stringContaining('warframe-memory'))
+    expect(await screen.findByText(/Synced/)).toHaveTextContent('warframe-memory')
     expect(screen.getByRole('img', { name: 'Item 00' })).toHaveAttribute('src', 'https://cdn.warframestat.us/img/Braton.png')
     expect(screen.getAllByRole('article').filter(node => node.closest('[aria-label="Collection items"]'))).toHaveLength(48)
     expect(screen.getByText('1–48 of 60')).toBeInTheDocument()
