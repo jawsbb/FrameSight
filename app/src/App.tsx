@@ -37,6 +37,7 @@ import { Icon } from './components/Icon'
 import { StateIcon } from './components/StateIcon'
 import { TitleBar } from './components/TitleBar'
 import { Tip } from './components/Tip'
+import { MarketStatus } from './components/MarketStatus'
 import { CollectionPage, type CollectionFilters } from './pages/CollectionPage'
 import { MasteryPage, type MasteryFilters } from './pages/MasteryPage'
 import { RewardPage } from './pages/RewardPage'
@@ -401,7 +402,7 @@ function App() {
   }
   const settingsMode = selectedMode ?? effectiveMode
   return <MessagesContext value={t}><div className="shell">
-    <TitleBar/>
+    <TitleBar>{view && <MarketStatus account={view.market_account} busy={ordersBusy} onPresence={ordersPresence} onLink={() => openPage('orders')}/>}</TitleBar>
 
     <aside className="rail">
       <nav className="rail-nav" aria-label={t.nav.primary}>
@@ -453,7 +454,6 @@ function App() {
           onLowerTo={ordersLowerTo}
           onSell={ordersSell}
           onUpdate={ordersUpdate}
-          onPresence={ordersPresence}
           items={view.collection.items}
           busy={ordersBusy}
           error={ordersError}

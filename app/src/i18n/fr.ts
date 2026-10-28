@@ -402,6 +402,10 @@ export const fr: Messages = {
     presence: {
       label: 'Statut sur le marché',
       auto: 'Suivre le jeu',
+      notLinked: 'Non associé',
+      relink: 'Reconnexion requise',
+      linkInOrders: 'Associez un compte dans Ordres',
+      autoShort: 'auto',
       offline: 'Hors ligne',
       online: 'En ligne',
       ingame: 'En jeu',

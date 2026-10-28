@@ -1431,6 +1431,29 @@ describe('MVP desktop interface', () => {
     expect(backend.refreshPrices).toHaveBeenCalledWith(['filler-48', 'filler-49', 'lex-prime-receiver', 'lith-a1', 'zenith-prime-receiver'])
   })
 
+  it('sets the market status from the title bar of any page', async () => {
+    backend.marketStatus.mockResolvedValue({ ...view, market_account: { ...view.market_account, link: 'linked', presence: { status: 'online', wanted: 'online', auto: false } } })
+    const user = userEvent.setup()
+    render(<App/>)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    await user.click(await screen.findByRole('button', { name: 'Market status: Online' }))
+    await user.click(screen.getByRole('button', { name: 'In game' }))
+    expect(backend.setMarketPresence).toHaveBeenCalledWith('ingame', false)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(screen.getByRole('button', { name: /^Market status:/ })).toBeInTheDocument()
+  })
+
+  it('sends an unlinked market status to Orders, where the account is linked', async () => {
+    const user = userEvent.setup()
+    render(<App/>)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    await user.click(screen.getByRole('button', { name: /^Market status: Not linked/ }))
+    expect(await screen.findByRole('heading', { name: 'Market orders' })).toBeInTheDocument()
+    // The status lives in the title bar now, not a second time on the Orders page.
+    expect(screen.queryByRole('checkbox', { name: /follow the game/i })).not.toBeInTheDocument()
+  })
+
   it('routes to the Orders section and counts flagged listings on the nav entry', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     backend.marketStatus.mockResolvedValue({ ...view, market_account: { ...view.market_account, link: 'linked', flagged: 2 } })

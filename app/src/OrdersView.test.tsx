@@ -53,7 +53,6 @@ const handlers = {
   items: [],
   onSell: vi.fn(),
   onUpdate: vi.fn().mockResolvedValue(undefined),
-  onPresence: vi.fn().mockResolvedValue(undefined),
   onSignIn: vi.fn().mockResolvedValue(undefined),
   onLinkToken: vi.fn().mockResolvedValue(undefined),
   onSignOut: vi.fn().mockResolvedValue(undefined),
@@ -489,85 +488,5 @@ describe('publishing a listing', () => {
     await user.clear(screen.getByLabelText('Quantity'))
     await user.type(screen.getByLabelText('Quantity'), '9')
     expect(screen.getByRole('button', { name: /list for sale/i })).toBeDisabled()
-  })
-})
-
-describe('the market status switch', () => {
-  it('asks for a status the server accepts, chosen by hand', async () => {
-    const user = userEvent.setup()
-    render(<OrdersView account={account()} {...handlers} busy={false} error={null} />)
-    await user.click(screen.getByRole('button', { name: 'In game' }))
-    expect(handlers.onPresence).toHaveBeenCalledWith('ingame', false)
-  })
-
-  it('spells offline as no status at all', async () => {
-    const user = userEvent.setup()
-    render(
-      <OrdersView
-        account={account({ presence: { status: 'online', wanted: 'online', auto: false } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    await user.click(screen.getByRole('button', { name: 'Offline' }))
-    // warframe.market has no settable `offline`: the backend closes the socket instead.
-    expect(handlers.onPresence).toHaveBeenCalledWith(null, false)
-  })
-
-  it('marks what was asked for, so a press registers before the socket answers', () => {
-    render(
-      <OrdersView
-        account={account({ presence: { status: null, wanted: 'invisible', auto: false } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    expect(screen.getByRole('button', { name: 'Invisible' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Online' })).toHaveAttribute('aria-pressed', 'false')
-  })
-
-  it('says so while the server has not confirmed the choice', () => {
-    render(
-      <OrdersView
-        account={account({ presence: { status: null, wanted: 'ingame', auto: false } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    expect(screen.getByRole('status')).toHaveTextContent(/asking warframe\.market/i)
-  })
-
-  it('reports the status automatic mode settled on, in the same row', () => {
-    render(
-      <OrdersView
-        account={account({ presence: { status: 'ingame', wanted: 'ingame', auto: true } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    // Automatic is not a fifth status: the row still names which of the four is in force.
-    expect(screen.getByRole('button', { name: 'In game' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('checkbox', { name: /follow the game/i })).toBeChecked()
-    // Reporting, not offering. Pressing one would be undone by the next poll.
-    expect(screen.getByRole('button', { name: 'Online' })).toBeDisabled()
-  })
-
-  it('hands the choice back when automatic is switched off', async () => {
-    const user = userEvent.setup()
-    render(
-      <OrdersView
-        account={account({ presence: { status: 'ingame', wanted: 'ingame', auto: true } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    await user.click(screen.getByRole('checkbox', { name: /follow the game/i }))
-    // Whatever it had settled on is what is held, so switching off does not change what others see.
-    expect(handlers.onPresence).toHaveBeenCalledWith('ingame', false)
   })
 })

@@ -412,6 +412,10 @@ export const en = {
     presence: {
       label: 'Market status',
       auto: 'Follow the game',
+      notLinked: 'Not linked',
+      relink: 'Sign in again',
+      linkInOrders: 'Link an account in Orders',
+      autoShort: 'auto',
       offline: 'Offline',
       online: 'Online',
       ingame: 'In game',

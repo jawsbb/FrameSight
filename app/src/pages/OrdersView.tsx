@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { CollectionItem, MarketAccount, Presence, ReconciledOrder } from '../backend'
+import type { CollectionItem, MarketAccount, ReconciledOrder } from '../backend'
 import { SellForm, type SellHandler, type UpdateHandler } from '../SellForm'
 import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderValue, sortOrders, statusLabel, uncountedReason } from '../orders'
 import { stampReading } from '../freshness'
@@ -18,13 +18,12 @@ type OrdersViewProps = {
   onLowerTo: (orderId: string, quantity: number) => Promise<void>
   onSell: SellHandler
   onUpdate: UpdateHandler
-  onPresence: (status: Presence | null, auto: boolean) => Promise<void>
   items: CollectionItem[]
   busy: boolean
   error: string | null
 }
 
-export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onLowerTo, onSell, onUpdate, onPresence, items, busy, error }: OrdersViewProps) {
+export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onLowerTo, onSell, onUpdate, items, busy, error }: OrdersViewProps) {
   const t = useMessages()
   if (account.link === 'unlinked') {
     return <UnlinkedPanel onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} error={error} />
@@ -84,8 +83,6 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
       <p className="prose">{t.orders.refusedNote}</p>
       <LinkForms onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} />
     </div>}
-
-    {!needsRelink && <PresenceSwitch presence={account.presence} busy={busy} onPresence={onPresence}/>}
 
     {!needsRelink && <NewListing items={items} orders={account.orders} listable={account.listable} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
 
@@ -207,72 +204,6 @@ function ConfirmButton({ label, confirmLabel, skip = false, busy, onConfirm }: {
       setArmed(true)
     }}
   ><span>{armed ? confirmLabel : label}</span></button>
-}
-
-/**
- * What warframe.market shows this account as.
- *
- * Four choices, three of which are values the server accepts. Offline is the fourth and is not one
- * of them: warframe.market has no settable `offline`, and going offline means closing the socket,
- * so the control says the word the player means and the backend spells it as a disconnection.
- *
- * Automatic is not a fifth choice beside them. It is how the choice is *made*, so it sits on its
- * own line as a toggle, and the status it settles on is marked in the same row a hand-picked one
- * would be; the player still reads their status in one place either way.
- *
- * The row marks what was asked for, so a press registers on the press. What the server has
- * actually committed is a separate claim, made in the note below: the socket takes a moment to
- * answer, and a switch that stayed blank across that moment read as broken.
- */
-function PresenceSwitch({ presence, busy, onPresence }: {
-  presence: MarketAccount['presence']
-  busy: boolean
-  onPresence: (status: Presence | null, auto: boolean) => Promise<void>
-}) {
-  const t = useMessages()
-  const choices: { value: Presence | null; label: string }[] = [
-    { value: null, label: t.orders.presence.offline },
-    { value: 'online', label: t.orders.presence.online },
-    { value: 'ingame', label: t.orders.presence.ingame },
-    { value: 'invisible', label: t.orders.presence.invisible },
-  ]
-  const wanted = presence.wanted ?? null
-  const settled = presence.status === wanted
-  return <div className="group presence">
-    <div className="setting">
-      <span className="presence-label" id="presence-label">{t.orders.presence.label}</span>
-      <div className="segmented presence-choices" role="group" aria-labelledby="presence-label" data-auto={presence.auto || undefined}>
-        {choices.map(choice => <button
-          key={choice.label}
-          type="button"
-          aria-pressed={wanted === choice.value}
-          // In automatic mode the row reports rather than accepts: pressing one would silently be
-          // overridden by the next poll, and a control that undoes itself is worse than a disabled one.
-          disabled={busy || presence.auto}
-          onClick={() => onPresence(choice.value, false)}
-        >{choice.label}</button>)}
-      </div>
-    </div>
-    <div className="setting">
-      {/* A real checkbox: it is a mode with two states, a reader announces it as one without
-          being told to, and the space bar works on it for free. */}
-      <label className="presence-auto">
-        <input
-          type="checkbox"
-          checked={presence.auto}
-          disabled={busy}
-          onChange={event => onPresence(event.target.checked ? null : wanted, event.target.checked)}
-        />
-        <span>{t.orders.presence.auto}</span>
-      </label>
-      <p className="presence-note" role="status">{
-        !settled ? t.orders.presence.asking
-          : presence.auto ? t.orders.presence.following(t.orders.presence.words[wanted ?? 'offline'])
-            : wanted ? t.orders.presence.held
-              : t.orders.presence.silent
-      }</p>
-    </div>
-  </div>
 }
 
 /**

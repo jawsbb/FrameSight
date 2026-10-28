@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { closeWindow, minimizeWindow, readWindowMaximized, toggleMaximizeWindow, watchWindowResized } from '../window'
 import { useMessages } from '../i18n'
 
@@ -40,13 +40,14 @@ function WindowControls() {
 }
 
 /** The window has no compositor decorations: this bar is its titlebar. `deep` makes every part of
- * it a grab handle except the controls standing on it. */
-export function TitleBar() {
+ * it a grab handle except the controls standing on it. `children` stand before the window controls. */
+export function TitleBar({ children }: { children?: ReactNode }) {
   return <header className="titlebar" data-tauri-drag-region="deep">
     <span className="brand">
       <svg className="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/><path d="M12 1.75v4.5M12 17.75v4.5M1.75 12h4.5M17.75 12h4.5"/></svg>
       <span className="wordmark">TennoScope</span>
     </span>
+    {children}
     <WindowControls/>
   </header>
 }

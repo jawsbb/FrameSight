@@ -78,6 +78,48 @@
 
 .icon, .state-icon { width: 16px; height: 16px; flex: none; }
 
+/* The warframe.market status, in the title bar of every page: a pill that opens its choices. */
+.titlebar { position: relative; z-index: 3; }
+.market-status { position: relative; }
+.market-pill {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 6px 0 8px;
+  border: 0; border-radius: var(--radius-sm); background: var(--fill);
+  color: var(--text-dim); font-size: .75rem; cursor: pointer;
+  transition: color .12s ease, background-color .12s ease;
+}
+.market-pill:hover, .market-pill[aria-expanded="true"] { background: var(--fill-strong); color: var(--text); }
+.market-pill i { color: var(--text-faint); font-style: normal; }
+.market-pill i::before { content: "·"; margin-right: 6px; }
+/* Asked for, not yet confirmed: the mark waits at half strength until the socket answers. */
+.market-pill[data-pending] .presence-mark { opacity: .5; }
+.market-chevron.go { transform: rotate(-90deg); }
+.market-chevron { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.presence-mark { width: 12px; height: 12px; flex: none; }
+.presence-mark.online, .presence-mark.ingame { color: var(--ok); }
+.presence-mark.offline, .presence-mark.invisible { color: var(--text-faint); }
+.presence-mark.refused { color: var(--warn); }
+.market-menu {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  display: grid; gap: 4px; width: 16rem; padding: 6px;
+  border-radius: var(--radius); background: var(--bg-2); box-shadow: inset 0 0 0 1px var(--line-strong);
+  animation: menu-in .12s ease-out;
+}
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px); } }
+.market-menu-title { padding: 2px 8px; color: var(--text-dim); font-size: .75rem; font-weight: 600; }
+.market-choices { display: grid; gap: 1px; }
+.market-choices button {
+  display: flex; align-items: center; gap: var(--tight); min-height: 28px; padding: 0 8px;
+  border: 0; border-radius: var(--radius-sm); background: none; color: var(--text-dim); text-align: left; cursor: pointer;
+}
+.market-choices button:hover:not(:disabled) { background: var(--fill); color: var(--text); }
+.market-choices button[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); color: var(--text); }
+.market-choices button:disabled { opacity: .45; cursor: not-allowed; }
+/* Under automatic the list reports the status in force rather than offering it. */
+.market-choices[data-auto] button[aria-pressed="true"]:disabled { opacity: 1; cursor: default; }
+.market-choices button:focus-visible { outline-offset: -2px; }
+.presence-auto { display: flex; align-items: center; gap: var(--tight); min-height: 28px; padding: 4px 8px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.presence-note { margin: 0; padding: 0 8px 4px; color: var(--text-faint); font-size: .75rem; }
+
 .state-icon.ready { color: var(--ok); }
 .state-icon.idle { color: var(--text-faint); }
 .state-icon.degraded { color: var(--warn); }
@@ -551,11 +593,6 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .pick-held { flex: none; color: var(--text-faint); font-size: .75rem; font-variant-numeric: tabular-nums; }
 .pick-empty, .pick-more { margin: 0; color: var(--text-dim); font-size: .75rem; }
 
-.presence-label { font-weight: 500; }
-.presence-auto { display: flex; align-items: center; gap: var(--tight); cursor: pointer; }
-/* Under automatic the row reports the status in force rather than offering it. */
-.presence-choices[data-auto] button[aria-pressed="true"]:disabled { opacity: 1; cursor: default; }
-.presence-note { margin: 0 0 0 auto; color: var(--text-faint); font-size: .75rem; }
 
 /* responsive */
 
@@ -586,7 +623,8 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 
 @media (forced-colors: active) {
   [aria-pressed="true"], [aria-current="page"], .access-stop.selected { outline: 2px solid Highlight; outline-offset: -2px; }
-  .stamp, .chip, .segmented button, .pagination button, .rail-item { border: 1px solid ButtonText; }
+  .stamp, .chip, .segmented button, .pagination button, .rail-item, .market-pill, .market-choices button { border: 1px solid ButtonText; }
+  .market-menu { border: 1px solid CanvasText; }
   .display-track, .display-thumb { forced-color-adjust: none; }
   .update-dot { background: ButtonText; }
 }
@@ -595,7 +633,7 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
    least 44px tall, and the title bar grows to hold its window controls. */
 @media (pointer: coarse) {
   .shell, .setup-shell { grid-template-rows: 44px minmax(0, 1fr); }
-  .stamp, .chip, .segmented button, .display-switch,
+  .stamp, .chip, .segmented button, .display-switch, .market-pill, .market-choices button,
   .link-button, .search input, .select select, .pagination button, .window-control,
   summary, .presence-auto, .sell-visible, .check-row { min-height: 44px; }
   .segmented button { height: auto; }
