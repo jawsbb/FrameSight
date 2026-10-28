@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getKioskView, type CellChip, type KioskMastery, type KioskView } from './backend'
 import { MetalMark } from './MetalMark'
+import { useBackendLanguage, useMessages, MessagesContext } from './i18n'
 
 /*
  * Screen geometry, mirrored from `src-tauri/src/kiosk_geometry.rs`. Warframe scales its HUD
@@ -90,6 +91,7 @@ const noteStyle: React.CSSProperties = { left: dx(NOTE_LEFT), top: y(fx(NOTE_TOP
  * built box is measured and detail drops until it fits; the word and the price never drop. */
 function MasteryStrip({ cell, mastery }: { cell: CellChip, mastery: KioskMastery }) {
   const [tier, setTier] = useState<1 | 2 | 3>(1)
+  const t = useMessages()
   const strip = useRef<HTMLSpanElement>(null)
   const fitted = useRef('')
   const signature = `${cell.name} ${cell.platinum} ${mastery.held} ${mastery.uses}`
@@ -119,7 +121,7 @@ function MasteryStrip({ cell, mastery }: { cell: CellChip, mastery: KioskMastery
     style={{ ...gridChipStyle(cell.col, cell.row), maxWidth: stripMaxWidth(mastery.held) }}
     title={cell.name}
   >
-    <span className="kiosk-fact">Unmastered</span>
+    <span className="kiosk-fact">{t.overlay.kioskUnmastered}</span>
     {mastery.uses >= 2 && tier < 3 &&
       <span className="kiosk-fraction">{mastery.held}/{mastery.uses}</span>}
     {tier < 2 && <MetalMark metal="plat" className="kiosk-mark"/>}
@@ -242,8 +244,11 @@ export default function KioskOverlay() {
   }, [])
   // Hoisted out of the map because the callback cannot narrow the view it closes over.
   const masteryLive = view?.mastery_status === 'live'
+  // Asked again with each Baro visit: the kiosk has no poll, and a language changed mid-visit
+  // can wait for the next one.
+  const t = useBackendLanguage(view?.session)
 
-  return <main className="kiosk-shell" aria-label="Kiosk overlay">
+  return <MessagesContext value={t}><main className="kiosk-shell" aria-label={t.overlay.kiosk}>
     <div
       className={faded ? 'kiosk-strip kiosk-faded' : 'kiosk-strip'}
       data-testid="kiosk-strip"
@@ -281,7 +286,7 @@ export default function KioskOverlay() {
           it, and it fades with the chips: an overlay whose numbers have gone unreadable has
           no standing to claim anything is missing. */}
       {view?.mastery_status === 'unavailable' &&
-        <span className="kiosk-note" style={noteStyle}>Mastery: no live inventory</span>}
+        <span className="kiosk-note" style={noteStyle}>{t.overlay.kioskNoInventory}</span>}
       {view?.basket.map(row =>
         <span
           key={row.index}
@@ -299,5 +304,5 @@ export default function KioskOverlay() {
           <MetalMark metal="plat" className="kiosk-mark"/><b>{view.total_plat}p</b>
         </span>}
     </div>
-  </main>
+  </main></MessagesContext>
 }

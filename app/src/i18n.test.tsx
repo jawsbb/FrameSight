@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -22,6 +22,7 @@ vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({ writeText: vi.fn(() => 
 vi.mock('@tauri-apps/plugin-process', () => ({ relaunch: vi.fn(() => Promise.resolve()) }))
 
 import App from './App'
+import { AppRoute } from './Root'
 import { en } from './i18n/en'
 import { fr } from './i18n/fr'
 import { figure } from './collection'
@@ -172,4 +173,15 @@ describe('French interface', () => {
     expect(await screen.findByRole('heading', { name: 'Votre collection' })).toBeInTheDocument()
   })
 
+  it('draws the reward overlay in the language the backend holds', async () => {
+    backend.getView.mockResolvedValue({
+      ...view,
+      reward: { cards: [{ name: 'Forma Blueprint', platinum: 12, ducats: 25, owned: 0, confidence: 1 }], best_value_index: 0, best_ducat_index: null },
+    })
+    render(<AppRoute pathname="/overlay"/>)
+    const overlay = await screen.findByRole('main', { name: 'Overlay des récompenses' })
+    await waitFor(() => expect(within(overlay).getByText('Top platine')).toBeInTheDocument())
+    expect(within(overlay).getByText('Non possédé')).toBeInTheDocument()
+    expect(within(overlay).getByRole('heading', { name: 'Forma Blueprint' })).toBeInTheDocument()
+  })
 })
