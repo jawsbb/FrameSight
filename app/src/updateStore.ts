@@ -43,7 +43,7 @@ export interface UpdateSnapshot {
   available: UpdateSummary | null
   downloaded: number | null
   total: number | null
-  /** Band-note text for the current phase; failures carry register-voice copy. */
+  /** Status-line text for the current phase; failures say what went wrong. */
   note: string | null
   lastCheck: number | null
 }
@@ -77,7 +77,7 @@ function feed(): string {
  *  never strike; only a twice-dismissed version stays silent everywhere.
  *  The surfaced-date rule dedupes only the self-offer (offered equals
  *  installed): an undismissed newer version re-offers every launch so the
- *  masthead stays until dismissed, installed, or superseded. */
+ *  sidebar mark stays until dismissed, installed, or superseded. */
 function sameVersion(a: string, b: string): boolean {
   const clean = (value: string): string => value.trim().replace(/^v/i, '').split('+')[0] ?? ''
   return clean(a) === clean(b)
@@ -122,7 +122,7 @@ async function runCheck(manual: boolean): Promise<void> {
       // store that had not been read in over a day went on reporting a last-checked time for a
       // check that never ran. It now says so. Any phase that is standing on an offer already made
       // keeps it, because an offline check is no evidence the offer is stale, and dropping it would
-      // take the masthead mark and its actions with it. 'suppressed' is in that set: a version the
+      // take the sidebar mark and its actions with it. 'suppressed' is in that set: a version the
       // player refused twice stays refused, and the online path deliberately withholds the
       // download control for it, so the offline path must not hand it over as a failed download.
       const standing = snapshot.phase === 'offered' || snapshot.phase === 'ready'
@@ -168,8 +168,8 @@ async function runCheck(manual: boolean): Promise<void> {
     checking = false
   }
 }
-/** Masthead notice: an available update (offered) or a downloaded one (ready).
- *  The mark never borrows assay-state grammar; it keeps its own diamond. */
+/** Sidebar notice: an available update (offered) or a downloaded one (ready).
+ *  The mark never borrows the reader-state icons; it keeps its own dot. */
 export function useUpdateNotice(): { version: string; downloaded: boolean } | null {
   const { phase, available } = useUpdateStore()
   if (!available) return null
@@ -190,7 +190,7 @@ export function useUpdateStore(): UpdateSnapshot {
 }
 
 /** Daily auto-check. Runs once per mount; CI-light by contact, not by timer.
- *  A persisted offer restores immediately so the masthead stays across
+ *  A persisted offer restores immediately so the sidebar mark stays across
  *  restarts until dismissed, installed, or superseded. The daily throttle
  *  would otherwise hide it until the next network check. */
 export function bootUpdateChecks(): void {

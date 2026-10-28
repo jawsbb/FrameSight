@@ -106,7 +106,7 @@ describe('editing a listing', () => {
     expect(screen.getByRole('button', { name: /save listing/i })).toBeEnabled()
   })
 
-  // Two collection cards, or two docket rows, can hold a form open at once, and their bounds
+  // Two collection cards, or two order rows, can hold a form open at once, and their bounds
   // differ. A shared id would make the second form's aria-describedby resolve to the first form's
   // sentence, so a player would be told their limit by a row that is not theirs.
   it('keeps each reason with its own form when two are open', async () => {

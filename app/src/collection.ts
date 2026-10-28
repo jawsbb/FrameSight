@@ -38,8 +38,6 @@ type CollectionItem = {
 }
 
 type CollectionTotals = {
-  masteryEligible: number
-  mastered: number
   owned: number
   missing: number
   priced: number
@@ -53,19 +51,16 @@ const MASTERY_ELIGIBLE_CATEGORIES = new Set(['frame', 'weapon', 'companion', 've
 
 /**
  * Where a card sits when the collection is read as a to-do: unmastered equipment first, mastered
- * equipment next, and last everything that earns no mastery, whatever its flag says. The same
- * category rule the mastery band counts by, so the sort and the percentage agree on what counts.
+ * equipment next, and last everything that earns no mastery, whatever its flag says.
  */
 export function masteryOrder(item: { category: string; mastered: boolean }): 0 | 1 | 2 {
   if (!MASTERY_ELIGIBLE_CATEGORIES.has(item.category)) return 2
   return item.mastered ? 1 : 0
 }
 
-/** The collection's ownership, mastery and exchange-value bands. */
+/** The collection's ownership and exchange-value figures. */
 export function collectionTotals(items: readonly CollectionItem[], priceFloor: number): CollectionTotals {
   const totals: CollectionTotals = {
-    masteryEligible: 0,
-    mastered: 0,
     owned: 0,
     missing: 0,
     priced: 0,
@@ -76,10 +71,6 @@ export function collectionTotals(items: readonly CollectionItem[], priceFloor: n
   }
 
   for (const item of items) {
-    if (MASTERY_ELIGIBLE_CATEGORIES.has(item.category)) {
-      totals.masteryEligible += 1
-      if (item.mastered) totals.mastered += 1
-    }
     if (item.quantity > 0) totals.owned += 1
     if (item.quantity === 0) totals.missing += 1
     if (item.platinum !== undefined) totals.priced += 1
@@ -136,6 +127,18 @@ export function pageItems<T>(items: readonly T[], page: number): T[] {
   return items.slice(start, start + COLLECTION_PAGE_SIZE)
 }
 
+/** The slice of `items` shown on `page`, with the numbers the page controls and range line need. */
+export function pageWindow<T>(items: readonly T[], page: number) {
+  const current = clampPage(page, items.length)
+  return {
+    current,
+    total: pageCount(items.length),
+    visible: pageItems(items, current),
+    first: items.length ? (current - 1) * COLLECTION_PAGE_SIZE + 1 : 0,
+    last: Math.min(current * COLLECTION_PAGE_SIZE, items.length),
+  }
+}
+
 export function pageNumbers(currentPage: number, totalPages: number): number[] {
   const total = Math.max(1, totalPages)
   const current = Math.min(Math.max(1, currentPage), total)
@@ -144,4 +147,9 @@ export function pageNumbers(currentPage: number, totalPages: number): number[] {
   const start = current <= 3 ? 2 : current >= total - 2 ? total - 4 : current - 2
   const middle = Array.from({ length: edge ? 4 : 5 }, (_, index) => start + index)
   return [...new Set([1, ...middle, total])].sort((left, right) => left - right)
+}
+
+/** Figures are grouped: a five-digit total is read, not counted. */
+export function figure(value: number): string {
+  return value.toLocaleString('en-US')
 }

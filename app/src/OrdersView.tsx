@@ -4,6 +4,7 @@ import { SellForm, type SellHandler, type UpdateHandler } from './SellForm'
 import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderValue, sortOrders, statusLabel, uncountedReason } from './orders'
 import { stampReading } from './freshness'
 import { MetalMark } from './MetalMark'
+import { Stat } from './Stat'
 
 type OrdersViewProps = {
   account: MarketAccount
@@ -34,35 +35,38 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
   const ownershipUnverifiable = account.orders.some(entry => entry.status.state === 'unverifiable')
 
   return <section className="page" aria-labelledby="orders-title">
-    <div className="mark-head">
-      <h1 id="orders-title" className="mark">Market orders</h1>
-      <p className="prose">Sell listings on your linked warframe.market account, checked against this device's inventory.</p>
-    </div>
-
-    <div className="assay-band orders-band">
-      <div className="band-cell orders" data-summary="orders">
-        <span className="band-figure">{account.listed_platinum}<MetalMark metal="plat" alt=" platinum"/></span>
-        <span className="band-label">Listed value</span>
-        <p className="band-note">Visible sell listings only. {freshness}</p>
+    <div className="page-head">
+      <h1 id="orders-title" className="page-title">Market orders</h1>
+      <div className="stats">
+        <Stat kind="orders" value={account.listed_platinum} unit={<MetalMark metal="plat" alt=" platinum"/>} label="listed value" note={`Visible sell listings only. ${freshness}`}/>
+        {/* Red only while something is flagged: a zero is not an alarm. */}
+        <Stat
+          kind={account.flagged ? 'flagged' : 'unflagged'}
+          value={account.flagged}
+          label="need attention"
+          note={account.flagged
+            ? 'Listed above what this device says you hold'
+            : ownershipUnverifiable
+              ? 'Ownership could not be verified for every listing'
+              : 'Every listing matches the collection'}
+        />
+        {/* A refused credential is not a linked account: "Linked" beside a refusal notice would
+            contradict the screen it heads. */}
+        <Stat
+          kind="backing"
+          value={needsRelink ? 'Refused' : 'Linked'}
+          note={needsRelink
+            ? 'Sign in again, or link a fresh token'
+            : `Credential held in ${backingLabel(account.backing).toLowerCase()}`}
+        />
       </div>
-      <div className="band-cell flagged" data-summary="flagged" data-count={account.flagged}>
-        <span className="band-figure">{account.flagged}</span>
-        <span className="band-label">Need attention</span>
-        <p className="band-note">{account.flagged
-          ? 'Listed above what this device says you hold'
-          : ownershipUnverifiable
-            ? 'Ownership could not be verified for every listing'
-            : 'Every listing matches the collection'}</p>
+      <div className="head-actions">
+        <button type="button" className="stamp" onClick={onRefresh} disabled={busy}>
+          <span>{busy ? 'Refreshing…' : 'Refresh orders'}</span>
+        </button>
+        <ConfirmButton label="Unlink account" confirmLabel="Confirm unlink" busy={busy} onConfirm={onSignOut}/>
       </div>
-      <div className="band-cell backing" data-summary="backing">
-        {/* A refused credential is not a linked account. Reading "Linked" beside a refusal notice
-            is the band contradicting the screen it heads. */}
-        <span className="band-figure">{needsRelink ? 'Refused' : 'Linked'}</span>
-        <span className="band-label">Status</span>
-        <p className="band-note">{needsRelink
-          ? 'Sign in again, or link a fresh token'
-          : `Credential held in ${backingLabel(account.backing).toLowerCase()}`}</p>
-      </div>
+      <p className="page-note">Your warframe.market sell listings, checked against this device's inventory.</p>
     </div>
 
     {/* Suppressed while the relink block is up: that block already names the refusal and offers
@@ -74,18 +78,9 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
         follows. */}
     {needsRelink && <div className="relink">
       <h2>Credential refused</h2>
-      <p className="prose">warframe.market refused the stored credential. The listings below are the last that were fetched; sign in again, or link a fresh token, to bring them up to date.</p>
+      <p className="prose">warframe.market refused the stored credential. The listings below may be out of date until you sign in again or link a new token.</p>
       <LinkForms onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} />
     </div>}
-
-    <div className="register-controls">
-      <button type="button" className="stamp" onClick={onRefresh} disabled={busy}>
-        <span>{busy ? 'Refreshing…' : 'Refresh orders'}</span>
-      </button>
-      <button type="button" className="stamp" onClick={onSignOut} disabled={busy}>
-        <span>Unlink account</span>
-      </button>
-    </div>
 
     {!needsRelink && <PresenceSwitch presence={account.presence} busy={busy} onPresence={onPresence}/>}
 
@@ -98,7 +93,6 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
         </li>)}
       </ul>
       : <div className="empty-state">
-        <span className="void-mark" aria-hidden="true" />
         <h2>No sell orders found</h2>
         <p>Nothing is currently listed on this account.</p>
       </div>}
@@ -136,11 +130,10 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
     ? items.find(item => item.id === entry.row_id && item.quantity > 0)
     : undefined
   return <article className={`docket-line${flagged ? ' doubt' : ''}`} aria-label={entry.name ?? entry.order.item_id}>
-    {/* The claim is struck as a shape as well as a colour: a row is legible as flagged with the
-        hue removed, which is what keeps the whole thing readable to anyone who cannot separate
-        oxblood from platinum. Ordinary rows keep the slot so the names still line up. */}
-    <span className={`line-mark${flagged ? ' struck' : ''}`} aria-hidden="true" />
-    <h2 className="line-name">{entry.name ?? entry.order.item_id}</h2>
+    {/* A flagged row carries a dot as well as a colour, so it reads as flagged without the hue.
+        Ordinary rows keep the empty slot so the names still line up. */}
+    <span className={`line-mark${flagged ? ' flagged' : ''}`} aria-hidden="true" />
+    <h2 className="line-name" title={entry.name ?? entry.order.item_id}>{entry.name ?? entry.order.item_id}</h2>
     <span className="line-figure">
       {entry.order.platinum}<MetalMark metal="plat" alt=" platinum" className="line-metal"/>
       <i>× {entry.order.quantity}</i>
@@ -166,10 +159,13 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
         disabled={busy}
         onClick={() => setEditing(true)}
       ><span>Edit listing</span></button>}
-      <RemoveControl
-        entry={entry}
+      {/* A flagged row's removal is the repair it asks for and goes on one press. */}
+      <ConfirmButton
+        label="Remove listing"
+        confirmLabel="Confirm remove"
+        skip={entry.status.state === 'missing'}
         busy={busy}
-        onRemove={onRemove}
+        onConfirm={() => onRemove(entry.order.id)}
       />
     </span>
     {held && editing && <SellForm
@@ -184,20 +180,20 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onSell, onUpdate }:
 }
 
 /**
- * Taking a listing down, on any row rather than only the ones carrying a claim.
- *
- * A flagged row's removal is the repair the row is asking for and goes on one press. An ordinary
- * row's is a change of mind about something that is currently selling, and only that one can be a
- * misclick, so it asks again, in place. A modal for this would be a heavier interruption than
- * the action deserves, and would take the pointer away from the row it belongs to.
+ * A press that can be a misclick on something live (taking down a listing that is selling,
+ * unlinking the account), so it asks again, in place: the first press arms it, the second acts.
+ * A modal for this would be a heavier interruption than the action deserves, and would take the
+ * pointer away from what it belongs to. `skip` is for the case where the press is the repair the
+ * screen is asking for.
  */
-function RemoveControl({ entry, busy, onRemove }: {
-  entry: ReturnType<typeof sortOrders>[number]
+function ConfirmButton({ label, confirmLabel, skip = false, busy, onConfirm }: {
+  label: string
+  confirmLabel: string
+  skip?: boolean
   busy: boolean
-  onRemove: (orderId: string) => Promise<void>
+  onConfirm: () => Promise<void>
 }) {
   const [armed, setArmed] = useState(false)
-  const asked = entry.status.state === 'missing'
   return <button
     type="button"
     className={`stamp${armed ? ' armed' : ''}`}
@@ -206,10 +202,10 @@ function RemoveControl({ entry, busy, onRemove }: {
     // fire on whatever slid into its place.
     onBlur={() => setArmed(false)}
     onClick={() => {
-      if (asked || armed) return void onRemove(entry.order.id)
+      if (skip || armed) return void onConfirm()
       setArmed(true)
     }}
-  ><span>{armed ? 'Confirm remove' : 'Remove listing'}</span></button>
+  ><span>{armed ? confirmLabel : label}</span></button>
 }
 
 /**
@@ -259,7 +255,7 @@ function PresenceSwitch({ presence, busy, onPresence }: {
       {choices.map(choice => <button
         key={choice.label}
         type="button"
-        className={`stamp${wanted === choice.value ? ' struck' : ''}`}
+        className="stamp"
         aria-pressed={wanted === choice.value}
         // In automatic mode the row reports rather than accepts: pressing one would silently be
         // overridden by the next poll, and a control that undoes itself is worse than a disabled one.
@@ -295,7 +291,7 @@ function statusWord(status: Presence | null): string {
  *
  * Typed rather than picked from a list. A collection runs to a couple of thousand items, and no
  * one scrolls a list that long to find the one they already have a name for, so the field takes
- * the name and the register answers with the few that match.
+ * the name and the list answers with the few that match.
  */
 function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
   items: CollectionItem[]
@@ -320,7 +316,7 @@ function NewListing({ items, orders, listable, busy, onSell, onUpdate }: {
   }
 
   if (!open) {
-    return <div className="register-controls">
+    return <div className="toolbar">
       <button type="button" className="stamp" disabled={busy} onClick={() => setOpen(true)}><span>New listing</span></button>
     </div>
   }
@@ -381,13 +377,9 @@ function UnlinkedPanel({ onSignIn, onLinkToken, busy, error }: {
   error: string | null
 }) {
   return <section className="page" aria-labelledby="orders-title">
-    <div className="mark-head">
-      <h1 id="orders-title" className="mark">Market orders</h1>
-      <p className="prose">
-        Linking a warframe.market account is entirely optional. TennoScope itself has no accounts of its own:
-        this connects to warframe.market directly, and order data (listings, quantities, prices) leaves this
-        device to check it against warframe.market's servers.
-      </p>
+    <div className="page-head">
+      <h1 id="orders-title" className="page-title">Market orders</h1>
+      <p className="page-note">Optional: TennoScope has no account of its own. Linking connects straight to warframe.market and sends your order data (listings, quantities, prices) to its servers.</p>
     </div>
 
     {error && <p className="error-banner" role="alert">{error}</p>}
@@ -413,7 +405,7 @@ function LinkForms({ onSignIn, onLinkToken, busy }: {
   return <div className="clause-pair">
     <article>
       <h2>Sign in</h2>
-      <p className="prose">Your warframe.market email and password. They are sent once to warframe.market and never stored on this device.</p>
+      <p className="prose">Your warframe.market email and password, sent once to warframe.market and never stored here.</p>
       <form onSubmit={event => { event.preventDefault(); void onSignIn(email, password) }}>
         <label className="dial-slot">
           <span>Email</span>
@@ -440,7 +432,7 @@ function LinkForms({ onSignIn, onLinkToken, busy }: {
           <li>Go to <b>Application</b> (Chrome) or <b>Storage</b> (Firefox), then <b>Cookies → warframe.market</b>.</li>
           <li>Copy the value of the cookie named <b>JWT</b>.</li>
         </ol>
-        <p>Treat that value like a password: anyone holding it can post and delete orders on your account. TennoScope stores it in your system keyring where one is available, and in its local database file otherwise. The Status panel says which you got.</p>
+        <p>Treat it like a password: anyone holding it can post and delete your orders. It is kept in your system keyring, or in the local database without one; hover Linked on this page to see which.</p>
       </details>
       <form onSubmit={event => { event.preventDefault(); void onLinkToken(token) }}>
         <label className="dial-slot">

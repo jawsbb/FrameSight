@@ -15,7 +15,9 @@ Visual style follows the approved kiosk screenshot (`../screenshots/ducat-kiosk.
 overlay digits match the game's own numeral size (16px total row / 15px basket rows at
 1920×1080), compressed width ratio (~12.3px/digit advance), baselines aligned to the game's,
 ice-blue fill `rgb(222,238,252)` with a subtle 1px shadow; grid chips are dark rounded chips
-`rgba(8,16,26,.84)` outlined `rgba(120,180,220,.35)` with the platinum mark, CondensedBold 17px.
+`rgba(8,16,26,.84)` outlined `rgba(120,180,220,.35)` with the platinum mark, 17px digits in the
+app's own face (`--face-text`, semibold, tabular figures). A mastery strip's words keep a condensed
+face, in sentence case, because the strip's room in the tile was budgeted on it.
 
 ## Architecture
 

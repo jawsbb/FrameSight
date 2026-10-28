@@ -3,7 +3,7 @@ import { MetalMark } from './MetalMark'
 import { SetRow } from './SetRow'
 
 /**
- * The words the ledger states, written as the player reads them and uppercased by the stylesheet.
+ * The words the ledger states, written as the player reads them.
  * The space before a `·` never breaks, so a narrow slip wraps after the separator, not before it.
  */
 function ledgerWord(mark: Exclude<MasteryMark, { state: 'unknown' }>): string {
@@ -38,7 +38,7 @@ function ledgerState(mark: MasteryMark, uncertain: boolean): LedgerState {
 }
 
 /** The doubt mark, the word that states the mark, and the set row at the far end of the line. An
- * unanswerable mark is the app's struck dash, and a screen reader hears what it means. */
+ * unanswerable mark is a dash, and a screen reader hears what it means. */
 function Ledger({ mark, state, uncertain, confidence }: { mark: MasteryMark; state: LedgerState; uncertain: boolean; confidence: number }) {
   return <div className="ledger" data-tone={state.tone}>
     {uncertain && <span className="hallmark doubt">Uncertain · {Math.round(confidence * 100)}%</span>}
@@ -55,7 +55,7 @@ function Ledger({ mark, state, uncertain, confidence }: { mark: MasteryMark; sta
  * in trade chat. So both are shown at the same weight, in their own metal, with the leader marked
  * inside the column it won, rather than one headline number and a footnote.
  *
- * A reading we do not trust is never crowned on either metal. A price we do not have is struck as
+ * A reading we do not trust is never crowned on either metal. A price we do not have is shown as
  * a dash: untradeable items (Forma among them) have no listing and never will.
  */
 export function RewardCards({
@@ -78,24 +78,29 @@ export function RewardCards({
     const marked = card.mastery ? { mark: card.mastery, state: ledgerState(card.mastery, uncertain) } : null
     return <article
       key={`${card.name}-${index}`}
-      className={['slip', topPlat ? 'top-plat' : '', topDucat ? 'top-ducat' : '', marked?.state.rule].filter(Boolean).join(' ')}
+      className={['slip', marked?.state.rule].filter(Boolean).join(' ')}
       aria-label={card.name}
     >
-      <span className="slip-lot">Choice {index + 1}</span>
       <h2 className="slip-name">{card.name}</h2>
 
+      {/* The crown takes the place of the metal's word rather than a row of its own: the overlay is
+          180 design px tall and the badge reads as large as every other word on the slip. */}
       <div className="metals">
         <span className="metal plat">
-          {card.platinum > 0
-            ? <span className="metal-figure">{card.platinum}</span>
-            : <span className="metal-figure market-pending"><span aria-hidden="true">—</span><span className="sr-only">No platinum price</span></span>}
-          <span className="metal-label"><MetalMark metal="plat"/>plat</span>
-          {topPlat && <span className="metal-hallmark">Top plat</span>}
+          <span className="metal-value">
+            <MetalMark metal="plat"/>
+            {card.platinum > 0
+              ? <span className="metal-figure">{card.platinum}</span>
+              : <span className="metal-figure market-pending"><span aria-hidden="true">—</span><span className="sr-only">No platinum price</span></span>}
+          </span>
+          {topPlat ? <span className="metal-hallmark">Top plat</span> : <span className="metal-label">plat</span>}
         </span>
         <span className="metal ducat">
-          <span className="metal-figure">{card.ducats}</span>
-          <span className="metal-label"><MetalMark metal="ducat"/>ducats</span>
-          {topDucat && <span className="metal-hallmark">Top ducats</span>}
+          <span className="metal-value">
+            <MetalMark metal="ducat"/>
+            <span className="metal-figure">{card.ducats}</span>
+          </span>
+          {topDucat ? <span className="metal-hallmark">Top ducats</span> : <span className="metal-label">ducats</span>}
         </span>
       </div>
 
@@ -108,7 +113,8 @@ export function RewardCards({
               ? card.owned > 0
                 ? <span className="hallmark owned">Owned ×{card.owned}</span>
                 : <span className="hallmark absent">Not owned</span>
-              : <span className="hallmark doubt">Unverifiable</span>}
+              // Companion reads nothing from the game, so this is the mode working, not a doubt.
+              : <span className="hallmark unverifiable">Unverifiable</span>}
             {uncertain && <span className="hallmark doubt">Uncertain · {Math.round(card.confidence * 100)}%</span>}
           </div>}
     </article>

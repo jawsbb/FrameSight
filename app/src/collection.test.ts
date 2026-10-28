@@ -53,7 +53,7 @@ describe('sellableValue', () => {
 })
 
 describe('collectionTotals', () => {
-  it('partitions only mastery-eligible holdings by mastery and ownership', () => {
+  it('partitions holdings by ownership', () => {
     const items = [
       { category: 'frame', quantity: 1, mastered: true },
       { category: 'weapon', quantity: 1, mastered: false, rank: 7, max_rank: 10 },
@@ -62,8 +62,6 @@ describe('collectionTotals', () => {
     ]
 
     expect(collectionTotals(items, 0)).toMatchObject({
-      masteryEligible: 3,
-      mastered: 1,
       owned: 3,
       missing: 1,
     })
@@ -97,8 +95,6 @@ describe('collectionTotals', () => {
 
   it('returns zeroes for an empty collection', () => {
     expect(collectionTotals([], 5)).toEqual({
-      masteryEligible: 0,
-      mastered: 0,
       owned: 0,
       missing: 0,
       priced: 0,

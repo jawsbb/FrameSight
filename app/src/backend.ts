@@ -118,10 +118,13 @@ export async function getSetupStatus(attempts = 12, delayMs = 250): Promise<Setu
 export const setAccessMode = (accessMode: AccessMode) => invoke<SetupStatus>('set_access_mode', { accessMode })
 export const authorizeScreenCapture = () => invoke<SetupStatus>('authorize_screen_capture')
 
-/** Overlay preferences the backend owns; the overlays never read browser storage for them. */
-export interface Preferences { mastery_marks: boolean }
+/** Preferences the backend owns; the overlays never read browser storage for them. */
+export type Language = 'en' | 'fr'
+/** `language` absent or null follows the system language. */
+export interface Preferences { mastery_marks: boolean; language?: Language | null }
 export const getPreferences = () => invoke<Preferences>('get_preferences')
 export const setMasteryMarks = (enabled: boolean) => invoke<Preferences>('set_mastery_marks', { enabled })
+export const setLanguage = (language: Language | null) => invoke<Preferences>('set_language', { language })
 
 export const marketStatus = () => invoke<AppView>('market_status')
 export const marketSignIn = (email: string, password: string) => invoke<AppView>('market_sign_in', { email, password })

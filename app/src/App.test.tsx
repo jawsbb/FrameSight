@@ -160,21 +160,40 @@ describe('MVP desktop interface', () => {
     windowApi.watchWindowResized.mockResolvedValue(() => {})
   })
 
-  it('preselects Full on first run but waits for affirmative confirmation', async () => {
+  it('chooses nothing on first run and keeps Confirm off until a level is picked', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: false, access_mode: null, desktop_capture_action_available: false })
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Choose Warframe access' })).toBeInTheDocument()
+    for (const radio of screen.getAllByRole('radio')) expect(radio).not.toBeChecked()
+    expect(document.querySelectorAll('.access-node.included')).toHaveLength(0)
+    expect(screen.queryByRole('region', { name: /adds$/ })).not.toBeInTheDocument()
+    const confirm = screen.getByRole('button', { name: 'Choose an access level' })
+    expect(confirm).toBeDisabled()
+    await userEvent.click(confirm)
+    expect(backend.setAccessMode).not.toHaveBeenCalled()
+    // The setup screen has the same drag bar and window controls as the main window.
+    expect(screen.getByRole('group', { name: 'Window' })).toBeInTheDocument()
+  })
+
+  it('waits for affirmative confirmation of the level the player picked', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: false, access_mode: null, desktop_capture_action_available: false })
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Choose Warframe access' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'What may TennoScope observe?' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: /Full/ }))
     expect(screen.getByRole('radio', { name: /Full/ })).toBeChecked()
     expect(backend.setAccessMode).not.toHaveBeenCalled()
     expect(screen.getByText('Each level includes the previous level. Nothing starts until you confirm.')).toBeInTheDocument()
     expect(screen.queryByText(/Effective mode:/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Pending:/)).not.toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Companion/ }).closest('label')).toHaveTextContent('No Warframe reads')
-    expect(screen.getByRole('radio', { name: /Overlay/ }).closest('label')).toHaveTextContent('Adds EE.log')
+    expect(screen.getByRole('radio', { name: /Overlay/ }).closest('label')).toHaveTextContent("Adds the game's log and the reward screen")
     expect(screen.getByRole('radio', { name: /Full/ }).closest('label')).toHaveTextContent('Adds read-only memory')
     expect(screen.getByRole('region', { name: 'What Full adds' })).toHaveTextContent(/Read-only process memory.*Inventory acquisition/i)
+    // Where the data goes and what it may cost are said where Full is chosen.
+    expect(screen.getByRole('region', { name: 'What Full adds' })).toHaveTextContent(/account ID and a nonce to mobile\.warframe\.com, and nowhere else.*account-policy or anti-cheat risk/)
     expect(screen.getByRole('region', { name: 'Always prohibited' })).toHaveTextContent(/memory writes.*game-file writes.*automated input.*traffic redirection.*telemetry/i)
 
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Full' }))
@@ -187,6 +206,7 @@ describe('MVP desktop interface', () => {
     render(<App />)
 
     const full = await screen.findByRole('radio', { name: /Full/ })
+    await userEvent.click(full)
     expect(document.querySelectorAll('.access-node.included')).toHaveLength(3)
     expect(screen.getByRole('region', { name: 'What Full adds' })).toBeInTheDocument()
 
@@ -209,11 +229,12 @@ describe('MVP desktop interface', () => {
   it('shows only the selected stop’s additions and swaps them on selection', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: false, access_mode: null, desktop_capture_action_available: false })
     render(<App />)
+    await userEvent.click(await screen.findByRole('radio', { name: /Full/ }))
     expect(await screen.findByRole('region', { name: 'What Full adds' })).toHaveTextContent(/Read-only process memory.*Inventory acquisition/i)
-    expect(screen.queryByText(/Visible-pixel OCR/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Text on the reward screen/i)).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('radio', { name: /Overlay/ }))
-    expect(await screen.findByRole('region', { name: 'What Overlay adds' })).toHaveTextContent(/Warframe process presence.*EE.log.*Visible-pixel OCR.*Click-through overlay/i)
+    expect(await screen.findByRole('region', { name: 'What Overlay adds' })).toHaveTextContent(/Warframe process presence.*game's log \(EE.log\).*Text on the reward screen.*Click-through overlay/i)
     expect(screen.queryByText(/Inventory acquisition/i)).not.toBeInTheDocument()
   })
 
@@ -252,8 +273,8 @@ describe('MVP desktop interface', () => {
 
     await userEvent.click(screen.getByRole('radio', { name: /Overlay/ }))
     expect(screen.getByText('Pending: Overlay')).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: /Overlay/ }).closest('label')).toHaveTextContent('Adds EE.log')
-    expect(screen.getByRole('region', { name: 'New observation to grant' })).toHaveTextContent(/Warframe process presence.*EE\.log.*visible-pixel OCR.*click-through overlay/i)
+    expect(screen.getByRole('radio', { name: /Overlay/ }).closest('label')).toHaveTextContent("Adds the game's log and the reward screen")
+    expect(screen.getByRole('region', { name: 'New observation to grant' })).toHaveTextContent(/Warframe process presence.*EE\.log.*text on the reward screen.*click-through overlay/i)
     expect(backend.setAccessMode).toHaveBeenCalledTimes(1)
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Overlay' }))
     expect(backend.setAccessMode).toHaveBeenLastCalledWith('overlay')
@@ -267,7 +288,8 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('radio', { name: /Full/ }))
 
     expect(screen.getByText('Pending: Full')).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'New observation to grant' })).toHaveTextContent(/Warframe process presence.*EE\.log.*visible-pixel OCR.*click-through overlay.*read-only process memory.*inventory acquisition/i)
+    expect(screen.getByRole('region', { name: 'New observation to grant' })).toHaveTextContent(/Warframe process presence.*EE\.log.*text on the reward screen.*click-through overlay.*read-only process memory.*inventory acquisition.*mobile\.warframe\.com/i)
+    expect(screen.getByText('Proposed. Not yet effective.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Confirm Full' })).toBeEnabled()
   })
 
@@ -283,7 +305,7 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Companion' }))
 
     expect(screen.getByRole('status', { name: 'Applying Companion' })).toHaveTextContent('Applying Companion…')
-    expect(screen.getByText('Every change needs confirmation. Nothing applies until you confirm.')).toBeInTheDocument()
+    expect(screen.getByText('Nothing changes until you confirm.')).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'What may TennoScope observe?' })).toBeDisabled()
     await act(async () => { transition.resolve({ setup_complete: true, access_mode: 'companion', desktop_capture_action_available: false }) })
   })
@@ -345,7 +367,7 @@ describe('MVP desktop interface', () => {
 
     expect(await screen.findByRole('heading', { name: 'Saved snapshot' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'No saved inventory snapshot yet' })).toBeInTheDocument()
-    expect(screen.getByText('Full access can acquire one; Companion remains useful for reference, prices, and planning.')).toBeInTheDocument()
+    expect(screen.getByText('Full access can read one. Prices and reference data work without it.')).toBeInTheDocument()
     expect(screen.queryByText(/Start Warframe and refresh/i)).not.toBeInTheDocument()
   })
 
@@ -381,18 +403,16 @@ describe('MVP desktop interface', () => {
     expect(screen.getByRole('button', { name: 'Allow desktop capture' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Preview reward overlay' })).toBeDisabled()
     expect(screen.getAllByText(/Overlay or Full access is required/i).length).toBeGreaterThan(0)
-    expect(screen.getByRole('region', { name: 'What Companion adds' })).toHaveTextContent(/Nothing read from Warframe.*saved data.*prices.*trading/i)
+    expect(screen.getByRole('region', { name: 'What Companion adds' })).toHaveTextContent(/Reads nothing from Warframe\. Saved data, prices and trading stay available\./)
     expect(screen.getByText('Using saved and reference data')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'About' }))
-    expect(screen.getByText(/Companion does not observe the running game process or EE\.log/i)).toBeInTheDocument()
-    expect(screen.getByText(/Inventory synchronization is available only in Full access/i)).toBeInTheDocument()
+    expect(screen.getByText(/Inventory synchronization needs Full access/i)).toBeInTheDocument()
   })
 
   it('keeps live pricing available in Companion while inventory refresh stays gated', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'companion', desktop_capture_action_available: false })
     render(<App />)
     // Prices come from the dump and explicit checks, not the game: no ownership to verify.
-    const priceButton = await screen.findByRole('button', { name: /Price these/ })
+    const priceButton = await screen.findByRole('button', { name: /Price this page/ })
     expect(priceButton).toBeEnabled()
     await userEvent.click(priceButton)
     expect(backend.refreshPrices).toHaveBeenCalledOnce()
@@ -419,9 +439,11 @@ describe('MVP desktop interface', () => {
     expect(screen.getByRole('heading', { name: 'Saved snapshot' })).toBeInTheDocument()
     expect(screen.getByText('Companion mode')).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Rewards' }))
-    expect(screen.getByText(/Live reward observation is inactive in Companion/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Rewards/ }))
+    expect(screen.getByText(/Companion does not read the reward screen/i)).toBeInTheDocument()
     expect(screen.getByRole('article', { name: 'Lex Prime Receiver' })).toHaveTextContent('Unverifiable')
+    // Unverifiable is Companion working as chosen, so it wears the neutral dashed tone, not doubt's.
+    expect(within(screen.getByRole('article', { name: 'Lex Prime Receiver' })).getByText('Unverifiable')).toHaveClass('unverifiable')
     expect(screen.getByRole('article', { name: 'Lex Prime Receiver' })).not.toHaveTextContent(/Owned|Not owned/)
   })
 
@@ -438,7 +460,7 @@ describe('MVP desktop interface', () => {
     for (const label of ['Game reader', 'EE.log', 'Reward observer', 'Process discovery', 'Memory read', 'Authorization scan', 'Inventory fetch', 'Schema validation']) {
       expect(within(panel).queryByText(label)).not.toBeInTheDocument()
     }
-    expect(panel).toHaveTextContent(/Live Warframe diagnostics are inactive in Companion/i)
+    expect(panel).toHaveTextContent(/Companion does not watch the game/i)
     expect(panel).not.toHaveTextContent(/Start Warframe/i)
   })
   it('shows useful collection summary and responsive navigation semantics', async () => {
@@ -447,9 +469,10 @@ describe('MVP desktop interface', () => {
     expect(await screen.findByRole('heading', { name: 'Your collection' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeInTheDocument()
     expect(screen.getByText('8', { selector: '[data-summary="items"] *' })).toBeInTheDocument()
-    expect(screen.getByText('2', { selector: '[data-summary="mastered"] *' })).toBeInTheDocument()
-    expect(screen.getByText('50% of mastery-eligible items')).toBeInTheDocument()
-    expect(screen.getByRole('list', { name: 'Collection items' })).toHaveClass('collection-grid')
+    // Mastery has one home: the collection points there rather than counting it a second time.
+    expect(document.querySelector('[data-summary="mastered"]')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Mastery progress' })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Collection items' })).toHaveClass('card-grid')
     expect(screen.getByRole('article', { name: 'Rhino' })).toHaveTextContent('Mastered')
   })
 
@@ -479,6 +502,26 @@ describe('MVP desktop interface', () => {
     expect(within(maxed).getByText('Rank 10/10')).toHaveClass('maxed')
   })
 
+  it('says a live-checked card without a price has no market price', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.getView.mockResolvedValue({
+      ...view,
+      collection: {
+        total_entries: 2,
+        items: [
+          { id: 'braton', name: 'Braton', category: 'weapon', quantity: 3, mastered: true, live: true, priceable: true },
+          { id: 'lith-a1', name: 'Lith A1 Relic', category: 'relic', quantity: 7, mastered: false, platinum: 20, live: true, priceable: true },
+        ],
+      },
+    })
+    render(<App />)
+
+    const unpriced = await screen.findByRole('article', { name: 'Braton' })
+    expect(unpriced).toHaveTextContent('No market price')
+    expect(unpriced).not.toHaveTextContent('Checked live')
+    expect(screen.getByRole('article', { name: 'Lith A1 Relic' })).toHaveTextContent('Checked live')
+  })
+
   it('filters by search, category, and ownership without losing canonical names', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App />)
@@ -496,6 +539,95 @@ describe('MVP desktop interface', () => {
     expect(screen.getByRole('article', { name: 'Forma Blueprint' })).toHaveTextContent('Missing')
   })
 
+  it('keeps each grid page’s filters across a change of tab', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    await user.type(screen.getByRole('searchbox', { name: 'Search collection' }), 'prime')
+    await user.click(screen.getByRole('button', { name: 'Prime Parts' }))
+    await user.click(screen.getByRole('button', { name: 'Owned' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort collection' }), 'Platinum')
+
+    await user.click(screen.getByRole('button', { name: 'Mastery' }))
+    await user.click(screen.getByRole('button', { name: 'Frame 0/1' }))
+    await user.click(screen.getByRole('button', { name: 'Collection' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search collection' })).toHaveValue('prime')
+    expect(screen.getByRole('button', { name: 'Prime Parts' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Owned' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('combobox', { name: 'Sort collection' })).toHaveValue('platinum-desc')
+    const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
+    expect(names).toEqual(['Lex Prime Receiver', 'Zenith Prime Receiver'])
+
+    await user.click(screen.getByRole('button', { name: 'Mastery' }))
+    expect(screen.getByRole('button', { name: 'Frame 0/1' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('keeps the page of a paginated grid across a change of tab', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.getView.mockResolvedValue({
+      ...view,
+      collection: {
+        total_entries: 60,
+        items: Array.from({ length: 60 }, (_, index) => ({
+          id: `item-${index.toString().padStart(2, '0')}`,
+          name: `Item ${index.toString().padStart(2, '0')}`,
+          category: 'weapon' as const,
+          quantity: 1,
+          mastered: false,
+          live: false,
+        })),
+      },
+    })
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Go to page 2' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Collection' }))
+    expect(screen.getByText('49–60 of 60')).toBeInTheDocument()
+  })
+
+  it('clears the filters from an empty result', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    await user.click(screen.getByRole('button', { name: 'Relic' }))
+    await user.type(screen.getByRole('searchbox', { name: 'Search collection' }), 'no such item')
+    expect(screen.getByRole('heading', { name: 'No matching items' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search collection' })).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'All categories' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByRole('article')).toHaveLength(view.collection.items.length)
+  })
+
+  it('opens Mastery from the collection, and calls a never-held item what it is', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    render(<App />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Mastery progress' }))
+    expect(screen.getByRole('heading', { name: 'Mastery' })).toBeInTheDocument()
+    expect(screen.getByRole('article', { name: 'Excalibur' })).toHaveTextContent('Never held')
+    expect(screen.getByRole('article', { name: 'Excalibur' })).not.toHaveTextContent('Missing')
+  })
+
+  it('shows About at the foot of Settings rather than as its own page', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Your collection' })
+    expect(screen.queryByRole('button', { name: 'About' })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    const about = screen.getByRole('region', { name: 'About' })
+    expect(within(about).getByText(/Free, open-source and local-first/)).toBeInTheDocument()
+    expect(await within(about).findByText('Version 0.11.0')).toBeInTheDocument()
+    // What Full sends and risks is said once, at the point of choice, not repeated in About.
+    expect(within(about).queryByText(/mobile\.warframe\.com/)).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'What Full adds' })).toHaveTextContent(/account ID and a nonce to mobile\.warframe\.com, and nowhere else.*account-policy or anti-cheat risk/)
+  })
+
   it('supports every stable category and sortable collection results', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App />)
@@ -503,7 +635,7 @@ describe('MVP desktop interface', () => {
     for (const label of ['Frame', 'Weapon', 'Companion', 'Prime Parts', 'Relic', 'Resource', 'Blueprint', 'Vehicle', 'Mod', 'Arcane']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
-    await userEvent.click(within(screen.getByRole('group', { name: 'Sort collection' })).getByRole('button', { name: 'Quantity' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort collection' }), 'Quantity')
     const cards = screen.getAllByRole('article').filter(node => node.closest('[aria-label="Collection items"]'))
     expect(cards[0]).toHaveAccessibleName('Lith A1 Relic')
   })
@@ -516,7 +648,7 @@ describe('MVP desktop interface', () => {
     expect(await screen.findByText('Loading your local collection…')).toBeInTheDocument()
     await act(async () => resolveView?.({ ...view, collection: { items: [], total_entries: 0 }, reward: { cards: [], best_value_index: null, best_ducat_index: null } }))
     expect(screen.getByText(/No inventory items yet/i)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Rewards' }))
+    await userEvent.click(screen.getByRole('button', { name: /^Rewards/ }))
     expect(screen.getByText(/No reward choices detected/i)).toBeInTheDocument()
     backend.refreshInventory.mockRejectedValueOnce(new Error('synthetic'))
     await userEvent.click(screen.getByRole('button', { name: 'Refresh inventory' }))
@@ -530,7 +662,7 @@ describe('MVP desktop interface', () => {
 
     expect(await screen.findByRole('heading', { name: 'No inventory items yet' })).toBeInTheDocument()
     expect(screen.queryByRole('searchbox', { name: 'Search collection' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('group', { name: 'Sort collection' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Sort collection' })).not.toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Item categories' })).not.toBeInTheDocument()
   })
 
@@ -557,7 +689,7 @@ describe('MVP desktop interface', () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App />)
     await screen.findByRole('heading', { name: 'Your collection' })
-    await userEvent.click(screen.getByRole('button', { name: 'Rewards' }))
+    await userEvent.click(screen.getByRole('button', { name: /^Rewards/ }))
     const advisor = screen.getByRole('region', { name: 'Reward advisor' })
     expect(within(advisor).getAllByRole('article')).toHaveLength(4)
     expect(within(advisor).getByRole('article', { name: 'Forma Blueprint' })).toHaveTextContent('Top plat')
@@ -594,8 +726,8 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Hide reward overlay' }))
     expect(overlay.hideRewardOverlay).toHaveBeenCalledOnce()
 
-    await userEvent.click(screen.getByRole('button', { name: 'About' }))
-    expect(screen.getByText(/stored on this device/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'About' })).toBeInTheDocument()
+    expect(screen.getByText(/stay in this device's app data folder/i)).toBeInTheDocument()
   })
 
   it('explains automatic capture without portal controls', async () => {
@@ -604,7 +736,7 @@ describe('MVP desktop interface', () => {
     await screen.findByRole('heading', { name: 'Your collection' })
     await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
 
-    expect(screen.getByText('Screen capture is automatic. Desktop sharing is only needed when Warframe is launched with PROTON_ENABLE_WAYLAND=1 and this compositor has no direct capture API.')).toBeInTheDocument()
+    expect(screen.getByText('Automatic. Desktop sharing is needed only when Warframe runs with PROTON_ENABLE_WAYLAND=1 and the compositor has no direct capture API.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Captured screens|Set up screen capture|Change captured screens|Allow desktop capture/i })).not.toBeInTheDocument()
     expect(backend.authorizeScreenCapture).not.toHaveBeenCalled()
   })
@@ -616,10 +748,8 @@ describe('MVP desktop interface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
 
     const action = screen.getByRole('button', { name: 'Allow desktop capture' })
-    const chooser = screen.getByText(/desktop opens its own screen chooser/i)
-    expect(screen.getByText(/select every display where Warframe may run/i)).toBeInTheDocument()
-    expect(screen.getByText(/KDE\/GNOME may show an active screen-sharing indicator/i)).toBeInTheDocument()
-    expect(screen.getByText(/TennoScope releases the session when the game exits/i)).toBeInTheDocument()
+    const chooser = screen.getByText(/desktop's screen chooser, pick every display Warframe may run on/i)
+    expect(chooser).toHaveTextContent(/screen-sharing indicator may show until the game exits/i)
     expect(chooser.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(backend.authorizeScreenCapture).not.toHaveBeenCalled()
 
@@ -693,7 +823,7 @@ describe('MVP desktop interface', () => {
     await screen.findByRole('heading', { name: 'Your collection' })
 
     const navigation = screen.getByRole('navigation', { name: 'Primary' })
-    expect(within(navigation).getAllByRole('button')).toHaveLength(7)
+    expect(within(navigation).getAllByRole('button')).toHaveLength(6)
     expect(within(navigation).queryByRole('button', { name: 'Refresh inventory' })).not.toBeInTheDocument()
     const operations = screen.getByRole('region', { name: 'Runtime operations' })
     expect(within(operations).getByRole('button', { name: 'Refresh inventory' })).toBeInTheDocument()
@@ -821,9 +951,9 @@ describe('MVP desktop interface', () => {
     await screen.findByRole('heading', { name: 'Your collection' })
     await userEvent.click(screen.getByRole('button', { name: 'Refresh inventory' }))
     expect(backend.refreshInventory).toHaveBeenCalledOnce()
-    // The reader's own state is announced in the masthead; the sheet below carries its own status
-    // regions, so this is scoped to the one that speaks for the reader.
-    expect(within(screen.getByRole('banner')).getAllByRole('status').find(node => node.textContent)).toHaveTextContent(/Watching|Attention/)
+    // The reader's own state is announced in the sidebar; the page carries its own status regions,
+    // so this is scoped to the one that speaks for the reader.
+    expect(within(screen.getByRole('region', { name: 'Runtime operations' })).getAllByRole('status').find(node => node.textContent)).toHaveTextContent(/Watching|Attention/)
   })
 
   it('does not let an older poll overwrite a newer manual refresh', async () => {
@@ -867,7 +997,7 @@ describe('MVP desktop interface', () => {
     backend.refreshPrices.mockImplementationOnce(() => new Promise(() => {}))
     render(<App />)
     await act(async () => {})
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Price these/ })) })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Price this page/ })) })
     await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
     expect(backend.getView).toHaveBeenCalledTimes(3)
   })
@@ -920,28 +1050,6 @@ describe('MVP desktop interface', () => {
     expect(screen.getByText('5', { selector: '[data-summary="items"] *' })).toBeInTheDocument()
   })
 
-  it('counts mastery only across mastery-eligible categories', async () => {
-    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
-    backend.getView.mockResolvedValue({
-      ...view,
-      collection: {
-        total_entries: 8,
-        items: [
-          { id: 'frame', name: 'Frame', category: 'frame', quantity: 1, mastered: true, live: false },
-          { id: 'weapon', name: 'Weapon', category: 'weapon', quantity: 1, mastered: false, live: false },
-          { id: 'companion', name: 'Companion', category: 'companion', quantity: 1, mastered: false, live: false },
-          { id: 'vehicle', name: 'Vehicle', category: 'vehicle', quantity: 1, mastered: true, live: false },
-          { id: 'part', name: 'Part', category: 'prime_part', quantity: 1, mastered: false, live: false },
-          { id: 'resource', name: 'Resource', category: 'resource', quantity: 1, mastered: false, live: false },
-          { id: 'mod', name: 'Mod', category: 'mod', quantity: 12, mastered: false, live: false },
-          { id: 'arcane', name: 'Arcane', category: 'arcane', quantity: 3, mastered: false, live: false },
-        ],
-      },
-    })
-    render(<App />)
-    expect(await screen.findByText('50% of mastery-eligible items')).toBeInTheDocument()
-  })
-
   it('orders unmastered equipment first, then mastered, then what earns no mastery', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     backend.getView.mockResolvedValue({
@@ -958,7 +1066,7 @@ describe('MVP desktop interface', () => {
     })
     render(<App />)
     await screen.findByRole('heading', { name: 'Your collection' })
-    await userEvent.click(within(screen.getByRole('group', { name: 'Sort collection' })).getByRole('button', { name: 'Unmastered first' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort collection' }), 'Unmastered first')
     const names = screen.getAllByRole('article')
       .filter(node => node.closest('[aria-label="Collection items"]'))
       .map(node => node.getAttribute('aria-label'))
@@ -984,7 +1092,7 @@ describe('MVP desktop interface', () => {
       .map(node => node.getAttribute('aria-label'))
     expect(names).toEqual(['Skana', 'Excalibur', 'Furis'])
     expect(screen.getByText('2', { selector: '[data-summary="mastered"] *' })).toBeInTheDocument()
-    expect(screen.getByText('40% of 5 masterable items')).toBeInTheDocument()
+    expect(screen.getByText('of 5 mastered · 40%')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Weapon 2/4' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Frame 0/1' }))
     expect(screen.queryByRole('article', { name: 'Skana' })).not.toBeInTheDocument()
@@ -1082,16 +1190,16 @@ describe('MVP desktop interface', () => {
     expect(within(unavailable).getByText('Ducat value unavailable')).toBeInTheDocument()
     expect(unavailable).toHaveTextContent('Prime Parts')
 
-    const band = screen.getByTestId('band-ducats')
+    const band = screen.getByTestId('stat-ducats')
     expect(within(band).getByText('45')).toBeInTheDocument()
-    expect(within(band).getByText('Ducats at stake')).toBeInTheDocument()
+    expect(within(band).getByText('at stake')).toBeInTheDocument()
 
     // The switch is the layer's valve, a two-state control, not a mode among the sorts and
     // filters beside it. Off, every reading above goes, card and band alike.
     const ducatsSwitch = screen.getByRole('switch', { name: 'Ducat values' })
     expect(ducatsSwitch).toHaveAttribute('aria-checked', 'true')
     await user.click(ducatsSwitch)
-    expect(screen.queryByTestId('band-ducats')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('stat-ducats')).not.toBeInTheDocument()
     expect(screen.queryByAltText(/ducat/i)).not.toBeInTheDocument()
     expect(ducatsSwitch).toHaveAttribute('aria-checked', 'false')
   })
@@ -1118,7 +1226,7 @@ describe('MVP desktop interface', () => {
     const user = userEvent.setup()
     render(<App/>)
     await screen.findByRole('heading', { name: 'Your collection' })
-    await user.click(screen.getByRole('button', { name: 'Ducats' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort collection' }), 'Ducats')
 
     const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
     expect(names).toEqual([
@@ -1130,21 +1238,22 @@ describe('MVP desktop interface', () => {
     ])
   })
 
-  // A sort over numbers the screen is not showing would reorder the register invisibly, so the
-  // ducat sort belongs to the layer the switch governs. Off, the chip retires with the badges,
-  // and the pressed chip moves to platinum in plain sight rather than silently.
+  // A sort over numbers the screen is not showing would reorder the grid invisibly, so the ducat
+  // sort belongs to the layer the switch governs. Off, the option retires with the values, and the
+  // sort moves to platinum in plain sight rather than silently.
   it('retires the ducat sort with the values, handing the sort to platinum', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     const user = userEvent.setup()
     render(<App/>)
     await screen.findByRole('heading', { name: 'Your collection' })
-    await user.click(screen.getByRole('button', { name: 'Ducats' }))
-    expect(screen.getByRole('button', { name: 'Ducats' })).toHaveAttribute('aria-pressed', 'true')
+    const sort = screen.getByRole('combobox', { name: 'Sort collection' })
+    await user.selectOptions(sort, 'Ducats')
+    expect(sort).toHaveValue('ducats-desc')
 
     await user.click(screen.getByRole('switch', { name: 'Ducat values' }))
 
-    expect(screen.queryByRole('button', { name: 'Ducats' }), 'no sorting by an invisible reading').not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Platinum' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(sort).queryByRole('option', { name: 'Ducats' }), 'no sorting by an invisible reading').not.toBeInTheDocument()
+    expect(sort).toHaveValue('platinum-desc')
   })
 
   it('says nothing rather than zero for an item with no price', async () => {
@@ -1179,7 +1288,7 @@ describe('MVP desktop interface', () => {
   it('names how many items the refresh will price, and counts only ones it can price', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App/>)
-    expect(await screen.findByRole('button', { name: /Price these 7/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Price this page (7)' })).toBeInTheDocument()
   })
 
   // A relic no dump in the last month saw trade is unpriced, and an unpriced item is precisely
@@ -1189,7 +1298,7 @@ describe('MVP desktop interface', () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     const user = userEvent.setup()
     render(<App/>)
-    await user.click(await screen.findByRole('button', { name: /Price these/ }))
+    await user.click(await screen.findByRole('button', { name: /Price this page/ }))
 
     const requested = backend.refreshPrices.mock.calls[0][0]
     expect(requested).toContain('rhino')             // owned, no price yet
@@ -1213,7 +1322,7 @@ describe('MVP desktop interface', () => {
     })
     const user = userEvent.setup()
     render(<App/>)
-    await user.click(await screen.findByRole('button', { name: 'Platinum' }))
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Sort collection' }), 'Platinum')
 
     const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
     expect(names[0]).toBe('Ash Prime Blueprint')  // 45p × 1
@@ -1241,13 +1350,15 @@ describe('MVP desktop interface', () => {
   it('leads with the market rate and puts what is sellable under it', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App/>)
-    const worth = await screen.findByTestId('band-worth')
+    const worth = await screen.findByTestId('stat-worth')
     expect(within(worth).getByText('159'), 'the worth is a figure, in a row of plain counts').toBeInTheDocument()
     // Both figures carry the game's own icon. Without it the second one reads as another item count,
     // which is exactly what the three cells beside it hold.
     expect(within(worth).getAllByAltText(/platinum/i)).toHaveLength(2)
-    expect(worth.querySelector('.band-aside')?.textContent, 'the achievable total, the size of a footnote').toBe('79 sellable')
-    expect(within(worth).getByText(/only the copies the market buys in a month/i), 'the cap, on the figure it applies to').toBeInTheDocument()
+    expect(worth.querySelector('.stat-aside')?.textContent, 'the achievable total, the size of a footnote').toBe('79 sellable')
+    expect(within(worth).getByText(/only the copies the market buys in a month/i), 'the cap, on the figure it applies to').toHaveClass('sr-only')
+    // A tooltip, not visible text: spelled out, it doubled the height of the chip it was on.
+    expect(worth).toHaveAttribute('title', 'Sellable counts only the copies the market buys in a month.')
   })
 
   // A slider whose effect is invisible until you navigate away is a knob, not a control.
@@ -1263,9 +1374,9 @@ describe('MVP desktop interface', () => {
     expect(screen.getByText(/1 stacks counted · 60 platinum sellable/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Collection' }))
-    const worth = await screen.findByTestId('band-worth')
+    const worth = await screen.findByTestId('stat-worth')
     expect(within(worth).getByText('159'), 'the market rate never moves with the floor').toBeInTheDocument()
-    expect(worth.querySelector('.band-aside')?.textContent).toBe('60 sellable')
+    expect(worth.querySelector('.stat-aside')?.textContent).toBe('60 sellable')
     expect(within(worth).getByText(/at 20 platinum and over/)).toBeInTheDocument()
   })
 
@@ -1289,7 +1400,7 @@ describe('MVP desktop interface', () => {
     render(<App/>)
     await user.click(await screen.findByRole('button', { name: 'Tradeable' }))
     await user.click(await screen.findByRole('button', { name: 'Go to page 2' }))
-    await user.click(screen.getByRole('button', { name: /Price these/ }))
+    await user.click(screen.getByRole('button', { name: /Price this page/ }))
 
     // Page 2 of 53 tradeable items (50 filler + 3 named) holds only the last 5, alphabetically.
     expect(backend.refreshPrices).toHaveBeenCalledWith(['filler-48', 'filler-49', 'lex-prime-receiver', 'lith-a1', 'zenith-prime-receiver'])
@@ -1300,8 +1411,10 @@ describe('MVP desktop interface', () => {
     backend.marketStatus.mockResolvedValue({ ...view, market_account: { ...view.market_account, link: 'linked', flagged: 2 } })
     render(<App/>)
     await screen.findByRole('heading', { name: 'Your collection' })
-    expect(await screen.findByText('2', { selector: '.punch-count' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Orders' }))
+    // The badge is drawn for the eye; the button's name carries the count for everyone else.
+    expect(await screen.findByText('2', { selector: '.nav-count' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Rewards/ })).toHaveAccessibleName('Rewards, 4 choices')
+    await userEvent.click(screen.getByRole('button', { name: 'Orders, 2 need attention' }))
     expect(await screen.findByRole('heading', { name: 'Market orders' })).toBeInTheDocument()
   })
 
@@ -1429,13 +1542,49 @@ describe('MVP desktop interface', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not publish that listing/i)
   })
 
+  // The backend rejects with a sentence meant for the player; it follows the generic line, once.
+  it('adds the backend’s own reason to a refused market write', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.marketStatus.mockResolvedValue({
+      ...view,
+      market_account: { ...view.market_account, link: 'linked', listable: ['lex-prime-receiver'] },
+    })
+    backend.createOrder.mockRejectedValue('warframe.market is limiting requests; try again shortly')
+    render(<App/>)
+
+    const card = await screen.findByRole('article', { name: 'Lex Prime Receiver' })
+    await userEvent.click(await within(card).findByRole('button', { name: 'Sell' }))
+    await userEvent.click(within(card).getByRole('button', { name: /list for sale/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not publish that listing. warframe.market is limiting requests; try again shortly.')
+  })
+
+  it('does not repeat a backend reason the generic line already says', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.marketStatus.mockResolvedValue({ ...view, market_account: { ...view.market_account, link: 'linked' } })
+    backend.refreshOrders.mockRejectedValue('warframe.market could not be reached')
+    render(<App/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Orders' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^warframe\.market could not be reached\.$/)
+  })
+
+  it('adds the backend’s own reason to a failed inventory refresh', async () => {
+    backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
+    backend.refreshInventory.mockRejectedValue('application state is unavailable')
+    render(<App/>)
+    await userEvent.click(await screen.findByRole('button', { name: /Refresh inventory/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Inventory refresh failed. Check diagnostics for acquisition health. Application state is unavailable.')
+  })
+
   /**
    * The window ships with the compositor's own decorations off, so on KDE there is no titlebar to
-   * take hold of and nothing to press for minimize, maximize or close. The masthead is the
-   * titlebar: it carries the drag region and the three controls, so day-to-day window management
+   * take hold of and nothing to press for minimize, maximize or close. The app draws its own title
+   * bar: it carries the drag region and the three controls, so day-to-day window management
    * needs no keybinding knowledge at all.
    */
-  describe('masthead window management', () => {
+  describe('title bar window management', () => {
     beforeEach(() => {
       backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     })
@@ -1447,13 +1596,13 @@ describe('MVP desktop interface', () => {
      */
     it('offers a way to move the window without compositor keybindings', async () => {
       render(<App/>)
-      const masthead = await screen.findByRole('banner')
-      expect(masthead.querySelector('.masthead-top')).toHaveAttribute('data-tauri-drag-region', 'deep')
-      expect(masthead.querySelector('.office')).not.toHaveAttribute('data-tauri-drag-region')
+      const titlebar = await screen.findByRole('banner')
+      expect(titlebar).toHaveAttribute('data-tauri-drag-region', 'deep')
+      expect(titlebar.querySelector('.wordmark')).not.toHaveAttribute('data-tauri-drag-region')
       expect(document.querySelector('.titlebar-spring')).toBeNull()
     })
 
-    it('minimizes the window from the masthead', async () => {
+    it('minimizes the window from the title bar', async () => {
       render(<App/>)
       await userEvent.click(await screen.findByRole('button', { name: 'Minimize window' }))
       expect(windowApi.minimizeWindow).toHaveBeenCalledOnce()
@@ -1480,14 +1629,14 @@ describe('MVP desktop interface', () => {
       expect(unlisten).toHaveBeenCalledOnce()
     })
 
-    it('closes the window from the masthead', async () => {
+    it('closes the window from the title bar', async () => {
       render(<App/>)
       await userEvent.click(await screen.findByRole('button', { name: 'Close window' }))
       expect(windowApi.closeWindow).toHaveBeenCalledOnce()
     })
   })
 
-  it('sends the masthead update mark to the Settings updates section', async () => {
+  it('sends the sidebar update mark to the Settings updates section', async () => {
     backend.getVersionInfo.mockResolvedValue({ version: '0.11.0', channel: 'stable', kind: 'appimage', writable: true, updatable: true, manager: null, manager_command: null })
     backend.updateCheck.mockResolvedValue({ kind: 'appimage', updatable: true, update: { version: '0.12.0', current_version: '0.11.0', notes: null, date: '2026-09-22T00:00:00Z', feed: 'stable' } })
     const originalScroll = window.HTMLElement.prototype.scrollIntoView

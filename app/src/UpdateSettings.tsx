@@ -6,9 +6,9 @@ import { dismissedCount, readUpdateAutoCheck, readUpdatePrerelease, writeUpdateA
 import { checkForUpdatesNow, dismissOffered, downloadUpdate, isMeteredConnection, restartToUpdate, useUpdateNotice, useUpdateStore } from './updateStore'
 
 
-/** The masthead's dedicated update mark: offered and downloaded states share one
- *  diamond and never borrow assay-state grammar. The sr-only status line stays
- *  mounted so async arrival is always announced. */
+/** The sidebar's update mark: offered and downloaded states share one dot and
+ *  never borrow the reader-state icons. The sr-only status line stays mounted so
+ *  async arrival is always announced. */
 export function UpdateMark({ onOpen }: { onOpen: () => void }) {
   const notice = useUpdateNotice()
   return <>
@@ -75,8 +75,8 @@ export function UpdatesSetting({ observesGame }: { observesGame: boolean }) {
 
   return <div className="setting" id="updates-setting">
     <div>
-      <h3 id="updates-title" tabIndex={-1}>Updates</h3>
-      <p className="prose">TennoScope checks for new versions daily. Downloads start only when you press Download. Nothing installs itself.</p>
+      <h2 id="updates-title" className="section-title" tabIndex={-1}>Updates</h2>
+      <p className="prose">Nothing downloads until you press Download, and nothing installs itself.</p>
       <label className="check-row">
         <input
           type="checkbox"
@@ -141,7 +141,7 @@ export function UpdatesSetting({ observesGame }: { observesGame: boolean }) {
     </div>}
     {store.phase === 'offered' && actionable && !updatable && <div className="update-actions">
       {info?.kind === 'appimage' && !info.writable
-        ? <p className="prose">{actionable.version} is available, but TennoScope cannot replace its own file where it lives. Move the AppImage somewhere writable, or press Open release page to get it by hand.</p>
+        ? <p className="prose">{actionable.version} is available, but TennoScope cannot replace its AppImage where it lives. Move it somewhere writable, or get it from the release page.</p>
         : <p className="prose">{actionable.version} is available{info?.manager ? ` through ${info.manager}` : ' from your system package manager'}. Press Open release page to get it.</p>}
       {info?.manager_command && <>
         <p className="band-note" id="update-command-offered">Copy, then run in a terminal:</p>
@@ -177,12 +177,12 @@ export function UpdatesSetting({ observesGame }: { observesGame: boolean }) {
       <button type="button" className="stamp" onClick={() => void openUrl(releaseTagUrl(actionable.version))}>Open release page</button>
     </div>}
     {store.phase === 'ready' && actionable && !deferred && <div className="update-actions">
-      <p className="prose">{actionable.version} is downloaded. Restart TennoScope to finish. Your settings stay as they are.{observesGame && ' Restart hides the reward overlay until relaunch.'}</p>
+      <p className="prose">{actionable.version} is downloaded. Restart TennoScope to finish; settings are kept{observesGame && ', and the reward overlay is hidden until it relaunches'}.</p>
       <button type="button" className="stamp" onClick={() => act(() => void restartToUpdate())}>Restart now</button>
       <button type="button" className="stamp" onClick={() => act(() => setDeferred(true))}>Later</button>
     </div>}
     {store.phase === 'ready' && actionable && deferred && <div className="update-actions">
-      <p className="prose">{actionable.version} is downloaded and stays downloaded until you restart. Restart TennoScope to finish. Your settings stay as they are.{observesGame && ' Restart hides the reward overlay until relaunch.'}</p>
+      <p className="prose">{actionable.version} is downloaded and waits for a restart. Restart TennoScope to finish; settings are kept{observesGame && ', and the reward overlay is hidden until it relaunches'}.</p>
       <button type="button" className="stamp" onClick={() => act(() => void restartToUpdate())}>Restart now</button>
     </div>}
   </div>

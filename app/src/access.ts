@@ -5,6 +5,8 @@ export interface AccessModeDefinition {
   name: string
   boundary: string
   added: readonly string[]
+  /** What leaves the machine and what it may cost, said where the level is chosen. */
+  caution?: string
 }
 
 export const ALWAYS_OFF = [
@@ -20,19 +22,20 @@ export const ACCESS_MODES: readonly AccessModeDefinition[] = [
     id: 'companion',
     name: 'Companion',
     boundary: 'No Warframe reads, tools stay available',
-    added: ['Nothing read from Warframe, saved data, prices, and trading stay available'],
+    added: ['Reads nothing from Warframe. Saved data, prices and trading stay available.'],
   },
   {
     id: 'overlay',
     name: 'Overlay',
-    boundary: 'Adds EE.log + visible reward pixels',
-    added: ['Warframe process presence', 'EE.log', 'Visible-pixel OCR', 'Click-through overlay'],
+    boundary: "Adds the game's log and the reward screen",
+    added: ['Warframe process presence', "The game's log (EE.log)", 'Text on the reward screen', 'Click-through overlay'],
   },
   {
     id: 'full',
     name: 'Full',
     boundary: 'Adds read-only memory + inventory',
     added: ['Read-only process memory', 'Inventory acquisition'],
+    caution: 'Sends your account ID and a nonce to mobile.warframe.com, and nowhere else. Process inspection may carry account-policy or anti-cheat risk, even though no game memory is modified.',
   },
 ] as const
 

@@ -1,1367 +1,726 @@
-/* TENNOSCOPE: THE ASSAY REGISTER */
-/* THESIS: This is an assay office, not a dashboard. The product appraises */
-/* things, so the interface is the apparatus of appraisal: a touchstone slab, */
-/* marks struck into it, a ruled register of certified readings. It refuses the */
-/* arrangement this category always ships, the dark neon dashboard of glass */
-/* cards, glowing status dots and an icon sidebar, which is exactly what stood */
-/* here before and is the anti-reference. */
-/* OWN-WORLD: Basalt touchstone ground under engraved hairlines. Two metals */
-/* carry every value: platinum (#e8ebef) for platinum, gold (#d8b04a) for the */
-/* ducat. Marks are condensed grotesque caps at display scale; every label is */
-/* tracked monospace. Badges are house-shaped hallmark cartouches, never pills. */
-/* Radius 0. No glow, no float, no blur. */
-/* STORY: The player sees that this thing weighs and certifies. Two metals, */
-/* appraised at equal weight, because the best card by plat is often not the */
-/* best by ducats. Numbers it does not know are struck as a dash, never guessed. */
-/* FIRST VIEWPORT: Office mark struck top-left over the assay state and the */
-/* refresh stamp; a row of hallmark cartouches beneath it is the navigation. */
-/* Below, a field of clear touchstone, then the page mark at ~5rem with its */
-/* tracked register line, then the certificate band. */
-/* FORM: Assay office / hallmark certificate. Candidate 4 of 7 on the grounded */
-/* list; assigned by concept-seed key f8e3e6c3, scope direction, mode operate. */
-/* Primitives */
+/* TennoScope main window.
+   The item grid is the screen: a dark, dense, quiet companion that shows values and states
+   before words. Graphite grounds, 1px neutral borders, 6px radius, one steel-blue accent for
+   selection, focus and the primary action; platinum and gold only on currency values.
+   Tokens live in index.css. The reward slips, shared by the Rewards page and the overlay, and the
+   kiosk chips close this file. */
 
-.mark {
-  margin: 0;
-  font-family: var(--face-mark);
-  font-weight: 700;
-  line-height: .84;
-  letter-spacing: -.03em;
-  text-transform: uppercase;
-  color: var(--platinum);
-  /* The world's central claim, applied to the lettering and not only to the chrome:
-     a dark lip above the glyph and a catch-light below reads as struck into the slab. */
-  text-shadow: 0 -1px 0 rgb(0 0 0 / 90%), 0 1px 0 rgb(232 235 239 / 8%);
+/* shell */
+
+.shell {
+  display: grid; height: 100vh; min-width: 0;
+  grid-template-columns: 212px minmax(0, 1fr); grid-template-rows: 36px minmax(0, 1fr);
+  line-height: 1.45;
 }
 
-.register-line {
-  margin: 0;
-  font-family: var(--face-register);
-  font-size: .64rem;
-  font-weight: 500;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--platinum-deep);
+/* The window has no compositor decorations, so this bar is its titlebar. */
+.titlebar {
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
+  padding-left: var(--step); border-bottom: 1px solid var(--line); background: var(--bg-0);
+}
+.wordmark { font-size: .9375rem; font-weight: 700; letter-spacing: -.01em; color: var(--text); }
+
+.window-controls { display: flex; align-self: stretch; }
+.window-control {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; padding: 0; border: 0; border-radius: 0;
+  background: none; color: var(--text-dim);
+  transition: color .12s ease, background-color .12s ease;
+}
+.window-control svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.window-control:hover { background: var(--bg-2); color: var(--text); }
+.window-control.close:hover { background: #c42b1c; color: #fff; }
+.window-control:focus-visible { outline-offset: -2px; }
+
+.sidebar {
+  display: flex; flex-direction: column; gap: var(--step); min-height: 0; overflow-y: auto;
+  padding: var(--tight); border-right: 1px solid var(--line); background: var(--bg-0);
+}
+.nav { display: grid; gap: 2px; }
+.nav-item {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  min-height: 36px; padding: 0 10px; border: 0; border-radius: var(--radius);
+  background: none; color: var(--text-dim); font-size: .875rem; text-align: left; cursor: pointer;
+  transition: color .12s ease, background-color .12s ease;
+}
+.nav-item:hover { background: var(--bg-2); color: var(--text); }
+.nav-item[aria-current="page"] { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
+.nav-item[aria-current="page"] .icon { color: var(--accent); }
+.nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-count {
+  min-width: 20px; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--bg-2); color: var(--text);
+  font-size: .75rem; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums;
 }
 
-.prose { max-width: 68ch; margin: 0; color: var(--platinum-dim); font-size: .88rem; line-height: 1.65; }
+.icon { width: 16px; height: 16px; flex: none; }
+.nav-item .icon { width: 18px; height: 18px; }
 
-/* The one authored moment: a punch coming down. Hard, short, exponential.
-   It starts visible: a strike lands, it does not fade in, and content must never
-   depend on an animation running to be readable. */
-@keyframes strike {
-  from { opacity: .35; transform: translateY(-7px) scaleY(.94); }
-  to   { opacity: 1; transform: none; }
+/* Reader state, snapshot age and the inventory refresh: what the app is doing, under where to go. */
+.sidebar-foot { display: grid; gap: var(--tight); margin-top: auto; padding-top: var(--step); border-top: 1px solid var(--line); }
+.reader { display: flex; align-items: flex-start; gap: var(--tight); min-width: 0; padding-inline: 2px; }
+.reader .state-icon { margin-top: 2px; }
+.reader-text { display: grid; min-width: 0; }
+.reader-text strong { font-size: .8125rem; font-weight: 600; }
+.reader.degraded strong { color: var(--warn); }
+.reader.failed strong { color: var(--danger); }
+.reader-text small { overflow: hidden; color: var(--text-faint); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.snapshot-age { padding-inline: 2px; color: var(--text-dim); font-size: .75rem; font-variant-numeric: tabular-nums; cursor: help; }
+
+.state-icon { width: 16px; height: 16px; flex: none; }
+.state-icon.ready { color: var(--ok); }
+.state-icon.idle { color: var(--text-faint); }
+.state-icon.degraded { color: var(--warn); }
+.state-icon.failed { color: var(--danger); }
+
+.content { min-width: 0; min-height: 0; overflow-y: auto; padding: 20px 24px 48px; }
+
+/* primitives */
+
+/* The main window's currency icons, at the 18px floor the rendered marks stay legible at. */
+.stat .metal-mark, .display-switch .metal-mark, .value .metal-mark, .dial-figure .metal-mark, .line-metal { flex: none; height: 18px; width: auto; user-select: none; }
+
+.page { display: grid; gap: 12px; width: 100%; max-width: 120rem; margin: 0 auto; }
+.page-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight) var(--step); }
+.page-title { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.3; letter-spacing: -.01em; text-wrap: balance; }
+.page-note { flex-basis: 100%; margin: 0; color: var(--text-dim); font-size: .875rem; }
+.page-section { display: grid; gap: 12px; margin-top: 20px; }
+.section-title { margin: 0; font-size: 1.0625rem; font-weight: 600; }
+
+.prose { max-width: 70ch; margin: 0; color: var(--text-dim); font-size: .875rem; line-height: 1.55; }
+.band-note { margin: 0; color: var(--text-faint); font-size: .8125rem; }
+
+.stats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stat {
+  display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 5px;
+  padding: 3px 10px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-2); font-size: .8125rem;
 }
+.stat-figure { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+.stat-label, .stat-aside { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.stat-aside::before { content: "·"; margin-right: 5px; }
+.stat[title] { cursor: help; }
+.stat .metal-mark { margin-left: 3px; vertical-align: -4px; }
+.stat.worth .stat-figure, .stat.orders .stat-figure { color: var(--platinum); }
+.stat.ducats .stat-figure { color: var(--gold); }
+.stat.flagged .stat-figure { color: var(--danger); }
+
+/* controls */
+
+.stamp {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none;
+  min-height: 34px; padding: 0 12px; border: 1px solid var(--line-control); border-radius: var(--radius);
+  background: var(--bg-2); color: var(--text); font-size: .875rem; font-weight: 500; cursor: pointer;
+  transition: background-color .12s ease, border-color .12s ease;
+}
+.stamp:hover:not(:disabled) { border-color: var(--text-faint); background: var(--line); }
+.stamp:disabled { opacity: .5; cursor: not-allowed; }
+.stamp.armed, .stamp.armed:hover { border-color: var(--danger); color: var(--danger); }
+.stamp.primary, .access-detail-body .stamp { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.stamp.primary:hover:not(:disabled), .access-detail-body .stamp:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
+
+.link-button {
+  display: inline-flex; align-items: center; gap: 2px; padding: 0; border: 0; background: none;
+  color: var(--accent); font: inherit; font-size: .8125rem;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; cursor: pointer;
+}
+.link-button:hover:not(:disabled) { color: var(--accent-hover); }
+.link-button:disabled { opacity: .5; cursor: not-allowed; }
+/* Every disclosure draws the same chevron in place of the native triangle. */
+summary {
+  display: flex; align-items: center; gap: var(--tight); min-height: 24px; padding: 4px 0;
+  color: var(--text-dim); font-size: .8125rem; cursor: pointer; list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  width: 6px; height: 6px; flex: none; content: '';
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform .15s ease;
+}
+details[open] > summary::before { transform: rotate(45deg); }
+summary:hover { color: var(--text); }
+.head-link { margin-left: 6px; text-decoration: none; }
+.head-link:hover { text-decoration: underline; }
+.head-actions { display: flex; flex-wrap: wrap; gap: var(--tight); margin-left: auto; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight); }
+.status-line .price-page { min-height: 28px; padding: 0 10px; font-size: .8125rem; }
+
+.search { position: relative; display: flex; align-items: center; flex: 1 1 14rem; min-width: 12rem; max-width: 26rem; }
+.search .icon { position: absolute; left: 10px; color: var(--text-faint); pointer-events: none; }
+
+.search input, .select select, .dial-slot input:not([type="range"]), .command-chip input {
+  width: 100%; height: 34px; padding: 0 10px;
+  border: 1px solid var(--line-control); border-radius: var(--radius);
+  background: var(--bg-2); color: var(--text); font-size: .875rem;
+}
+.search input { padding-left: 32px; }
+.search input:hover, .select select:hover, .dial-slot input:not([type="range"]):hover { border-color: var(--text-faint); }
+::placeholder { color: var(--text-faint); opacity: 1; }
+
+.select { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: .875rem; }
+.select select {
+  min-width: 11rem; padding-right: 30px; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a9b0ba' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center; background-size: 16px;
+}
+.select option { background: var(--bg-2); color: var(--text); }
+
+.segmented { display: inline-flex; padding: 2px; border: 1px solid var(--line-control); border-radius: var(--radius); background: var(--bg-2); }
+.segmented button {
+  height: 28px; padding: 0 10px; border: 0; border-radius: var(--radius-sm);
+  background: none; color: var(--text-dim); font-size: .8125rem; cursor: pointer;
+}
+.segmented button:hover { color: var(--text); }
+.segmented button[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* A two-state switch: the thumb's position and the track's fill both carry the state. */
+.display-switch {
+  display: inline-flex; align-items: center; gap: var(--tight); height: 34px; padding: 0 10px;
+  border: 1px solid var(--line-control); border-radius: var(--radius);
+  background: var(--bg-2); color: var(--text-dim); font-size: .875rem; cursor: pointer;
+}
+.display-switch:hover:not(:disabled), .display-switch[aria-checked="true"] { color: var(--text); }
+.display-switch:disabled { opacity: .5; cursor: not-allowed; }
+.display-face { display: inline-flex; align-items: center; gap: 6px; }
+.display-track {
+  position: relative; flex: none; width: 30px; height: 18px;
+  border: 1px solid var(--line-control); border-radius: 9px; background: var(--bg-1);
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.display-thumb {
+  position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--text-dim); transition: transform .15s ease, background-color .15s ease;
+}
+.display-switch[aria-checked="true"] .display-track { border-color: var(--accent); background: var(--accent); }
+.display-switch[aria-checked="true"] .display-thumb { transform: translateX(12px); background: var(--accent-ink); }
+
+/* Chips on the left, the price state and its action on the right; the right group wraps under the
+   chips as one piece when the row runs out of width. */
+.filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight) var(--step); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px;
+  border: 1px solid var(--line-control); border-radius: var(--radius);
+  background: transparent; color: var(--text-dim); font-size: .8125rem; cursor: pointer;
+  transition: color .12s ease, background-color .12s ease, border-color .12s ease;
+}
+.chip:hover { color: var(--text); background: var(--bg-2); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+.chip-count { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.chip[aria-pressed="true"] .chip-count { color: var(--text-dim); }
+
+.status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-left: auto; color: var(--text-faint); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.result-count { margin: 0; color: var(--text-faint); font-size: .8125rem; font-variant-numeric: tabular-nums; text-align: center; }
+.pricing { display: inline-flex; align-items: center; gap: var(--tight); color: var(--text-dim); }
+
+progress {
+  width: 10rem; height: 6px; appearance: none; overflow: hidden;
+  border: 0; border-radius: 3px; background: var(--line); color: var(--accent); accent-color: var(--accent);
+}
+progress::-webkit-progress-bar { border-radius: 3px; background: var(--line); }
+progress::-webkit-progress-value { border-radius: 3px; background: var(--accent); }
+progress::-moz-progress-bar { border-radius: 3px; background: var(--accent); }
+
+/* cards */
+
+.card-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(14.5rem, 100%), 1fr)); gap: var(--tight);
+  margin: 0; padding: 0; list-style: none;
+}
+.card-grid > li { display: grid; min-width: 0; }
+.card {
+  display: grid; grid-template-columns: 60px minmax(0, 1fr); grid-template-rows: auto 1fr;
+  gap: 6px 10px; min-width: 0; padding: var(--tight);
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2);
+  transition: border-color .12s ease;
+}
+.card:hover { border-color: var(--line-strong); }
+.card-art {
+  grid-row: 1 / 3; display: grid; place-items: center; width: 60px; height: 60px; overflow: hidden;
+  border-radius: var(--radius-sm); background: var(--bg-1);
+  color: var(--text-faint); font-size: .75rem; font-weight: 600;
+}
+.card-art img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+.card-body { display: grid; align-content: start; gap: 1px; min-width: 0; }
+/* Two lines at most: a prime part's name only differs from its siblings at the end. */
+.card-name {
+  display: -webkit-box; margin: 0; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  font-size: .9rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
+}
+.card-meta { color: var(--text-faint); font-size: .75rem; }
+/* A card the account does not hold is drawn dimmed; its badge still says so in words. */
+.card[data-held="false"] .card-art img { filter: grayscale(1); opacity: .55; }
+.card[data-held="false"] .card-name { color: var(--text-dim); }
+
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.tag {
+  padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  color: var(--text-dim); font-size: .75rem; line-height: 18px; white-space: nowrap;
+}
+.tag.absent { border-style: dashed; color: var(--text-faint); }
+.tag.mastered { border-color: color-mix(in srgb, var(--ok) 45%, transparent); color: var(--ok); }
+.tag.rank.maxed { border-color: var(--line-control); color: var(--text); }
+.tag.listed { border-color: var(--line-control); color: var(--text); }
+
+.card-values { display: flex; flex-wrap: wrap; align-items: center; align-self: end; gap: 2px 12px; min-width: 0; }
+.value { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.value b { font-size: 1rem; font-weight: 600; }
+.value.plat b { color: var(--platinum); }
+.value.ducat b { color: var(--gold); }
+.value em { color: var(--text-faint); font-size: .75rem; font-style: normal; }
+.value em::before { content: "· "; }
+.value-missing, .checked-live { color: var(--text-faint); font-size: .75rem; }
+.card > .sell-form { grid-column: 1 / -1; }
+.sell-open { min-height: 24px; margin-left: auto; padding: 0 8px; font-size: .8125rem; }
+
+.empty-state { display: grid; justify-items: start; gap: 6px; padding: 40px 0; }
+.empty-state h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+.empty-state p { max-width: 60ch; margin: 0; color: var(--text-dim); font-size: .875rem; }
+.empty-state .stamp { margin-top: 6px; }
+
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; padding-top: var(--tight); }
+.pagination button {
+  display: inline-grid; place-items: center; min-width: 32px; height: 32px; padding: 0 8px;
+  border: 1px solid transparent; border-radius: var(--radius); background: none;
+  color: var(--text-dim); font-size: .875rem; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.pagination button:hover:not(:disabled) { border-color: var(--line-control); color: var(--text); }
+.pagination button[aria-current="page"] { border-color: var(--accent); background: var(--accent-soft); color: var(--text); font-weight: 600; }
+.pagination button:disabled { opacity: .5; cursor: not-allowed; }
+.page-slot { display: inline-flex; align-items: center; gap: 4px; }
+.page-slot i { color: var(--text-faint); font-style: normal; }
+
+/* states */
+
+.error-banner {
+  margin: 0 0 12px; padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); font-size: .875rem;
+}
+.holding { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: var(--step); color: var(--text-dim); font-size: .875rem; }
+.holding p { margin: 0; }
+.streak { position: relative; width: min(16rem, 60%); height: 2px; overflow: hidden; border-radius: 1px; background: var(--line); }
+.streak::after { position: absolute; inset: 0; width: 30%; content: ''; border-radius: 1px; background: var(--accent); animation: streak 1.4s cubic-bezier(.6, 0, .4, 1) infinite; }
 @keyframes streak {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(400%); }
 }
 
-/* masthead */
+/* rewards */
 
-.assay { min-width: 0; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-
-.masthead {
-  position: sticky; z-index: 5; top: 0;
-  border-bottom: 1px solid var(--rule);
-  background: var(--touchstone);
+/* The overlay's slips at one design pixel per CSS pixel. */
+.reward-grid {
+  --u: 1px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(13.5rem, 100%), 1fr)); gap: var(--tight);
 }
 
-/* Row one is the titlebar: two children only, so `space-between` puts the office mark on one edge
-   and the window controls on the other with the whole span between them left as drag surface. It
-   used to hold the state cluster as a third child, which `space-between` stranded in mid-air
-   because it pins the first and last child and splits the slack around whatever is between them. */
-.masthead-top {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--course);
-  padding: var(--tight) clamp(var(--step), 3vw, var(--field));
+/* diagnostics */
+
+.health-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr)); gap: var(--tight); }
+.health-row, .stages li {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2);
 }
+/* Top-aligned, so the names of rows sharing a grid line sit level whatever their detail holds. */
+.health-row { align-items: flex-start; }
+.health-row > .state-icon, .health-row > .verdict { margin-top: 2px; }
+.health-row > div, .stages li > div { flex: 1; min-width: 0; }
+.health-row h3, .stages strong { margin: 0; font-size: .875rem; font-weight: 600; }
+.health-row p, .stages p { margin: 2px 0 0; color: var(--text-dim); font-size: .8125rem; }
+.health-row p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.health-row small { display: block; margin-top: 2px; color: var(--text-faint); font-size: .75rem; }
+.verdict { flex: none; color: var(--text-dim); font-size: .75rem; font-weight: 600; }
+.degraded > .verdict { color: var(--warn); }
+.failed > .verdict { color: var(--danger); }
+.stages { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.stage-index { min-width: 1.25rem; color: var(--text-faint); font-size: .8125rem; font-variant-numeric: tabular-nums; text-align: right; }
 
-.office { display: flex; align-items: baseline; gap: .6rem; min-width: 0; }
-.office-name { font-family: var(--face-mark); font-size: 1.2rem; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; color: var(--platinum); }
-.office-role { font-family: var(--face-register); font-size: .56rem; letter-spacing: .18em; text-transform: uppercase; color: var(--platinum-deep); white-space: nowrap; }
-
-/* Row two is destination choice alone. Row three holds mutable runtime state and actions. Keeping
-   those concerns on separate lines guarantees that all six destinations remain readable at the
-   shipped 1180px width rather than hiding behind a scrollbar with no visible affordance. */
-.masthead-work {
-  min-width: 0;
-  padding: 0 clamp(var(--step), 3vw, var(--field)) 6px;
+.report {
+  display: grid; gap: 10px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2);
 }
-
-.masthead-state {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--step); min-width: 0;
-  padding: var(--tight) clamp(var(--step), 3vw, var(--field)); border-top: 1px solid var(--rule);
-}
-
-/* Assay state. Form and colour together, never colour alone. */
-.assay-state { display: flex; align-items: center; gap: .6rem; min-width: 0; }
-.assay-state .state-mark {
-  width: .7rem; height: .8rem; flex: none;
-  clip-path: var(--cartouche);
-  background: var(--gold);
-}
-.assay-state.ready .state-mark { background: var(--platinum); }
-/* Idle is an unstruck blank: the plain rectangle a punch has not landed on yet.
-   A distinct silhouette, not just a paler fill, and quiet because nothing is wrong. */
-.assay-state.idle .state-mark { clip-path: none; background: var(--platinum-deep); }
-.assay-state.degraded .state-mark { clip-path: polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%, 0 52%, 62% 52%, 62% 34%, 0 34%); }
-.assay-state.failed .state-mark { background: var(--oxblood); clip-path: polygon(20% 0, 50% 34%, 80% 0, 100% 24%, 68% 56%, 100% 88%, 80% 100%, 50% 72%, 20% 100%, 0 88%, 32% 56%, 0 24%); }
-.assay-state-text { display: grid; min-width: 0; }
-.assay-state-text strong { font-family: var(--face-register); font-size: .62rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--platinum); }
-.assay-state.ready .assay-state-text strong { color: var(--platinum); }
-.assay-state.idle .assay-state-text strong { color: var(--platinum-dim); }
-.assay-state.degraded .assay-state-text strong { color: var(--gold); }
-.assay-state.failed .assay-state-text strong { color: var(--oxblood); }
-/* The reader verdict yields before the snapshot and refresh controls; Diagnostics carries the full
-   message, while this operational row remains stable under long backend detail. */
-.assay-state-text small { max-width: min(52vw, 36rem); overflow: hidden; color: var(--platinum-deep); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
-
-.date-letter {
-  padding-left: var(--step);
-  border-left: 1px solid var(--rule);
-  font-family: var(--face-register); font-size: .6rem; letter-spacing: .1em;
-  color: var(--platinum-dim); white-space: nowrap; cursor: help;
-}
-
-/* The masthead-top row is the window's titlebar: its `deep` drag region answers every press on
-   the bar except those landing on controls, which Tauri's drag script leaves clickable. */
-
-.window-controls {
-  display: flex; align-items: center; gap: .3rem; flex: none;
-  padding-left: var(--step); border-left: 1px solid var(--rule);
-}
-
-/* The three controls are drawn quiet (a hairline on hover, not a raised plate) because
-   they sit beside the refresh stamp and must not read as part of the page's own business.
-   Close takes the caution colour, which is how this register already says "final". */
-.window-control {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 2rem; height: 2rem; padding: 0; border: 1px solid transparent; border-radius: 0;
-  background: none; color: var(--platinum-dim);
-  transition: color .12s ease, border-color .12s ease, background .12s ease;
-}
-.window-control svg { width: .65rem; height: .65rem; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: square; }
-.window-control:hover { color: var(--platinum); border-color: var(--rule-control); }
-.window-control.close:hover { background: var(--oxblood); border-color: var(--oxblood); color: var(--touchstone); }
-
-/* The office stamp coming down. */
-.stamp {
-  display: inline-flex; align-items: center; gap: .5rem; flex: none;
-  padding: .7rem 1rem; border: 1px solid var(--rule-control); border-radius: 0;
-  background: var(--raised); box-shadow: var(--strike);
-  font-family: var(--face-register); font-size: .6rem; font-weight: 700; letter-spacing: .13em;
-  text-transform: uppercase; color: var(--platinum); cursor: pointer;
-  transition: background .12s ease, border-color .12s ease;
-}
-.stamp:hover:not(:disabled) { background: var(--platinum); border-color: var(--platinum); color: var(--touchstone); }
-.stamp:active:not(:disabled) { box-shadow: var(--strike-deep); }
-.stamp:disabled { opacity: .45; cursor: wait; }
-
-/* Navigation as a full-width row of hallmark cartouches. Six equal destinations fit without
-   horizontal scrolling at the regular desktop width. */
-.hallmark-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--hair); min-width: 0; }
-
-.punch {
-  flex: none; padding: 1px 0 0; border: 0; border-radius: 0; background: var(--rule);
-  clip-path: var(--cartouche); cursor: pointer;
-  transition: background .12s ease;
-}
-.punch:hover { background: var(--rule-bright); }
-.punch.struck { background: var(--platinum-dim); }
-/* clip-path clips the outline too, so focus is shown by inverting the mark. */
-.punch:focus-visible { outline: none; background: var(--platinum); }
-
-.punch-face {
-  display: flex; align-items: center; gap: .55rem;
-  padding: .78rem 1.15rem 1.15rem;
-  background: var(--touchstone);
-  clip-path: var(--cartouche);
-  font-family: var(--face-register); font-size: .62rem; font-weight: 600; letter-spacing: .13em;
-  text-transform: uppercase; color: var(--platinum-deep); white-space: nowrap;
-  transition: color .12s ease, background .12s ease;
-}
-.punch:hover .punch-face { color: var(--platinum-dim); }
-.punch.struck .punch-face { background-image: linear-gradient(rgb(0 0 0 / 55%) 0 1px, transparent 1px); background-color: var(--raised); color: var(--platinum); }
-.punch:focus-visible .punch-face { background: var(--platinum); color: var(--touchstone); }
-
-.punch-glyph { width: .95rem; height: .95rem; flex: none; }
-.punch-count {
-  margin-left: .15rem; padding: .1rem .34rem;
-  background: var(--gold); color: var(--touchstone);
-  font-size: .58rem; font-style: normal; font-weight: 700; letter-spacing: .04em;
-}
-
-/* sheet */
-
-.sheet { width: min(96rem, 100%); margin: 0 auto; padding: clamp(var(--course), 5vh, var(--bed)) clamp(var(--step), 3vw, var(--field)) var(--bed); }
-.page { display: grid; gap: clamp(var(--course), 4vh, var(--field)); }
-
-/* Certificate head: the mark on the left, its note set in a narrow right column
-   at the baseline. Costs no vertical space the register needs. */
-.mark-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 38ch); align-items: end; gap: var(--course); }
-/* Scales on viewport HEIGHT as well as width, so the mark stays the largest thing
-   on the page in the 760px-tall window the app actually ships in. Continuous, so there is
-   no cliff at a breakpoint. */
-.mark-head h1 { font-size: clamp(2.6rem, 4.6vh + 2.8vw, 5.5rem); text-wrap: balance; animation: strike .28s cubic-bezier(.16, 1, .3, 1) both; }
-.mark-head .prose { padding-bottom: .3rem; text-wrap: pretty; }
-
-/* The certificate band. One continuous ruled statement, not three stat tiles:
-   no boxes, no per-cell accent, hairline verticals only. */
-.assay-band {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-block: 1px solid var(--rule);
-}
-/* The ducat cell is a fifth struck figure, not a swap for one of the four, so the band widens
-   rather than reflows. Five columns have less air each, so the figures narrow their clamp
-   together. Singling one out would make the newcomer read as a lesser reading. */
-.assay-band.with-ducats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.assay-band.with-ducats .band-figure { font-size: clamp(2.1rem, 4vw, 3.4rem); }
-.band-cell { padding: var(--course) var(--step) var(--course) 0; }
-.band-cell + .band-cell { padding-left: var(--course); border-left: 1px solid var(--rule); }
-.band-figure {
-  display: block; font-family: var(--face-mark); font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 700; line-height: .82; letter-spacing: -.03em;
-  font-variant-numeric: tabular-nums; color: var(--platinum);
-}
-.band-cell.mastered .band-figure { color: var(--gold); }
-.band-cell.ducats .band-figure { color: var(--gold); }
-/* The qualification on the figure above, in the slot the other cells note themselves in, so the
-   band still reads as one row. Set a shade brighter than a note and in the register's tabular
-   face: it is a second reading of the same holding, not a remark about it. */
-.band-aside {
-  display: block; margin-top: var(--hair);
-  font-family: var(--face-register); font-size: .72rem; letter-spacing: .04em;
-  font-variant-numeric: tabular-nums; color: var(--platinum-dim);
-}
-.band-aside .metal-mark { height: 1em; width: auto; margin-left: .25em; vertical-align: -.12em; }
-.band-label { display: block; margin-top: var(--step); font-family: var(--face-register); font-size: .62rem; letter-spacing: .15em; text-transform: uppercase; color: var(--platinum-dim); }
-.band-note { margin: var(--hair) 0 0; color: var(--platinum-deep); font-size: .72rem; }
-
-/* register */
-
-.register { display: grid; gap: var(--course); }
-
-.register-controls { display: flex; gap: var(--step); justify-content: space-between; flex-wrap: wrap; }
-
-.search-slot { position: relative; display: flex; align-items: center; flex: 1 1 22rem; }
-.search-slot > svg { position: absolute; left: .85rem; width: .9rem; height: .9rem; color: var(--platinum-deep); pointer-events: none; }
-.search-slot input {
-  width: 100%; height: 3rem; padding: 0 var(--step) 0 2.5rem;
-  color: var(--platinum); border: 1px solid var(--rule-control); border-radius: 0;
-  background: var(--well); box-shadow: var(--strike);
-  font-family: var(--face-register); font-size: .68rem; letter-spacing: .06em;
-}
-.search-slot input::placeholder { color: var(--platinum-deep); letter-spacing: .1em; text-transform: uppercase; font-size: .62rem; }
-.search-slot input:hover { border-color: var(--platinum-deep); }
-
-.sort-slot { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
-.sort-slot > span { font-family: var(--face-register); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: var(--platinum-deep); }
-.sort-slot select {
-  height: 3rem; min-width: 10rem; padding: 0 .8rem;
-  color: var(--platinum); border: 1px solid var(--rule-control); border-radius: 0;
-  background: var(--well); box-shadow: var(--strike);
-  font-family: var(--face-register); font-size: .64rem; letter-spacing: .08em;
-}
-.sort-slot select:hover { border-color: var(--platinum-deep); }
-
-/* Hallmark cartouches carry the category filters. */
-.shield-strip { display: flex; flex-wrap: wrap; gap: var(--hair); }
-.shield {
-  flex: none; padding: 1px 0 0; border: 0; border-radius: 0;
-  background: var(--rule); clip-path: var(--cartouche); cursor: pointer;
-  transition: background .12s ease;
-}
-.shield:hover { background: var(--rule-bright); }
-.shield[aria-pressed="true"] { background: var(--platinum-dim); }
-.shield:focus-visible { outline: none; background: var(--platinum); }
-.shield-face {
-  display: flex; align-items: center; gap: .4rem;
-  padding: .58rem .8rem .95rem; background: var(--touchstone);
-  clip-path: var(--cartouche);
-  font-family: var(--face-register); font-size: .58rem; font-weight: 600; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--platinum-deep); white-space: nowrap;
-  transition: color .12s ease, background .12s ease;
-}
-.shield:hover .shield-face { color: var(--platinum-dim); }
-.shield[aria-pressed="true"] .shield-face { background-image: linear-gradient(rgb(0 0 0 / 55%) 0 1px, transparent 1px); background-color: var(--raised); color: var(--platinum); }
-.shield:focus-visible .shield-face { background: var(--platinum); color: var(--touchstone); }
-.shield-face b { font-weight: 700; color: inherit; opacity: .78; }
-.shield[aria-pressed="true"] .shield-face b { color: var(--gold); opacity: 1; }
-
-.register-bar {
-  position: relative;
-  display: grid; gap: var(--tight);
-  padding-bottom: var(--step); border-bottom: 1px solid var(--rule);
-  font-family: var(--face-register); font-size: .62rem; letter-spacing: .1em; color: var(--platinum-deep);
-}
-/* The assay gauge. Live pricing takes about twenty-two seconds and moves the collection's worth
-   the whole time, so the bar's own bottom rule fills with platinum as the pass advances. That is
-   the engraved hairline that already divides this sheet, struck into a reading. No spinner, no track,
-   no second element: the rule under it is the track. Absent entirely when nothing is running,
-   because `--assay-progress` is only set while a pass is in flight. Scaled rather than sized: a
-   width transition is laid out every frame, a transform is not. */
-.register-bar::after {
-  content: ""; position: absolute; left: 0; bottom: -1px; width: 100%; height: 1px;
-  background: var(--platinum);
-  transform: scaleX(var(--assay-progress, 0)); transform-origin: left;
-  transition: transform .3s linear;
-}
-@media (prefers-reduced-motion: reduce) {
-  /* The fill is the reading, so it stays; only its travel is removed. */
-  .register-bar::after { transition: none; }
-}
-/* The pass's own readout, last in the row so the two standing statements (which day, which
-   slice) keep their order and the transient one appends rather than displaces. */
-.register-line.pricing { color: var(--platinum-dim); }
-.tally { display: flex; gap: 0; }
-.tally button {
-  display: inline-flex; align-items: center; justify-content: center; gap: .38rem;
-  padding: .55rem .85rem; border: 1px solid var(--rule-control); border-radius: 0; background: transparent;
-  font-family: var(--face-register); font-size: .58rem; font-weight: 600; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--platinum-deep); cursor: pointer;
-  transition: color .12s ease, background .12s ease;
-}
-.tally button + button { border-left: 0; }
-.tally button:hover { color: var(--platinum-dim); background: var(--plate); }
-.tally button[aria-pressed="true"] { color: var(--platinum); background: var(--raised); box-shadow: var(--strike); }
-/* The value sorts wear their own currency, at the size the price readings use, so "Platinum" and
-   "Ducats" are told apart by metal at a glance the way the cards' figures already are. */
-.tally button .metal-mark { height: 1.15rem; width: auto; }
-
-/* The ducat layer's valve. A switch, not a mode chip: the tally rows beside it choose one of
-   several readings, while this turns one reading on and off, and only its own two states are its
-   siblings. On, the thumb crosses the track's midline and takes the gold every ducat reading on
-   this sheet already wears, since the control's state is the color of what it governs. */
-.display-switch {
-  display: inline-flex; align-items: center; gap: .6rem;
-  padding: .55rem .85rem; border: 1px solid var(--rule-control); background: transparent;
-  font-family: var(--face-register); font-size: .58rem; font-weight: 600; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--platinum-deep); cursor: pointer;
-  transition: color .12s ease, background .12s ease, border-color .12s ease;
-}
-.display-switch:hover { color: var(--platinum-dim); background: var(--plate); }
-/* The checked state is listed too: it ties on specificity and comes later, so it would paint the label platinum on platinum. */
-.display-switch:focus-visible, .display-switch[aria-checked="true"]:focus-visible { outline: none; background: var(--platinum); color: var(--touchstone); border-color: var(--platinum); }
-/* A switch waiting on its own backend is disabled, not dead: it keeps its shape and reads as
-   pending rather than refusing input the player never asked for. */
-.display-switch:disabled { opacity: .5; cursor: default; }
-.display-switch:disabled:hover { color: var(--platinum-deep); background: transparent; }
-.display-face { display: inline-flex; align-items: center; gap: .34rem; }
-.display-switch .metal-mark { height: 1.15rem; width: auto; opacity: .68; }
-.display-switch[aria-checked="true"] { color: var(--platinum); }
-.display-switch[aria-checked="true"] .metal-mark { opacity: 1; }
-.display-track {
-  position: relative; flex: none; width: 2.3rem; height: 1.15rem; overflow: hidden;
-  border: 1px solid var(--rule-control); background: var(--plate);
-}
-.display-switch[aria-checked="true"] .display-track { border-color: var(--gold); }
-/* The far half of the track, lit faintly from the side the thumb travels to. */
-.display-track::after {
-  content: ""; position: absolute; inset: 0 0 0 50%; background: var(--gold); opacity: 0;
-  transition: opacity .15s ease;
-}
-.display-switch[aria-checked="true"] .display-track::after { opacity: .22; }
-.display-thumb {
-  position: absolute; top: 1px; bottom: 1px; left: 1px; width: calc(50% - 2px);
-  background: var(--platinum-dim);
-  transition: transform .15s ease, background-color .15s ease;
-}
-.display-switch[aria-checked="true"] .display-thumb {
-  transform: translateX(calc(100% + 2px)); background: var(--gold);
-}
-@media (prefers-reduced-motion: reduce) {
-  /* The position is the reading, so it still moves; only its travel is undressed. */
-  .display-thumb, .display-track::after, .access-track-progress, .access-thumb { transition: none; }
-}
-
-/* The provenance line states the baseline once, so no card needs a legend to explain a price's
-   date or authority. It and the range readout are one statement (which day these prices are
-   from, and which slice of the register is on screen), so they sit together and the control
-   anchors the end of the row, where an action is expected and where it is still adjacent to the
-   range that scopes it. An action between two status phrases broke a line meant to read as one. */
-.provenance-row { display: flex; align-items: center; justify-content: space-between; gap: var(--step); flex-wrap: wrap; }
-/* The engraved hairline separates the two readings, the same device that sets the masthead's
-   date letter apart, rather than a punctuation mark borrowed from prose. Held on one line: the
-   narrow layout stacks the pair instead, where a hairline would have nothing to divide. */
-.register-status { display: flex; align-items: center; gap: var(--step); flex-wrap: nowrap; white-space: nowrap; }
-.register-status > .register-line + .register-line { padding-left: var(--step); border-left: 1px solid var(--rule); }
-
-/* Entries are separated by the sheet's own rules, not by borders of their own. */
-/* Rules are drawn by the cells, not by a background showing through 1px gaps. A
-   partial last row then simply ends, instead of leaving grey blocks where cells
-   would have been. */
-.collection-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
-  gap: 0; margin: 0; padding: 0; list-style: none;
-  border-top: 1px solid var(--rule); border-left: 1px solid var(--rule);
-}
-.collection-grid > li { display: grid; }
-.entry {
-  display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); min-height: 6.5rem;
-  background: var(--touchstone); transition: background .12s ease;
-  box-shadow: inset -1px 0 0 var(--rule), inset 0 -1px 0 var(--rule);
-}
-.entry:hover { background: var(--plate); }
-
-.entry-well {
-  display: grid; place-items: center; overflow: hidden;
-  background: var(--well); border-radius: 2px; box-shadow: var(--strike-deep);
-  margin: var(--tight);
-}
-.entry-well img { width: 100%; height: 100%; object-fit: contain; padding: .3rem; }
-.well-mark { font-family: var(--face-register); font-size: .62rem; font-weight: 700; letter-spacing: .1em; color: var(--platinum-deep); }
-.entry.cat-prime_part .entry-well, .entry.cat-relic .entry-well { box-shadow: var(--strike-deep), inset 0 0 0 1px rgb(216 176 74 / 14%); }
-
-.entry-body { display: flex; flex-direction: column; justify-content: center; gap: .5rem; min-width: 0; padding: var(--step) var(--step) var(--step) var(--tight); }
-.entry-cat { font-family: var(--face-register); font-size: .54rem; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--platinum-deep); }
-.entry-name { margin: 0; overflow: hidden; font-family: var(--face-mark); font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.1; text-transform: uppercase; color: var(--platinum); text-overflow: ellipsis; white-space: nowrap; }
-
-/* A card the account does not hold is drawn dimmed: desaturated art, a plain well, a quieter
-   name. The state is still carried in words by the card's own "Missing" line; this only makes
-   the sheet scan faster. */
-.entry[data-held="false"] .entry-well img { filter: grayscale(1); opacity: .55; }
-.entry[data-held="false"] .entry-well { box-shadow: var(--strike-deep), inset 0 0 0 1px var(--rule); }
-.entry[data-held="false"] .entry-name { color: var(--platinum-dim); }
-
-/* Struck hallmarks. Colour never carries a state alone. */
-.marks { display: flex; flex-wrap: wrap; align-content: end; gap: var(--hair); }
-.hallmark {
-  display: inline-flex; align-items: center; gap: .28rem;
-  padding: .28rem .5rem .55rem; clip-path: var(--cartouche);
-  background-image: linear-gradient(rgb(0 0 0 / 42%) 0 1px, transparent 1px);
-  background-color: var(--raised);
-  font-family: var(--face-register); font-size: .54rem; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--platinum-dim);
-}
-.hallmark.owned { color: var(--platinum); }
-.hallmark.absent { color: var(--platinum-deep); background: var(--plate); }
-.hallmark.mastered { color: var(--gold); }
-/* A rank is a qualifier on the mark beside it, so it sits back from the ownership figure. Fully
-   ranked is the state worth platinum, and it earns the struck lip rather than a new colour: the
-   text reads 10/10 either way, and gold already means mastered. */
-.hallmark.rank { color: var(--platinum-deep); }
-.hallmark.rank.maxed { color: var(--platinum); box-shadow: var(--strike); }
-.hallmark.doubt { color: var(--oxblood); background: rgb(221 111 96 / 18%); }
-
-/* A dump reading is yesterday's median; a live one was fetched moments ago and is good for 15
-   minutes. Different measurements, so the live one earns brighter ink, never sharing a column
-   with nothing to tell them apart, and it keeps its own freshness line below, not a badge with a word
-   nothing else on screen explains. */
-.price { display: inline-flex; align-items: center; gap: .32rem; }
-.price b { font-family: var(--face-mark); font-size: .95rem; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--platinum-deep); }
-.price.live b { color: var(--platinum); }
-.price em {
-  font-family: var(--face-register); font-style: normal; font-size: .5rem; font-weight: 600;
-  letter-spacing: .08em; text-transform: uppercase; color: var(--platinum-deep);
-}
-.price em::before { content: '· '; }
-/* One mark leading the group, not one per figure: the unit price and the stack total are the same
-   currency, so a second copy of the icon between them is repetition rather than information.
-   Held to about the figure's own cap height. Larger than that and it outweighs the item name above
-   it. The register is a dense sheet, and the mark is here to say which currency, not to be the
-   loudest thing in the row. Below it the canister loses its dark chip and reads as a grey lozenge.
-   A dump reading keeps the mark dimmer along with its figure, so the freshness signal above is not
-   diluted by an icon that stays equally bright either way. */
-.price .metal-mark { height: 1.15rem; width: auto; opacity: .68; }
-.price.live .metal-mark { opacity: 1; }
-/* The ducat reading keeps the price span's whole shape (figure, mark, stack total) and takes
-   the gold the reward screen already gives this currency, so the two prices on a prime part are
-   told apart by their metals and not by position alone. */
-.price.ducat-reading b { color: var(--gold); }
-.ducat-unavailable {
-  font-family: var(--face-register); font-size: .5rem; font-weight: 600;
-  letter-spacing: .08em; text-transform: uppercase; color: var(--platinum-deep);
-}
-
-/* The worth figure is the one number on this page standing in a row of plain counts, so it is the
-   one that has to say it is money rather than a tally. Room enough for the real icon. */
-.band-figure .metal-mark { height: .5em; width: auto; margin-left: .18em; vertical-align: baseline; }
-
-/* The freshness line: same register-line voice as the price annotation above it, so a live
-   reading explains itself in the card's own grammar instead of a badge with a word to learn. */
-.freshness { margin: 0; font-family: var(--face-register); font-size: .52rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--platinum-deep); }
-
-/* Date letters: assay offices stamp a letter per year; pages get the same treatment. */
-.pagination { display: flex; align-items: center; justify-content: center; gap: var(--hair); padding-top: var(--course); border-top: 1px solid var(--rule); }
-.pagination button {
-  min-width: 2.4rem; height: 2.4rem; padding: 0 .5rem;
-  border: 1px solid transparent; border-radius: 0; background: transparent;
-  font-family: var(--face-register); font-size: .62rem; font-weight: 600; letter-spacing: .06em;
-  color: var(--platinum-deep); cursor: pointer; transition: color .12s ease, border-color .12s ease;
-}
-.pagination button:hover:not(:disabled) { color: var(--platinum); border-color: var(--rule-bright); }
-.pagination button.current { color: var(--touchstone); background: var(--platinum); border-color: var(--platinum); font-weight: 700; }
-.pagination button:disabled { opacity: .3; cursor: default; }
-.page-slot { display: inline-flex; align-items: center; gap: var(--hair); }
-.page-slot i { color: var(--platinum-deep); font-style: normal; }
-
-/* the assay slip (rewards) */
-
-/* Exactly N equal columns. auto-fit could wrap to 3+1 at the ship width and
-   destroy the sideways scan the fixed rows exist to protect. */
-.reward-grid { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1px; padding: 1px; background: var(--rule); }
-
-/* Fixed rows, so the figures land at the same y across all four columns. A
-   player scans this row sideways under a countdown; ragged baselines make that
-   scan impossible, so the name reserves two lines whether it needs them or not. */
-.slip {
-  display: grid; grid-template-rows: auto auto auto 1fr; gap: var(--step);
-  padding: var(--course) var(--step);
-  background: var(--touchstone);
-  animation: strike .3s cubic-bezier(.16, 1, .3, 1) both;
-}
-.slip-lot { font-family: var(--face-register); font-size: .56rem; letter-spacing: .16em; text-transform: uppercase; color: var(--platinum-deep); }
-.slip-name {
-  margin: 0; min-height: 2.08em; font-family: var(--face-mark); font-size: 1.35rem; font-weight: 700;
-  line-height: 1.02; letter-spacing: -.02em; text-transform: uppercase; color: var(--platinum);
-  max-height: 2.08em; overflow: hidden; text-wrap: balance;
-}
-
-/* Two metals, appraised at equal weight. This is the product's whole point. */
-.metals { display: grid; grid-template-columns: 1fr 1fr; gap: var(--step); padding-top: var(--step); border-top: 1px solid var(--rule); }
-/* The third row is reserved whether or not a hallmark is struck, so a card that
-   wins nothing keeps its figures level with a card that wins both. */
-.metal { display: grid; grid-template-rows: auto auto 1.65rem; align-content: start; gap: .3rem; min-width: 0; }
-.metal-figure {
-  font-family: var(--face-mark); font-size: clamp(2rem, 4vw, 2.9rem); font-weight: 700;
-  line-height: .82; letter-spacing: -.03em; font-variant-numeric: tabular-nums;
-}
-.metal.plat .metal-figure { color: var(--platinum); }
-.metal.ducat .metal-figure { color: var(--gold); }
-/* The game's own icon rides the label, not the figure. Beside the figure it competed with it for a
-   column barely wider than three digits, and a 220p reading pushed the ducat column off the card.
-   Here the figure keeps the whole column and the mark cannot collide with anything. */
-.metal-label { display: flex; align-items: center; gap: .42rem; font-family: var(--face-register); font-size: .55rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
-/* Sized in `rem` and not `em`: a rendered object loses its dark chip and turns to a grey lozenge
-   below about 18px where a flat mark would still read, so the legibility floor has to hold even
-   where the figure beside it has scaled down. Height-normalised with `width: auto`, because the
-   canister is a wide object and the sigil a tall one. A shared square box renders the canister
-   visibly smaller than the sigil beside it. */
-.metal-mark { flex: none; height: 1.7rem; width: auto; user-select: none; }
-.metal.plat .metal-label { color: var(--platinum-deep); }
-.metal.ducat .metal-label { color: var(--gold-dim); }
-/* An unknown price is dimmer than a real one, but never below AA: the player
-   has to be able to see that no price is known. */
-.market-pending { color: var(--platinum-deep) !important; }
-
-/* The winner is marked in the metal it won, not in a shared banner. */
-.metal-hallmark {
-  justify-self: start; margin-top: .2rem; padding: .26rem .45rem .5rem;
-  clip-path: var(--cartouche);
-  background-image: linear-gradient(rgb(0 0 0 / 24%) 0 1px, transparent 1px);
-  font-family: var(--face-register); font-size: .52rem; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase;
-}
-.metal.plat .metal-hallmark { background: var(--platinum); color: var(--touchstone); }
-.metal.ducat .metal-hallmark { background: var(--gold); color: var(--touchstone); }
-
-/* The set behind a reward: the game's own part art as one-metal silhouettes, so the shapes are ones the
-   player already knows. Solid is held, faint is not; the tick marks this slot, and wrapped rows clear it. */
-.set-row { display: inline-flex; flex-wrap: wrap; align-items: flex-end; gap: var(--tight) .19rem; margin: 0 0 0 auto; padding: 0; list-style: none; color: var(--platinum); }
-.set-slot { position: relative; display: flex; }
-.set-glyph { display: block; flex: none; width: 1.75rem; height: 1.75rem; background-color: currentColor;
-  -webkit-mask-position: center; mask-position: center; -webkit-mask-size: contain; mask-size: contain;
-  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
-svg.set-glyph { background: none; fill: currentColor; padding: .125rem; }
-.set-glyph[data-held="false"] { opacity: .4; }
-.set-glyph + .set-glyph { margin-left: -1.125rem; } /* a pair: the second copy rides 10px over the first */
-.set-slot[data-this]::after { content: ''; position: absolute; left: .19rem; right: .19rem; bottom: -.25rem; height: 2px; background: currentColor; }
-.set-count { margin-left: .125rem; font: 600 .56rem/1 var(--face-register); color: var(--platinum-deep); }
-
-/* What the collection knows about the item this reward builds, wrapping inside its slip. The
-   padding reserves the room the set row's tick hangs into, below the row's own box. */
-.ledger { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--hair); min-width: 0; padding-bottom: .25rem; }
-/* Same face, weight, and tracking as `.hallmark`, so a ledger word reads as one of the slip's marks. */
-.ledger-word { font: 700 .56rem/1 var(--face-register); letter-spacing: .1em; text-transform: uppercase; color: var(--platinum-deep); }
-.ledger[data-tone="loud"] .ledger-word { color: var(--platinum); }
-/* The chip inverts onto platinum rather than gaining a hue. It is scoped under `.ledger` because
-   the loud tone above would otherwise repaint the ink of a word whose ground is already platinum. */
-.ledger .ledger-word.inverted { padding: .19rem .32rem .19rem .38rem; background: var(--platinum); color: var(--touchstone); }
-/* A part an unmastered, unbuilt item still lacks rules the slip; the last one double-rules it. Both
-   selectors are named so the rule replaces the overlay slip's faint frame instead of stacking. */
-.slip.ruled, .overlay-rewards .slip.ruled { box-shadow: inset 0 0 0 1px var(--platinum); }
-.slip.ruled-double, .overlay-rewards .slip.ruled-double { box-shadow: inset 0 0 0 1px var(--platinum), inset 0 0 0 3px var(--touchstone), inset 0 0 0 4px var(--platinum); }
-
-/* the assay procedure */
-
-.procedure-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--step); flex-wrap: wrap; padding-bottom: var(--step); border-bottom: 1px solid var(--rule); }
-/* The failed reading gets a struck record: a ruled plate offering the three
-   ways the evidence leaves the machine, by the player's own hand. No new
-   visual language: the failure mark, the register labels, the office stamp. */
-.report-plate {
-  display: grid; gap: var(--course);
-  padding: var(--course) 0;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-}
-.report-head { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--step); align-items: center; }
-.report-head .state-mark { width: 1.1rem; height: 1.25rem; clip-path: var(--cartouche); background: var(--oxblood); }
-.report-head .state-mark.ready { background: var(--platinum); }
-.report-head .prose { grid-column: 2; max-width: 68ch; margin: .2rem 0 0; }
-.report-title {
-  margin: 0; font-family: var(--face-mark); font-size: 1.5rem; font-weight: 700;
-  letter-spacing: -.015em; text-transform: uppercase; color: var(--oxblood);
-}
-.report-plate:not(.broken) .report-title { color: var(--platinum); }
-.report-actions { display: flex; flex-wrap: wrap; gap: var(--step); padding-left: calc(1.1rem + var(--step)); }
-.report-status { margin: 0; padding-left: calc(1.1rem + var(--step)); font-family: var(--face-register); font-size: .58rem; letter-spacing: .1em; color: var(--platinum-dim); }
-.procedure-head.second { margin-top: clamp(var(--course), 5vh, var(--field)); }
-.column-head { margin: 0; font-family: var(--face-register); font-size: .62rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--platinum-dim); }
-
-.assay-list {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr)); gap: 0;
-  border-top: 1px solid var(--rule); border-left: 1px solid var(--rule);
-}
-.assay-row {
-  display: flex; align-items: center; gap: var(--step); padding: var(--step);
-  background: var(--touchstone);
-  box-shadow: inset -1px 0 0 var(--rule), inset 0 -1px 0 var(--rule);
-}
-.assay-row .state-mark { width: .75rem; height: .85rem; flex: none; clip-path: var(--cartouche); background: var(--gold); }
-.assay-row.ready .state-mark { background: var(--platinum); }
-.assay-row.idle .state-mark { clip-path: none; background: var(--platinum-deep); }
-.assay-row.degraded .state-mark { clip-path: polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%, 0 52%, 62% 52%, 62% 34%, 0 34%); }
-.assay-row.failed .state-mark { background: var(--oxblood); clip-path: polygon(20% 0, 50% 34%, 80% 0, 100% 24%, 68% 56%, 100% 88%, 80% 100%, 50% 72%, 20% 100%, 0 88%, 32% 56%, 0 24%); }
-.assay-row > div { flex: 1; min-width: 0; }
-.assay-row h3 { margin: 0; font-family: var(--face-register); font-size: .64rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--platinum); }
-.assay-row p { margin: .28rem 0 0; overflow: hidden; color: var(--platinum-deep); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
-.assay-row small { display: block; margin-top: .2rem; font-family: var(--face-register); font-size: .55rem; letter-spacing: .08em; color: var(--platinum-dim); }
-.assay-verdict { flex: none; font-family: var(--face-register); font-size: .55rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
-.assay-row.ready .assay-verdict { color: var(--platinum-dim); }
-.assay-row.idle .assay-verdict { color: var(--platinum-deep); }
-.assay-row.failed .assay-verdict { color: var(--oxblood); }
-
-/* The five stages, as a ruled ledger with struck ordinals. */
-.stages { display: grid; margin: 0; padding: 0; list-style: none; }
-.stages li { display: flex; align-items: center; gap: var(--step); padding: var(--step) 0; border-bottom: 1px solid var(--rule); }
-.stages li:first-child { border-top: 1px solid var(--rule); }
-.ordinal {
-  display: grid; place-items: center; width: 2.1rem; height: 2.4rem; flex: none;
-  clip-path: var(--cartouche); background-color: var(--platinum); color: var(--touchstone);
-  background-image: linear-gradient(rgb(0 0 0 / 22%) 0 1px, transparent 1px);
-  font-family: var(--face-mark); font-size: .85rem; font-weight: 700; padding-bottom: .35rem;
-}
-.ordinal.idle { clip-path: none; background: var(--rule); color: var(--platinum-dim); }
-.ordinal.degraded { background: var(--gold); }
-.ordinal.failed { background: var(--oxblood); }
-.stages li > div { flex: 1; min-width: 0; }
-.stages strong { font-family: var(--face-register); font-size: .64rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--platinum); }
-.stages p { margin: .28rem 0 0; color: var(--platinum-deep); font-size: .72rem; }
-/* A ready stage must not be announced in the attention colour. */
-.stages li.ready .assay-verdict { color: var(--platinum-dim); }
-.stages li.idle .assay-verdict { color: var(--platinum-deep); }
-.stages li.degraded .assay-verdict { color: var(--gold); }
-.stages li.failed .assay-verdict { color: var(--oxblood); }
+.report.broken { border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+.report-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: center; }
+.report-head .prose { grid-column: 2; }
+.report-actions { display: flex; flex-wrap: wrap; gap: var(--tight); padding-left: 26px; }
+.report-status { margin: 0; padding-left: 26px; color: var(--text-dim); font-size: .8125rem; overflow-wrap: anywhere; }
 
 /* settings */
 
-/* Each preference is a ruled plate under the "Preferences" head, which draws the top rule for the
-   first of them, so a setting rules only below itself and two never double up. Grid items start
-   rather than stretch: a control is as wide as it needs to be, and the stamp is not a banner. */
-.setting { display: grid; justify-items: start; gap: var(--step); padding: var(--course) 0; border-bottom: 1px solid var(--rule); }
+.setting { display: grid; justify-items: start; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.section-title + .setting { padding-top: 0; }
+.setting:last-child { padding-bottom: 0; border-bottom: 0; }
 .setting > * { max-width: 100%; }
-.setting h3, .clause h3 { margin: 0 0 var(--tight); font-family: var(--face-mark); font-size: 1.4rem; font-weight: 700; letter-spacing: -.015em; text-transform: uppercase; color: var(--platinum); }
-.setting .prose { font-size: .84rem; }
-.setting .band-note { margin: 0; }
-.capture-notice { margin: 0 0 var(--course); padding: var(--step); border-block: 1px solid var(--gold-dim); background: var(--plate); color: var(--platinum-dim); font-size: .8rem; line-height: 1.6; }
-/* The empty state is clipped, not removed. display:none here made the region vanish in the frame
-   before its first message, so a reader that lands as the text arrives has nothing to announce and
-   the row is silent forever after. Clipping keeps the node in the accessibility tree and leaves no
-   gap in .setting, which is a grid with a var(--step) row gap. */
+.setting h3 { margin: 0 0 4px; font-size: .9375rem; font-weight: 600; }
+/* The empty status is clipped, not removed: display:none would drop the live region before its
+   first message, and a reader that lands as the text arrives would announce nothing. */
 .capture-status:empty { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.capture-status:focus-visible { outline-offset: 2px; }
+.prohibition-note { max-width: 58ch; margin: var(--hair) 0 0; color: var(--warn); font-size: .8125rem; }
+.prohibited-control { display: grid; justify-items: start; gap: var(--tight); }
 
-/* The gauge and its reading, side by side: a slider whose value you have to go and look for
-   somewhere else is a control that answers a question nobody asked it. */
-.dial { display: flex; width: 100%; align-items: center; gap: var(--course); }
+/* The slider and its reading side by side. WebKitGTK has no native range fill, so the fill is a
+   gradient driven by an inline custom property. */
+.dial { display: flex; width: 100%; align-items: center; gap: var(--step); }
 .dial-slot { display: flex; flex: 1 1 auto; min-width: 0; }
-.dial-figure {
-  display: flex; flex: none; align-items: baseline; gap: .4rem;
-  font-family: var(--face-mark); font-size: 2rem; font-weight: 700; line-height: 1;
-  font-variant-numeric: tabular-nums; color: var(--platinum);
-}
-.dial-figure span {
-  font-family: var(--face-register); font-size: .62rem; font-weight: 400;
-  letter-spacing: .15em; text-transform: uppercase; color: var(--platinum-dim);
-}
-
-/* An engraved groove filled in platinum to the setting, with a struck square rider on it. The fill
-   is a gradient driven by an inline custom property because a native progress fill exists in Gecko
-   and not in WebKit, and WebKitGTK is what actually draws this window. */
-.dial-slot input[type="range"] {
-  width: 100%; height: 2.25rem; margin: 0; padding: 0;
-  appearance: none; background: transparent; cursor: pointer;
-}
+.dial-figure { display: flex; flex: none; align-items: center; gap: 6px; font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--platinum); }
+.dial-figure span { color: var(--text-dim); font-size: .875rem; font-weight: 400; }
+.dial-slot input[type="range"] { width: 100%; height: 28px; margin: 0; padding: 0; appearance: none; background: transparent; cursor: pointer; }
 .dial-slot input[type="range"]::-webkit-slider-runnable-track {
-  height: 2px; border-radius: 0;
-  background: linear-gradient(to right, var(--platinum) 0 var(--dial-fill, 0%), var(--rule-bright) var(--dial-fill, 0%) 100%);
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) 0 var(--dial-fill, 0%), var(--line-strong) var(--dial-fill, 0%) 100%);
 }
 .dial-slot input[type="range"]::-moz-range-track {
-  height: 2px; border-radius: 0;
-  background: linear-gradient(to right, var(--platinum) 0 var(--dial-fill, 0%), var(--rule-bright) var(--dial-fill, 0%) 100%);
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) 0 var(--dial-fill, 0%), var(--line-strong) var(--dial-fill, 0%) 100%);
 }
 .dial-slot input[type="range"]::-webkit-slider-thumb {
-  width: 10px; height: 26px; margin-top: -12px;
-  appearance: none; border: 0; border-radius: 0;
-  background: var(--platinum); box-shadow: var(--strike);
+  width: 16px; height: 16px; margin-top: -6px; appearance: none;
+  border: 2px solid var(--accent); border-radius: 50%; background: var(--text);
 }
-.dial-slot input[type="range"]::-moz-range-thumb {
-  width: 10px; height: 26px; border: 0; border-radius: 0;
-  background: var(--platinum); box-shadow: var(--strike);
+.dial-slot input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid var(--accent); border-radius: 50%; background: var(--text); }
+.dial-slot input[type="range"]:focus-visible { outline-offset: 4px; }
+
+
+/* updates */
+
+.update-mark {
+  display: flex; align-items: center; gap: var(--tight); width: 100%; min-height: 30px; padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: var(--radius);
+  background: var(--accent-soft); color: var(--text); font: inherit; font-size: .8125rem; text-align: left; cursor: pointer;
 }
-.dial-slot input[type="range"]:hover::-webkit-slider-thumb { background: var(--gold); }
-.dial-slot input[type="range"]:hover::-moz-range-thumb { background: var(--gold); }
-.dial-slot input[type="range"]:focus { outline: none; }
-.dial-slot input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--touchstone), 0 0 0 4px var(--gold); }
-.dial-slot input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(--touchstone), 0 0 0 4px var(--gold); }
+.update-mark:hover { border-color: var(--accent); }
+.update-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--accent); forced-color-adjust: none; }
+.update-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.update-progress { width: 100%; margin-top: var(--tight); }
+.update-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight); margin-top: var(--tight); }
+.update-actions .prose { flex-basis: 100%; }
+.command-chip { display: flex; flex-basis: 100%; gap: var(--tight); align-items: center; }
+/* A shell command, so it is set as code. */
+.command-chip input { flex: 1; min-width: 0; font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-size: .8125rem; }
+.check-row { display: flex; align-items: flex-start; gap: var(--tight); margin-top: var(--tight); font-size: .875rem; }
+.update-channel { margin-top: var(--tight); font-size: .875rem; }
+.update-channel .check-row { margin-top: 6px; }
+.check-row input, .sell-visible input, .presence-auto input { accent-color: var(--accent); }
 
-/* clauses */
+/* setup and access */
 
-.clauses { display: grid; }
-.clause { display: grid; grid-template-columns: 4rem minmax(0, 1fr); gap: var(--step); padding: var(--course) 0; border-bottom: 1px solid var(--rule); }
-.clause:first-child { border-top: 1px solid var(--rule); }
-.clause-index { font-family: var(--face-register); font-size: .58rem; letter-spacing: .14em; color: var(--platinum-deep); }
-/* A disclosure is not a feature. It gets a seated ground and gold hairlines top and
-   bottom: a ruled band, the register's own way of setting a notice apart. Not a
-   side stripe: a thick coloured edge on a callout is the oldest tell there is. */
-.clause.caution { padding-inline: var(--step); background: var(--plate); box-shadow: inset 0 1px 0 var(--gold-dim), inset 0 -1px 0 var(--gold-dim); }
-.clause.caution .clause-index { color: var(--gold); }
-.clause.caution h3 { font-size: 1.05rem; }
-.clause .prose { font-size: .84rem; }
-.clause .stamp { margin-top: var(--step); }
+.setup-shell { display: grid; grid-template-rows: 36px minmax(0, 1fr); height: 100vh; }
+.setup { min-height: 0; overflow-y: auto; padding: 24px; }
+.setup-panel { display: grid; gap: 12px; width: 100%; max-width: 60rem; margin: 0 auto; }
+.setup-confirm { position: sticky; z-index: 2; bottom: var(--step); width: 100%; min-height: 44px; box-shadow: 0 -12px 24px var(--bg-1); }
 
-/* setup certificate */
-
-.certificate { min-height: 100vh; display: grid; align-content: center; padding: clamp(var(--step), 4vh, var(--field)) clamp(var(--step), 5vw, var(--field)); }
-.certificate:has(.access-selector) { align-content: start; padding-block: var(--step); }
-/* An engraved double frame with corner registration marks. A hallmark certificate
-   is defined by its border; without one this is just a centred column. */
-.certificate-sheet {
-  position: relative; width: 100%; max-width: 58rem; min-width: 0; margin: 0 auto;
-  padding: clamp(var(--course), 5vh, var(--bed)) clamp(var(--step), 4vw, var(--field));
-  box-shadow:
-    inset 0 0 0 1px var(--rule),
-    inset 0 0 0 5px var(--touchstone),
-    inset 0 0 0 6px var(--rule);
-}
-.certificate:has(.access-selector) .certificate-sheet { padding-block: var(--course); padding-bottom: calc(var(--field) + 4.5rem); }
-.certificate-sheet::before, .certificate-sheet::after {
-  position: absolute; width: 14px; height: 14px; content: '';
-  border: 1px solid var(--rule-bright);
-}
-.certificate-sheet::before { top: 12px; left: 12px; border-right: 0; border-bottom: 0; }
-.certificate-sheet::after { right: 12px; bottom: 12px; border-top: 0; border-left: 0; }
-.certificate .office { margin-bottom: clamp(var(--course), 6vh, var(--bed)); }
-.certificate h1 { font-size: clamp(2.8rem, 6vh + 3vw, 7rem); margin-bottom: var(--course); animation: strike .32s cubic-bezier(.16, 1, .3, 1) both; }
-.certificate .prose { font-size: 1rem; }
-.certificate:has(.access-selector) .office { margin-bottom: var(--step); }
-.certificate:has(.access-selector) h1 { max-width: none; margin-bottom: var(--tight); font-size: clamp(2.8rem, 6vh + 2.5vw, 5rem); line-height: .9; }
-.certificate:has(.access-selector) .prose { font-size: .88rem; }
-
-.clause-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: clamp(var(--course), 5vh, var(--field)) 0; padding: 1px; background: var(--rule); }
-.clause-pair article { padding: var(--course) var(--step); background: var(--touchstone); }
-.clause-pair h2 { margin: 0 0 var(--tight); font-family: var(--face-register); font-size: .62rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--platinum); }
-.clause-pair.caution h2 { color: var(--gold); }
-.clause-pair article p { margin: 0; color: var(--platinum-dim); font-size: .8rem; line-height: 1.6; }
-.clause-pair .verdict-mark { display: block; width: 1rem; height: 1.15rem; margin-bottom: var(--step); clip-path: var(--cartouche); background: var(--platinum); }
-.clause-pair .verdict-mark.caution { background: var(--gold); }
-
-.footnote { margin: 0 0 var(--course); max-width: 68ch; color: var(--platinum-deep); font-size: .76rem; line-height: 1.6; }
-
-/* access mode register */
-.mode-setting { margin-bottom: var(--field); padding-bottom: var(--course); border-bottom: 1px solid var(--rule-bright); }
-.access-selector { margin: var(--course) 0; }
+/* The selector is one bordered panel: status, rail, detail and prohibitions are its rows. */
+.access-selector { margin: var(--hair) 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2); }
+.access-selector > * + * { border-top: 1px solid var(--line); }
 .access-rail { min-width: 0; margin: 0; padding: 0; border: 0; }
-.access-stepper { padding: var(--step) var(--step) var(--course); border: 1px solid var(--rule); background: color-mix(in srgb, var(--touchstone) 92%, var(--platinum) 8%); }
-/* Disabled mutes the metals: progress, thumb and stops lose their gold so the rail reads inert. */
-.access-rail:disabled .access-track-progress { background: var(--platinum-deep); }
-.access-rail:disabled .access-thumb span { border-color: var(--platinum-deep); background: var(--platinum-deep); box-shadow: none; }
-.access-rail:disabled .access-node.included { border-color: var(--platinum-deep); background: transparent; }
-.access-track { position: relative; height: 1.55rem; margin: 0 calc(100% / 6) var(--tight); }
-.access-track-line, .access-track-progress { position: absolute; top: calc(50% - 1px); right: 0; left: 0; height: 2px; background: var(--rule-bright); }
-.access-track-progress { background: var(--gold); transform-origin: left center; transition: transform .16s ease-out; }
-.access-node { position: absolute; top: 50%; width: .55rem; height: .55rem; border: 1px solid var(--platinum-deep); background: var(--touchstone); transform: translate(-50%, -50%) rotate(45deg); cursor: pointer; }
-.access-node.included { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 42%, var(--touchstone)); }
+.access-stepper { padding: var(--step) 12px 12px; }
+.access-track { position: relative; height: 20px; margin: 0 calc(100% / 6) var(--tight); }
+.access-track-line, .access-track-progress { position: absolute; top: calc(50% - 1px); right: 0; left: 0; height: 2px; border-radius: 1px; background: var(--line-strong); }
+.access-track-progress { background: var(--accent); transform-origin: left center; transition: transform .16s ease-out; }
+.access-node { position: absolute; top: 50%; width: 10px; height: 10px; border: 2px solid var(--line-control); border-radius: 50%; background: var(--bg-2); transform: translate(-50%, -50%); cursor: pointer; }
+.access-node.included { border-color: var(--accent); background: var(--accent); }
 .access-node:nth-child(3) { left: 0; }
 .access-node:nth-child(4) { left: 50%; }
 .access-node:nth-child(5) { left: 100%; }
-.access-node.active { border-color: var(--platinum); box-shadow: 0 0 0 3px color-mix(in srgb, var(--platinum) 16%, transparent); }
+.access-node.active { box-shadow: 0 0 0 3px var(--bg-2), 0 0 0 4px var(--text); }
 .access-thumb { position: absolute; top: 50%; left: 0; width: 50%; transition: transform .16s ease-out; }
-.access-thumb span { display: block; width: 1rem; height: 1rem; border: 2px solid var(--gold); background: var(--platinum); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 12%, transparent); transform: translate(-50%, -50%) rotate(45deg); }
-.access-stops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--step); }
-.access-stop { position: relative; display: grid; align-content: start; justify-items: center; gap: .35rem; min-width: 0; min-height: 4.4rem; padding: var(--tight); color: var(--platinum-deep); text-align: center; cursor: pointer; }
-/* A short stem joins each stop to its diamond, so the rail reads as one control. */
-.access-stop::before { content: ""; width: 1px; height: 8px; background: var(--rule-bright); }
+.access-thumb span { display: block; width: 16px; height: 16px; border: 2px solid var(--accent); border-radius: 50%; background: var(--text); transform: translate(-50%, -50%); }
+.access-rail:disabled .access-track-progress { background: var(--text-faint); }
+.access-rail:disabled .access-thumb span, .access-rail:disabled .access-node.included { border-color: var(--text-faint); }
+.access-rail:disabled .access-node.included { background: var(--text-faint); }
+.access-stops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--tight); }
+/* At rest a quiet neutral frame, so each level reads as a choice; hover a stronger one; selected a solid
+   accent frame; the effective mode, when it differs, a dashed neutral one. */
+.access-stop {
+  position: relative; display: grid; align-content: start; justify-items: center; gap: 2px; min-width: 0;
+  padding: var(--tight); border: 1px solid var(--line); border-radius: var(--radius);
+  color: var(--text-dim); text-align: center; cursor: pointer;
+}
 .access-stop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.access-stop:has(input:focus-visible) { outline: 2px solid var(--platinum); outline-offset: 3px; }
-.access-stop:hover strong { color: var(--platinum); }
-.access-stop:active strong { color: var(--platinum); }
-.access-stop strong { font-family: var(--face-mark); font-size: clamp(1.05rem, 2.5vw, 1.45rem); line-height: 1; text-transform: uppercase; color: var(--platinum-dim); }
-.access-stop.selected strong { color: var(--platinum); }
-/* Form and colour together: the selected stop earns a gold strike, the effective stop a platinum lip. */
-.access-stop.selected { box-shadow: inset 0 -2px 0 var(--gold); }
-.access-stop.active { box-shadow: inset 0 2px 0 var(--platinum); }
-.access-stop.selected.active { box-shadow: inset 0 2px 0 var(--platinum), inset 0 -2px 0 var(--gold); }
-.access-stepper:has(.access-stop:hover) .access-track-line { background: var(--platinum-deep); }
-.access-mode-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--tight) var(--step); padding: var(--tight) var(--step); border: 1px solid var(--rule); border-bottom: 0; color: var(--platinum-dim); font-family: var(--face-register); font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; }
-.access-mode-status > span:first-child { display: flex; align-items: center; gap: .45rem; }
-.access-mode-status i { width: .45rem; height: .45rem; background: var(--platinum); transform: rotate(45deg); }
-.access-pending { color: var(--gold); }
-.access-detail { border: 1px solid var(--rule); border-top: 0; background: var(--touchstone); }
-.access-detail.review { box-shadow: inset 2px 0 0 var(--gold); background: color-mix(in srgb, var(--gold) 4%, var(--touchstone)); }
-.access-detail-head { display: grid; grid-template-columns: minmax(8rem, .32fr) minmax(0, 1fr); gap: var(--step); align-items: center; padding: var(--step); }
-.access-detail-head h3 { margin: 0; font-family: var(--face-mark); font-size: clamp(1.65rem, 4vw, 2.65rem); line-height: .95; text-transform: uppercase; color: var(--platinum); }
-.access-always-off h3 { margin: 0; color: var(--platinum-deep); white-space: nowrap; }
-.access-eyebrow { grid-column: 1 / -1; margin: 0; color: var(--gold); font-family: var(--face-register); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; }
-/* First-run detail: the selected stop's additions only; comparison lives in the stepper row. */
-.access-detail-body { display: flex; align-items: end; justify-content: space-between; gap: var(--step); padding: var(--step); border-top: 1px solid var(--rule); }
+.access-stop:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.access-stop:hover { border-color: var(--line-strong); }
+.access-stop strong { font-size: 1rem; font-weight: 600; color: var(--text-dim); }
+.access-stop small { color: var(--text-faint); font-size: .75rem; }
+.access-stop.active { border: 1px dashed var(--line-control); }
+.access-stop.selected { border: 1px solid var(--accent); background: var(--accent-soft); }
+.access-stop.selected strong, .access-stop:hover strong { color: var(--text); }
+.access-mode-status {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--tight) var(--step);
+  padding: var(--tight) 12px; color: var(--text-dim); font-size: .8125rem;
+}
+.access-mode-status > span:first-child { display: flex; align-items: center; gap: var(--tight); }
+.access-mode-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--text); }
+.access-pending { color: var(--warn); }
+.access-detail.review { background: color-mix(in srgb, var(--warn) 5%, var(--bg-2)); }
+.access-detail-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 12px; }
+.access-proposed { margin: 0; color: var(--warn); font-size: .8125rem; }
+.access-detail-head h3 { margin: 0; font-size: 1.125rem; font-weight: 600; }
+.access-detail-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 12px; }
+.access-detail > * + .access-detail-body { border-top: 1px solid var(--line); }
 .access-detail-body section { min-width: 0; }
-.access-detail-body .stamp { flex: 0 0 auto; }
-.access-detail h3, .access-always-off h3 { margin: 0 0 var(--tight); font-family: var(--face-register); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
-.access-detail ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem var(--step); margin: 0; padding: 0; list-style: none; }
-.access-detail li { position: relative; padding-left: 1rem; color: var(--platinum-dim); font-size: .72rem; line-height: 1.45; }
-/* A struck hairline, drawn rather than typed: the em dash was the only rendered character in the
-   sheet. */
-.access-detail li::before { position: absolute; left: 0; top: .62em; width: .5rem; height: 1px; background: var(--gold); content: ''; }
-.access-observation ul { grid-template-columns: 1fr; }
-.access-always-off { display: grid; grid-template-columns: minmax(8rem, auto) minmax(0, 1fr); gap: var(--tight) var(--step); align-items: baseline; padding: var(--tight) var(--step); border: 1px solid var(--rule); border-top: 0; color: var(--platinum-deep); }
-.access-always-off h3 { margin: 0; color: var(--platinum-deep); }
-.access-always-off ul { display: grid; grid-template-columns: repeat(5, minmax(0, auto)); justify-content: space-between; gap: var(--tight) var(--step); margin: 0; padding: 0; list-style: none; }
-.access-always-off li { font-size: .64rem; line-height: 1.4; }
-.prohibition-note { max-width: 58ch; margin: var(--tight) 0 0; color: var(--gold); font-size: .72rem; line-height: 1.5; }
-.prohibited-control { display: grid; justify-items: start; gap: var(--tight); }
-.stamp:disabled, .seal:disabled { cursor: not-allowed; opacity: .48; }
-
-
-.seal {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--step);
-  width: 100%; padding: 1.25rem var(--step); border: 0; border-radius: 0;
-  background: var(--platinum); color: var(--touchstone);
-  font-family: var(--face-register); font-size: .68rem; font-weight: 700; letter-spacing: .16em;
-  text-transform: uppercase; cursor: pointer; transition: background .12s ease;
-}
-.seal:hover:not(:disabled) { background: #fff; }
-.seal:active:not(:disabled) { box-shadow: var(--strike-deep); }
-.seal:disabled { opacity: .5; cursor: wait; }
-.certificate:has(.access-selector) .seal { position: sticky; z-index: 2; bottom: var(--step); box-shadow: 0 -12px 24px var(--touchstone), var(--strike); }
-
-/* wide certificate
-   The window ships at 1180x760, but a tiled window runs wide (1890px here).
-   Past 90rem the sheet opens to the full window and the register reads as a
-   certificate proper: a letterhead title row over a two-column body. The
-   three-stop rail on its plate at the left, the reading struck beside it,
-   the prohibitions as a full-width conditions line at the foot, and the
-   confirm seal closing the document. The floating 1180px design is untouched
-   below the breakpoint. */
-@media (min-width: 90rem) {
-  .certificate:has(.access-selector) .certificate-sheet { display: flex; flex-wrap: wrap; justify-content: space-between; max-width: none; margin-block: auto; }
-  .certificate:has(.access-selector) .office { flex: 1 1 100%; margin-bottom: var(--course); }
-  .certificate:has(.access-selector) h1 { flex: 0 1 auto; min-width: 0; margin-bottom: 0; text-wrap: balance; }
-  .certificate:has(.access-selector) .prose { flex: 0 1 40ch; min-width: 0; align-self: flex-end; padding-bottom: .3rem; }
-  .certificate:has(.access-selector) .access-selector {
-    flex: 1 1 100%; display: grid;
-    grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
-  }
-  /* The two columns are one framed panel: the rail's right border meets the
-     detail's left border as the same double hairline the sheet itself uses.
-     In wide the panel's top rule belongs to the boxes, so the detail's reading
-     can sit centred in its field without breaking the seam. */
-  .certificate:has(.access-selector) .access-mode-status { grid-column: 1 / -1; }
-  .certificate:has(.access-selector) .access-rail { display: flex; }
-  .certificate:has(.access-selector) .access-stepper { flex: 1; display: flex; flex-direction: column; padding-block: var(--step); }
-  .certificate:has(.access-selector) .access-detail {
-    grid-column: 2; display: flex; flex-direction: column;
-    border-top: 1px solid var(--rule); justify-content: center;
-  }
-  .certificate:has(.access-selector) .access-detail-body { border-top: 0; }
-  .certificate:has(.access-selector) .access-always-off { grid-column: 1 / -1; }
-  .certificate:has(.access-selector) .access-detail .access-observation ul { max-width: 62ch; }
-  .certificate:has(.access-selector) .error-banner { flex: 1 1 100%; }
-}
-
-
-
-/* states */
-
-.error-banner {
-  margin: 0 0 var(--course);
-  padding: var(--step); border: 1px solid rgb(221 111 96 / 45%); border-radius: 0;
-  background: rgb(221 111 96 / 9%); color: var(--oxblood);
-  font-family: var(--face-register); font-size: .66rem; letter-spacing: .06em;
-}
-
-/* The touchstone streak: a sample being drawn across the slab. No spinner. */
-.streak { position: relative; width: min(18rem, 60%); height: 1px; overflow: hidden; background: var(--rule); }
-.streak::after { position: absolute; inset: 0; width: 25%; content: ''; background: var(--platinum); animation: streak 1.4s cubic-bezier(.6, 0, .4, 1) infinite; }
-
-.holding { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: var(--course); padding: var(--field); }
-.holding p { margin: 0; }
-
-.empty-state { display: grid; justify-items: start; gap: var(--tight); padding: var(--field) 0; border-top: 1px solid var(--rule); }
-.empty-state .void-mark { width: 1.6rem; height: 1.85rem; margin-bottom: var(--tight); clip-path: var(--cartouche); background: var(--rule); }
-.empty-state h2 { margin: 0; font-family: var(--face-mark); font-size: 1.6rem; font-weight: 700; letter-spacing: -.015em; text-transform: uppercase; color: var(--platinum-dim); }
-.empty-state p { max-width: 46ch; margin: 0; color: var(--platinum-deep); font-size: .8rem; line-height: 1.6; }
-
-/* overlay
-   Sized to the game's four-card block, so a column here is a card there. The
-   0.207% gap is the game's own 2px-in-242 card spacing as a fraction, which
-   keeps the columns aligned at any window size rather than only at 1080p.
-   This surface is read in under a second over a moving game under a countdown:
-   the main window gets the massive field, the overlay gets the figures. */
-
-.overlay-shell { min-height: 100vh; padding: 0; overflow: hidden; background: transparent; }
-/* One column per card, not four: the window is sized to however many cards the
-   game drew, so a fixed four would render a three-card squad at 25% columns in
-   a 75%-wide strip and line up with nothing. Same device as .reward-grid. */
-.overlay-rewards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.207%; height: 100vh; }
-
-.overlay-rewards .slip {
-  gap: .3rem; padding: .55rem .7rem; animation: none;
-  /* The slip keeps the base slip's opaque touchstone. The overlay is a window of its own over the
-     game, so a backdrop blur has no game pixels to soften, and any see-through share lets the
-     text under the cards, including squadmates' names, show through the slip. */
-  box-shadow: inset 0 0 0 1px rgb(232 235 239 / 16%);
-  /* The window's size is fixed, so this stops a line that outgrows its column from painting over
-     the next slip; the ledger wraps inside the column long before that. */
-  overflow: hidden;
-}
-.overlay-rewards .slip { grid-template-rows: auto 1fr auto; }
-.overlay-rewards .slip-lot { display: none; }
-.overlay-rewards .slip-name { font-size: .82rem; line-height: 1.12; white-space: normal; }
-.overlay-rewards .metals { gap: .5rem; padding-top: .35rem; }
-.overlay-rewards .metal-figure { font-size: 1.75rem; }
-.overlay-rewards .metal-mark { height: 1.45rem; }
-.overlay-rewards .metal-label { font-size: .5rem; letter-spacing: .12em; }
-.overlay-rewards .metal-hallmark { margin-top: .15rem; padding: .18rem .34rem .38rem; font-size: .46rem; }
-.overlay-rewards .marks { flex-wrap: nowrap; overflow: hidden; }
-/* Never let the reading we distrust be the mark that falls off the end. */
-.overlay-rewards .hallmark.doubt { order: -1; }
-.overlay-rewards .hallmark { padding: .2rem .38rem .42rem; font-size: .48rem; }
-/* A 1080p overlay is 180px tall, which leaves no room for a ledger on two lines: the word stacks
-   beside its set row instead, and a five-part set draws its shapes 2px smaller to fit the width. */
-@media (max-height: 190px) {
-  .overlay-rewards .ledger:has(.set-row) .ledger-word { width: min-content; }
-  .overlay-rewards .ledger:has(.set-slot:nth-child(5)) .set-glyph { width: 1.625rem; height: 1.625rem; }
-  .overlay-rewards .ledger:has(.set-slot:nth-child(5)) .set-glyph + .set-glyph { margin-left: -1rem; }
-}
-
-.overlay-empty {
-  display: grid; place-content: center; justify-items: center; gap: .3rem; height: 100vh;
-  background: var(--touchstone); box-shadow: inset 0 0 0 1px rgb(232 235 239 / 16%);
-  font-family: var(--face-register); font-size: .6rem; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--platinum-deep); text-align: center;
-}
-.overlay-empty strong { font-size: .68rem; font-weight: 700; color: var(--platinum-dim); }
-
-/* responsive */
-
-/* The window ships at 1180x760, not at an ideal 1080-tall viewport. On a short
-   viewport the field compresses so the register is reachable without scrolling;
-   on a large monitor it stays wide open. Operate mode: the task outranks the air. */
-@media (max-height: 840px) {
-  .sheet { padding-top: var(--course); padding-bottom: var(--field); }
-  .page { gap: var(--course); }
-  .band-cell { padding-block: var(--step); }
-  .band-label { margin-top: var(--tight); }
-  .register { gap: var(--step); }
-  .certificate .office { margin-bottom: var(--course); }
-  .clause-pair { margin: var(--course) 0; }
-  .clause { padding: var(--step) 0; }
-  .stages li { padding: .7rem 0; }
-}
-
-@media (max-width: 980px) {
-  .mark-head { grid-template-columns: 1fr; gap: var(--step); }
-  .mark-head .prose { padding-bottom: 0; }
-}
-
-@media (max-width: 900px) {
-  .assay-band, .assay-band.with-ducats { grid-template-columns: 1fr; }
-  .assay-band.with-ducats .band-figure { font-size: clamp(2.5rem, 5vw, 4rem); }
-  .band-cell { padding: var(--step) 0; border-top: 1px solid var(--rule); }
-  .band-cell:first-child { border-top: 0; }
-  .band-cell + .band-cell { padding-left: 0; border-left: 0; }
-  .clause-pair { grid-template-columns: 1fr; }
-  .access-detail-grid { grid-template-columns: 1fr; }
-  .access-detail-grid section + section { border-top: 1px solid var(--rule); border-left: 0; }
-  .assay-list { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 640px) {
-  .access-stepper { padding-inline: var(--tight); }
-  .access-stops { gap: 0; }
-  .access-stop { padding-inline: .35rem; }
-  .access-stop strong { min-width: 0; font-size: clamp(.9rem, 3.8vw, 1.2rem); }
-  .access-stop small { font-size: .62rem; }
-  .access-detail-head { grid-template-columns: 1fr; gap: var(--tight); align-items: start; }
-  .access-detail ul { grid-template-columns: 1fr; }
-  .access-detail-body, .access-always-off { align-items: flex-start; }
-  .access-detail-body { flex-direction: column; }
-  .access-detail-body .stamp { width: 100%; }
-  .access-always-off { grid-template-columns: 1fr; }
-  .access-always-off ul { grid-template-columns: 1fr; justify-content: start; }
-  .certificate-sheet { padding-inline: var(--step); }
-  .certificate:has(.access-selector) h1 { font-size: clamp(2.4rem, 12vw, 4.5rem); }
-  .certificate:has(.access-selector) .seal { position: static; }
-  /* On compact widths the three desktop masthead rows remain distinct. Navigation becomes a
-     discoverable horizontal strip only after equal labels genuinely cannot fit. */
-  .office-role { display: none; }
-  .masthead-work { padding-inline: var(--step); overflow-x: auto; scrollbar-width: thin; }
-  .hallmark-row { display: flex; width: max-content; }
-  .masthead-state { flex-wrap: wrap; gap: var(--tight); padding-inline: var(--step); }
-  /* The reader's own verdict, kept for anyone not looking at this width. display:none dropped it
-     from the accessibility tree as well as the screen, so the one line explaining why the app
-     believes what it believes disappeared with no fallback. Clipped instead, on the .sr-only
-     recipe from index.css, which keeps it in the accessibility tree. */
-  .assay-state-text small {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-  }
-  .date-letter { flex: none; padding-left: var(--tight); font-size: .55rem; }
-  /* Collapse to the glyph only. sr-only, never display:none. These buttons take
-     their accessible name from this text, and the Preview buttons have no glyph
-     at all, so the rule is scoped to the masthead. */
-  .masthead .stamp { flex: none; padding: .6rem .7rem; }
-  .masthead .stamp > span,
-  .punch-name {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-  }
-  .punch-face { padding: .7rem .95rem 1.05rem; }
-  .punch-glyph { width: 1.05rem; height: 1.05rem; }
-  .clause { grid-template-columns: 1fr; gap: var(--tight); }
-  .dial { flex-direction: column; align-items: flex-start; gap: var(--tight); }
-  .dial-slot { width: 100%; }
-  .register-controls { flex-direction: column; }
-  /* flex-basis is the main axis: in a column this would become a 22rem HEIGHT. */
-  .search-slot { flex: none; }
-  .sort-slot select { flex: 1; }
-  /* A switch keeps its own width where the tally chips stretch: it is one control with a label,
-     not one option among a row of them. */
-  .display-switch { align-self: flex-start; }
-  .register-bar { gap: var(--tight); }
-  .tally { width: 100%; }
-  .tally button { flex: 1; padding-inline: .3rem; }
-  .provenance-row { flex-direction: column; align-items: flex-start; }
-  .register-status { flex-direction: column; align-items: flex-start; gap: var(--hair); }
-  .register-status > .register-line + .register-line { padding-left: 0; border-left: 0; }
-  .metals { gap: var(--tight); }
-}
+.access-observation h3 { margin: 0 0 6px; color: var(--text-dim); font-size: .8125rem; font-weight: 600; }
+.access-caution { max-width: 70ch; margin: 10px 0 0; color: var(--text); font-size: .8125rem; line-height: 1.5; }
+.access-detail ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.access-detail li { position: relative; padding-left: 14px; color: var(--text-dim); font-size: .8125rem; }
+.access-detail li::before { position: absolute; top: .6em; left: 2px; width: 5px; height: 5px; content: ''; border-radius: 50%; background: var(--accent); }
+.access-always-off { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px var(--step); align-items: baseline; padding: var(--tight) 12px; color: var(--text-faint); }
+.access-always-off h3 { margin: 0; color: var(--text-dim); font-size: .8125rem; font-weight: 600; white-space: nowrap; }
+.access-always-off ul { display: flex; flex-wrap: wrap; gap: 4px var(--step); margin: 0; padding: 0; list-style: none; }
+.access-always-off li { font-size: .8125rem; }
 
 /* orders */
 
-/* Sign-in and paste-token stand as equal columns: same card, same weight, nothing marked
-   "recommended". The clause-pair grid already does this for the setup screen's two clauses.
-
-   Both cards are columns whose form fills the leftover height, so the two submit buttons strike
-   one line across the pair no matter that one card holds two fields and the other holds one. A
-   grid cell with no internal layout floats the shorter card's button up to meet its own last
-   field, which reads as the two paths being different sizes rather than equal choices. */
-.clause-pair article { display: flex; flex-direction: column; }
-.clause-pair article form { display: flex; flex: 1; flex-direction: column; }
-/* `align-self` because a flex column stretches its children: the stamp is a stamp, not a banner,
-   and it was shrink-to-fit in the block context this replaces. */
-.clause-pair form .dial-slot:last-of-type { margin-bottom: var(--step); }
+.clause-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--tight); }
+/* Equal columns whose forms fill the leftover height, so the two submit buttons line up. */
+.clause-pair article, .presence, .new-listing {
+  display: flex; flex-direction: column; gap: var(--tight); padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2);
+}
+.clause-pair h2, .new-listing-head > h2 { margin: 0; font-size: .9375rem; font-weight: 600; }
+.clause-pair article form { display: flex; flex: 1; flex-direction: column; gap: var(--tight); }
 .clause-pair form .stamp { margin-top: auto; align-self: flex-start; }
-/* `flex: none` overrides the shared `.dial-slot` rule's `flex: 1 1 auto`, which is right in the
-   settings row it was written for and wrong in a column: it lets the fields absorb the free
-   height and drift apart from each other as the neighbouring card grows. The free space belongs
-   to one place, above the button, so the fields stay a group. */
-.clause-pair .dial-slot { flex: none; flex-direction: column; align-items: flex-start; gap: .3rem; width: 100%; margin-block: var(--hair); }
-.clause-pair .dial-slot > span:first-child {
-  font-family: var(--face-register); font-size: .62rem; font-weight: 600;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--platinum-deep);
-}
-.clause-pair .dial-slot input { width: 100%; padding: .55rem .7rem; border: 1px solid var(--rule-control); border-radius: 0; background: var(--plate); color: var(--platinum); font-family: var(--face-register); font-size: .78rem; }
-.clause-pair .dial-slot input:focus-visible { outline: 2px solid var(--platinum-deep); outline-offset: 1px; }
+.clause-pair .dial-slot, .sell-form .dial-slot, .new-listing .dial-slot { flex-direction: column; align-items: stretch; gap: 4px; }
+.clause-pair .dial-slot, .new-listing .dial-slot { flex: none; }
+.dial-slot > span:first-child { color: var(--text-dim); font-size: .8125rem; }
 
-/* The token instructions: needed once, by the people taking that path. Open, they push the form
-   down rather than covering it, so the field being explained stays on screen while the steps are
-   read. The marker is the product's own cartouche rather than the platform triangle. */
-.token-help { margin: var(--step) 0; }
-.token-help summary {
-  display: flex; align-items: center; gap: .45rem;
-  font-family: var(--face-register); font-size: .62rem; font-weight: 600;
-  letter-spacing: .1em; text-transform: uppercase; color: var(--platinum-deep);
-  cursor: pointer; list-style: none; transition: color .12s ease;
-}
-.token-help summary::-webkit-details-marker { display: none; }
-.token-help summary::before {
-  flex: none; width: .5rem; height: .58rem; content: '';
-  background: var(--platinum-deep); clip-path: var(--cartouche);
-  transition: background .12s ease, transform .16s cubic-bezier(.16, 1, .3, 1);
-}
-.token-help summary:hover { color: var(--platinum); }
-.token-help summary:hover::before { background: var(--platinum); }
-.token-help summary:focus-visible { outline: 2px solid var(--platinum-deep); outline-offset: 3px; }
-.token-help[open] summary::before { transform: rotate(90deg); }
-.token-help ol {
-  margin: var(--step) 0 0; padding-left: 1.1rem;
-  color: var(--platinum-dim); font-size: .76rem; line-height: 1.7;
-}
-.token-help ol b { color: var(--platinum); font-weight: 600; }
-.token-help kbd {
-  padding: .05rem .3rem; border: 1px solid var(--rule);
-  background: var(--plate); color: var(--platinum);
-  font-family: var(--face-register); font-size: .68rem;
-}
-/* The one caution on the screen, in the tone the product reserves for a real consequence. */
-.token-help > p {
-  margin: var(--step) 0 0; padding-left: var(--step);
-  border-left: 1px solid var(--gold);
-  color: var(--platinum-deep); font-size: .74rem; line-height: 1.6;
-}
+.token-help ol { margin: var(--tight) 0 0; padding-left: 1.2rem; color: var(--text-dim); font-size: .8125rem; line-height: 1.6; }
+.token-help ol b { color: var(--text); font-weight: 600; }
+.token-help kbd { padding: 0 4px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg-1); font: .75rem ui-monospace, monospace; }
+.token-help > p { margin: var(--tight) 0 0; padding-left: 10px; border-left: 1px solid var(--warn); color: var(--text-dim); font-size: .8125rem; }
 
-/* the docket (orders)
-
-   An order is a ledger line, not a holding. It has no art to show, and its figures are read down
-   a column (price against price, quantity against quantity), so the columns are fixed rather
-   than flowed. The collection's card grid was the wrong container: it reserves 5.5rem for an
-   image well nothing fills, and drops the row's action outside its own two columns. */
-.docket {
-  display: grid; margin: 0; padding: 0; list-style: none;
-  border-top: 1px solid var(--rule);
+.relink {
+  display: grid; gap: 12px; padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 5%, var(--bg-1));
 }
+.relink > h2 { margin: 0; color: var(--danger); font-size: 1rem; font-weight: 600; }
+
+/* An order is a ledger line: fixed columns so prices and quantities read down a column. */
+.docket { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .docket-line {
-  display: grid; align-items: center; gap: var(--step);
-  grid-template-columns: .6rem minmax(0, 1fr) auto auto minmax(0, 11rem) minmax(0, 17rem);
-  padding: var(--step) var(--step) var(--step) 0;
-  background: var(--touchstone); border-bottom: 1px solid var(--rule);
-  transition: background .12s ease;
+  display: grid; align-items: center; gap: 12px;
+  grid-template-columns: 8px minmax(0, 1fr) auto auto minmax(0, 11rem) minmax(0, 17rem);
+  padding: var(--tight) 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2);
 }
-.docket-line:hover { background: var(--plate); }
+.docket-line:hover { border-color: var(--line-strong); }
+/* A flagged row carries a mark the others lack, a red claim, and a tinted ground. */
+.line-mark { width: 8px; height: 8px; border-radius: 50%; }
+.line-mark.flagged { background: var(--danger); }
+.docket-line.doubt { border-color: color-mix(in srgb, var(--danger) 40%, transparent); background: color-mix(in srgb, var(--danger) 6%, var(--bg-2)); }
+.line-name { margin: 0; min-width: 0; overflow: hidden; font-size: .9rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.line-figure { display: inline-flex; align-items: center; gap: 4px; color: var(--platinum); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.line-figure i { color: var(--text-faint); font-size: .8125rem; font-style: normal; font-weight: 400; }
+.line-value { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 4.5rem; color: var(--text-dim); font-size: .875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.line-value em { color: var(--text-faint); font-size: .75rem; font-style: normal; }
+.line-claim { min-width: 0; overflow: hidden; color: var(--danger); font-size: .8125rem; text-overflow: ellipsis; white-space: nowrap; }
+.line-fix { display: flex; justify-content: flex-end; gap: 4px; min-width: 0; }
+.line-fix .stamp { min-height: 30px; white-space: nowrap; }
+.docket-line .sell-form { grid-column: 1 / -1; }
 
-/* The claim is struck as a shape as well as a colour, so a flagged row survives the hue being
-   removed. Same failed-assay mark the health rows use: this is the one place in the product that
-   says a listing is wrong, and it should say so in the vocabulary already established for it.
-   The slot is reserved on every row, so the names line up regardless. */
-.line-mark { width: .6rem; height: .7rem; }
-.line-mark.struck {
-  background: var(--oxblood);
-  clip-path: polygon(20% 0, 50% 34%, 80% 0, 100% 24%, 68% 56%, 100% 88%, 80% 100%, 50% 72%, 20% 100%, 0 88%, 32% 56%, 0 24%);
-}
-/* A flagged listing reads as different at a glance without turning the whole row into a
-   warning: the struck mark at .line-mark states the claim, the claim text takes the oxblood, and
-   the row itself only gets a wash in the same tone so it separates from the ordinary rows around
-   it. A coloured edge on the row is deliberately absent: the sheet rejects side stripes by name,
-   over in the .clause.caution note, and the row already carries shape and tint, never colour
-   alone. */
-.docket-line.doubt { background: rgb(221 111 96 / 6%); }
-.docket-line.doubt:hover { background: rgb(221 111 96 / 9%); }
+.sell-form { display: flex; flex-wrap: wrap; gap: var(--tight); padding-top: var(--tight); border-top: 1px solid var(--line); }
+.sell-form .dial-slot { flex: 1 1 5.5rem; min-width: 5rem; }
+.sell-visible { display: flex; flex: 1 0 100%; align-items: center; gap: var(--tight); color: var(--text-dim); font-size: .8125rem; cursor: pointer; }
+.sell-actions { display: flex; flex: 1 0 100%; gap: 6px; }
+.new-listing .sell-form { padding-top: 0; border-top: 0; }
+.new-listing-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.new-listing-chosen { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--tight); margin: 0; font-size: .875rem; }
+.new-listing-chosen > i { color: var(--text-faint); font-size: .8125rem; font-style: normal; }
 
-.line-name {
-  margin: 0; min-width: 0; overflow: hidden;
-  font-family: var(--face-mark); font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em;
-  line-height: 1.15; text-transform: uppercase; color: var(--platinum);
-  text-overflow: ellipsis; white-space: nowrap;
+.pick-list { display: flex; flex-direction: column; margin: 0; padding: 0; overflow: hidden; list-style: none; border: 1px solid var(--line); border-radius: var(--radius); }
+.pick-list > li + li { border-top: 1px solid var(--line); }
+.pick-list button {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px; width: 100%;
+  padding: var(--tight) 10px; border: 0; background: none; color: var(--text); font: inherit; font-size: .875rem; text-align: left; cursor: pointer;
 }
+.pick-list button:hover:not(:disabled) { background: var(--accent-soft); }
+.pick-list button:focus-visible { outline-offset: -2px; }
+.pick-held { flex: none; color: var(--text-faint); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.pick-empty, .pick-more { margin: 0; color: var(--text-dim); font-size: .8125rem; }
 
-/* Tabular, so the platinum figures form a column that can be scanned rather than read. The
-   multiplier sits back from the price: it qualifies the figure, it is not a second one. */
-.line-figure {
-  display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap;
-  font-family: var(--face-mark); font-size: 1rem; font-weight: 700; letter-spacing: -.01em;
-  font-variant-numeric: tabular-nums; color: var(--platinum);
-}
-.line-metal { flex: none; height: 1.05rem; width: auto; user-select: none; }
-.line-figure i {
-  font-family: var(--face-register); font-style: normal; font-size: .58rem; font-weight: 600;
-  letter-spacing: .1em; color: var(--platinum-deep);
-}
+.presence-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.presence-label { font-size: .9375rem; font-weight: 600; }
+.presence-auto { display: flex; align-items: center; gap: var(--tight); color: var(--text-dim); font-size: .8125rem; cursor: pointer; }
+.presence-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Under automatic the row reports the status in force rather than offering it. */
+.presence-choices[data-auto] .stamp:disabled { opacity: 1; }
+.presence-choices[data-auto] .stamp:disabled:not([aria-pressed="true"]) { opacity: .45; }
+.presence .stamp[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.presence-note { margin: 0; color: var(--text-dim); font-size: .8125rem; }
 
-/* What this row puts into the headline total, in a quieter weight than the asking price: the price
-   is the thing the player set, this is the arithmetic done to it. A row contributing nothing says
-   which of the two reasons applies, in the register face the product strikes rather than writes. */
-.line-value {
-  display: inline-flex; align-items: center; gap: .3rem; justify-content: flex-end;
-  min-width: 4.5rem; white-space: nowrap;
-  font-family: var(--face-mark); font-size: .85rem; font-weight: 700;
-  font-variant-numeric: tabular-nums; color: var(--platinum-dim);
-}
-.line-value .line-metal { height: .9rem; }
-.line-value em {
-  font-family: var(--face-register); font-style: normal; font-size: .58rem; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase; color: var(--platinum-deep);
-}
+/* responsive */
 
-/* The row states its own case, in the register face the product uses for anything struck rather
-   than written. Empty on an ordinary row, including an unverifiable one which has nothing to
-   say, and the column holds its width so the rows below do not shift. */
-.line-claim {
-  min-width: 0; overflow: hidden;
-  font-family: var(--face-register); font-size: .58rem; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--oxblood);
-  text-overflow: ellipsis; white-space: nowrap;
-}
-/* Reserved whether or not a fix is offered. A button that appeared and vanished between refreshes
-   would move every row beneath it, and the refresh runs after every write. */
-.line-fix { display: flex; gap: var(--hair); justify-content: flex-end; min-width: 0; }
-.line-fix .stamp { white-space: nowrap; }
-/* The edit form takes the row's whole width as its own line, beneath the figures it changes: the
-   row's grid keeps its columns, and the form rules itself off from them. */
-.docket-line .sell-form { grid-column: 1 / -1; border-top: none; border-bottom: 1px solid var(--rule); padding-bottom: var(--tight); }
-/* A press away from destroying a listing the player did not flag. Oxblood is the product's word
-   for a claim against a listing, and this is the one moment an ordinary row makes one. */
-.line-fix .stamp.armed {
-  border-color: var(--oxblood);
-  color: var(--oxblood);
-}
-
-/* Three cells, not the collection's four: the band divides the width it is given. */
-.orders-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.band-cell.flagged .band-figure { color: var(--oxblood); }
-.band-cell.flagged[data-count="0"] .band-figure { color: var(--platinum-dim); }
-/* "Linked" is a word, not a reading; at the figure's full size it shouts across a band whose
-   other cells are counts. */
-.band-cell.backing .band-figure { font-size: clamp(1.5rem, 2.4vw, 2rem); color: var(--platinum-dim); }
-
+/* Below 900px the sidebar keeps its icons only; every label stays in the accessibility tree.
+   64px leaves a count badge room beside the icon rather than on it. */
 @media (max-width: 900px) {
-  /* The claim moves under the name rather than competing with it for a width neither can hold,
-     and the figure keeps its own column so the prices still align. */
-  .docket-line {
-    grid-template-columns: .6rem minmax(0, 1fr) auto auto;
-    row-gap: var(--tight);
+  .shell { grid-template-columns: 64px minmax(0, 1fr); }
+  .sidebar { padding: var(--tight) 6px; }
+  .nav-item { justify-content: center; padding: 0; }
+  .nav-label, .update-text { display: none; }
+  .nav-count { position: absolute; top: 1px; right: 1px; min-width: 16px; padding: 0 4px; line-height: 16px; }
+  .reader { justify-content: center; }
+  .reader-text, .snapshot-age, .refresh-label {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
   }
+  .refresh { padding: 0; }
+  .update-mark { justify-content: center; padding: 6px; }
+  .content { padding-inline: var(--step); }
+  .clause-pair { grid-template-columns: 1fr; }
+  .docket-line { grid-template-columns: 8px minmax(0, 1fr) auto auto; row-gap: var(--tight); }
   .line-claim { grid-column: 2 / -1; }
   .line-fix { grid-column: 2 / -1; justify-content: flex-start; }
-  /* The name is what the row is, so at this width it wraps rather than clipping. On the desktop
-     grid it holds a fixed column beside three others and the ellipsis is the right answer; here
-     it has the row to itself and there is nothing to protect it from. */
   .line-name { overflow: visible; white-space: normal; text-overflow: clip; }
-  .orders-band { grid-template-columns: 1fr; }
 }
 
-/* The refusal and its remedy are one block, not two sections with a page fold between them. */
-.relink {
-  display: grid; gap: var(--step);
-  padding: var(--course); margin-bottom: var(--course);
-  border: 1px solid rgb(221 111 96 / 32%); background: rgb(221 111 96 / 5%);
+@media (max-width: 640px) {
+  .search { flex-basis: 100%; max-width: none; }
+  .dial { flex-direction: column; align-items: flex-start; gap: var(--tight); }
+  .dial-slot { width: 100%; }
+  .access-stops { gap: 0; }
+  .access-stop { padding-inline: 4px; }
+  .access-detail-body { flex-direction: column; align-items: stretch; }
+  .access-always-off { grid-template-columns: 1fr; }
+  .setup { padding: var(--step); }
+  .setup-confirm { position: static; }
 }
-.relink > h2 {
-  margin: 0; font-family: var(--face-mark); font-size: 1.4rem; font-weight: 700;
-  letter-spacing: -.015em; text-transform: uppercase; color: var(--oxblood);
-}
-/* The pair sits inside the block, so it drops the standalone margin it carries on the unlinked
-   screen and the hairline it would otherwise draw against the block's own border. */
-.relink .clause-pair { margin: 0; }
 
-/* sell listing */
+@media (prefers-reduced-motion: reduce) {
+  /* The position is the reading, so it still moves; only its travel is removed. */
+  .display-thumb, .access-track-progress, .access-thumb { transition: none; }
+}
 
-/* Publishing sits below the card's marks, not among them: the marks state what is held, and a
-   control that changes a real account elsewhere is not one more fact about the item. It appears
-   only on cards that can actually be listed, so the grid does not fill with disabled stamps. */
-.sell-open { align-self: flex-start; }
+@media (forced-colors: active) {
+  [aria-pressed="true"], [aria-current="page"], .access-stop.selected { outline: 2px solid Highlight; outline-offset: -2px; }
+  .display-track, .display-thumb { forced-color-adjust: none; }
+  .update-mark { border-color: ButtonText; }
+  .update-dot { background: ButtonText; }
+}
 
-/* The form takes the card's own width and rules itself off from the marks above. Two narrow
-   number fields sit on one line: platinum and quantity are read together, as a price is. */
-.sell-form {
-  display: flex; flex-wrap: wrap; gap: var(--tight);
-  margin-top: var(--tight); padding-top: var(--tight); border-top: 1px solid var(--rule);
+/* A coarse pointer (the Steam Deck's touch screen): every control the main window offers is at
+   least 44px tall, and the title bar grows to hold its window controls. */
+@media (pointer: coarse) {
+  .shell, .setup-shell { grid-template-rows: 44px minmax(0, 1fr); }
+  .nav-item, .stamp, .chip, .segmented button, .display-switch, .update-mark,
+  .link-button, .search input, .select select, .pagination button, .window-control,
+  .status-line .price-page, .line-fix .stamp, summary,
+  .presence-auto, .sell-visible, .check-row { min-height: 44px; }
+  .check-row { align-items: center; }
+  .pagination button { min-width: 44px; }
 }
-.sell-form .dial-slot { flex: 1 1 5.5rem; flex-direction: column; align-items: flex-start; gap: .3rem; min-width: 5rem; }
-.sell-form .dial-slot > span:first-child {
-  font-family: var(--face-register); font-size: .56rem; font-weight: 600;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--platinum-deep);
-}
-.sell-form .dial-slot input, .new-listing .dial-slot input {
-  width: 100%; padding: .45rem .6rem; border: 1px solid var(--rule-control); border-radius: 0;
-  background: var(--plate); color: var(--platinum);
-  font-family: var(--face-register); font-size: .74rem; font-variant-numeric: tabular-nums;
-}
-.sell-form .dial-slot input:focus-visible, .new-listing .dial-slot input:focus-visible { outline: 2px solid var(--platinum-deep); outline-offset: 1px; }
-.sell-visible {
-  display: flex; flex: 1 0 100%; align-items: center; gap: .45rem;
-  font-family: var(--face-register); font-size: .62rem; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--platinum-dim); cursor: pointer;
-}
-.sell-visible input { accent-color: var(--gold); }
-.sell-actions { display: flex; flex: 1 0 100%; gap: var(--hair); }
 
-/* On the orders screen the same form follows an item picker, in a ruled band of its own: it is
-   an action on the account rather than a row of it, so it does not sit inside the docket. */
-.new-listing {
-  display: flex; flex-direction: column; gap: var(--tight);
-  margin-block: var(--step); padding: var(--step); background: var(--touchstone);
-}
-.new-listing .dial-slot { flex: none; flex-direction: column; align-items: flex-start; gap: .3rem; }
-.new-listing .dial-slot > span:first-child {
-  font-family: var(--face-register); font-size: .62rem; font-weight: 600;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--platinum-deep);
-}
-.new-listing .sell-form { margin-top: 0; padding-top: 0; border-top: 0; }
-.new-listing-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--step); }
-.new-listing-head > h2 {
-  margin: 0; font-family: var(--face-register); font-size: .62rem; font-weight: 700;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--platinum-deep);
-}
-/* The chosen item is stated as a line of the register, not left implied by a filled field: the
-   form below asks for a price, and a price is meaningless without the name it is being set on. */
-.new-listing-chosen {
-  display: flex; align-items: baseline; gap: .5rem; margin: 0;
-  font-size: .86rem; color: var(--platinum);
-}
-.new-listing-chosen > i { color: var(--platinum-deep); font-size: .74rem; font-style: normal; }
-.link-button {
-  padding: 0; border: 0; background: none; color: var(--platinum-dim);
-  font: inherit; font-size: .74rem; text-decoration: underline;
-  text-underline-offset: .2em; cursor: pointer;
-}
-.link-button:hover:not(:disabled) { color: var(--gold); }
-.link-button:disabled { cursor: default; opacity: .5; }
+/* ------------------------------------------------------------------------------------------
+   Reward slips, on the Rewards page and over the game, then the kiosk chips.
+   Every size on a slip is a count of `--u`, one design pixel of the 1080p overlay: 1px on the
+   Rewards page, `100vh / 180` in the overlay window (RewardOverlay.tsx), so the strip scales with
+   the screen's height as the game's cards do. Slip text is 15u and never under 12px, which is the
+   size that holds at 800p, where 15u alone would be 11px.
+   ------------------------------------------------------------------------------------------ */
 
-/* Matches, as ruled lines rather than a floating menu. There are at most eight, they appear
-   directly under the field that produced them, and nothing about them needs to overlay the page. */
-.pick-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
-.pick-list > li + li { border-top: 1px solid var(--rule); }
-.pick-list button {
-  display: flex; align-items: baseline; justify-content: space-between; gap: var(--step);
-  width: 100%; padding: .5rem .6rem; border: 0; background: none; color: var(--platinum);
-  font: inherit; text-align: left; cursor: pointer;
+/* A column, not a grid: the foot line pins to the bottom whatever the name and ledger hold. */
+.slip {
+  display: flex; flex-direction: column; gap: calc(6 * var(--u)); min-width: 0;
+  padding: calc(6 * var(--u)) calc(10 * var(--u));
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2);
+  font-size: max(12px, calc(15 * var(--u))); line-height: 1.2; font-variant-numeric: tabular-nums;
 }
-.pick-list button:hover:not(:disabled), .pick-list button:focus-visible {
-  outline: none; background: var(--platinum); color: var(--touchstone);
+/* Two lines reserved whether the name needs them or not, so the figures land at the same y across
+   the four columns a player scans sideways under a countdown. */
+.slip-name {
+  margin: 0; min-height: 2.3em; max-height: 2.3em; overflow: hidden;
+  font-size: 1em; font-weight: 600; line-height: 1.15; color: var(--text); text-wrap: balance;
 }
-.pick-name { font-size: .86rem; }
-.pick-held {
-  flex: none; font-family: var(--face-register); font-size: .62rem; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--platinum-deep); font-variant-numeric: tabular-nums;
-}
-.pick-list button:hover:not(:disabled) .pick-held, .pick-list button:focus-visible .pick-held { color: var(--touchstone); }
-.pick-empty, .pick-more { margin: 0; color: var(--platinum-dim); font-size: .76rem; line-height: 1.5; }
 
-/* presence */
+/* Two metals, appraised at equal weight. This is the product's whole point. */
+.metals {
+  display: grid; grid-template-columns: 1fr 1fr; gap: calc(8 * var(--u));
+  padding-top: calc(6 * var(--u)); border-top: 1px solid var(--line);
+}
+.metal { display: grid; justify-items: start; gap: calc(3 * var(--u)); min-width: 0; }
+.metal-value { display: flex; align-items: center; gap: calc(4 * var(--u)); height: calc(28 * var(--u)); }
+.metal-figure { font-size: calc(28 * var(--u)); font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+.metal.plat .metal-figure { color: var(--platinum); }
+.metal.ducat .metal-figure { color: var(--gold); }
+/* An unknown price is dimmer than a real one, but never below AA: the player has to see that no
+   price is known. */
+.metal.plat .market-pending { color: var(--text-faint); }
+/* The game's own icon, kept at the 18px its dark chip needs to read: 25u is 18.5px at 800p.
+   Height-normalised with `width: auto`, because the canister is wide and the sigil tall. */
+.metal-mark { flex: none; height: calc(25 * var(--u)); width: auto; user-select: none; }
+/* The word and the crown that replaces it share one row height, so a card that wins nothing keeps
+   its figures level with a card that wins both. The winner is marked in the metal it won. */
+.metal-label, .metal-hallmark { display: inline-flex; align-items: center; height: calc(20 * var(--u)); font-weight: 600; white-space: nowrap; }
+.metal-label { color: var(--text-dim); }
+.metal-hallmark { padding: 0 calc(5 * var(--u)); border-radius: var(--radius-sm); color: var(--bg-0); }
+.metal.plat .metal-hallmark { background: var(--platinum); }
+.metal.ducat .metal-hallmark { background: var(--gold); }
 
-/* A row of struck choices rather than a dropdown: there are four, they are mutually exclusive,
-   and which one is current is the thing the player came here to read. A select hides that behind
-   a click. The struck stamp is the register's own way of saying "this one". */
-.presence {
-  display: flex; flex-direction: column; gap: var(--tight);
-  margin-block: var(--step); padding: var(--step); background: var(--touchstone);
+/* The slip's foot: ownership and doubt, or what the collection knows about the item this reward
+   builds. Both wrap inside the column rather than run under the next slip. Colour never carries a
+   state alone: every tag says its state in words. */
+.marks, .ledger { display: flex; flex-wrap: wrap; align-items: flex-end; gap: calc(4 * var(--u)); min-width: 0; margin-top: auto; }
+.hallmark {
+  display: inline-flex; align-items: center; height: calc(20 * var(--u)); padding: 0 calc(5 * var(--u));
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  color: var(--text-dim); font-weight: 600; white-space: nowrap;
 }
-/* The mode sits opposite the label, above the row it governs. Automatic is not a fifth status;
-   it is who is choosing among the four, so it is not offered as one more of them. */
-.presence-head { display: flex; align-items: center; justify-content: space-between; gap: var(--step); flex-wrap: wrap; }
-.presence-label {
-  font-family: var(--face-register); font-size: .62rem; font-weight: 600;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--platinum-deep);
+.hallmark.owned { color: var(--text); }
+.hallmark.absent, .hallmark.unverifiable { border-style: dashed; color: var(--text-faint); }
+.hallmark.doubt {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger);
 }
-.presence-auto {
-  display: flex; align-items: center; gap: .45rem;
-  font-family: var(--face-register); font-size: .62rem; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--platinum-dim); cursor: pointer;
+
+/* The padding reserves the room the set row's tick hangs into, below the row's own box. */
+.ledger { padding-bottom: calc(4 * var(--u)); }
+.ledger-word { display: inline-flex; align-items: center; min-height: calc(20 * var(--u)); font-weight: 600; color: var(--text-dim); }
+.ledger[data-tone="loud"] .ledger-word { color: var(--text); }
+/* The word inverts onto platinum rather than gaining a hue. Scoped under `.ledger` because the loud
+   tone above would otherwise repaint the ink of a word whose ground is already platinum. */
+.ledger .ledger-word.inverted { padding: 0 calc(5 * var(--u)); border-radius: var(--radius-sm); background: var(--platinum); color: var(--bg-0); }
+
+/* The set behind a reward: the game's own part art as one-metal silhouettes, so the shapes are ones
+   the player already knows. Solid is held, faint is not; the tick marks this slot. */
+.set-row {
+  display: inline-flex; flex-wrap: wrap; align-items: flex-end; gap: calc(6 * var(--u)) calc(3 * var(--u));
+  margin: 0 0 0 auto; padding: 0; list-style: none; color: var(--platinum);
 }
-.presence-auto input { accent-color: var(--gold); }
-.presence-choices { display: flex; flex-wrap: wrap; gap: var(--hair); }
-/* Under automatic the row still says which status is in force, but it is being reported rather
-   than offered, so it reads as a readout, without the disabled controls going invisible. */
-.presence-choices[data-auto] .stamp:disabled { opacity: 1; }
-.presence-choices[data-auto] .stamp:disabled:not(.struck) { opacity: .45; }
-.presence-note { margin: 0; color: var(--platinum-dim); font-size: .76rem; line-height: 1.5; }
-/* The current choice is inverted, not merely tinted: `aria-pressed` carries it for a reader, and
-   a filled face carries it for everyone else without asking anyone to compare two greys. */
-.presence .stamp.struck { background: var(--platinum); border-color: var(--platinum); color: var(--touchstone); }
-.presence .stamp.struck:hover:not(:disabled) { background: var(--gold); border-color: var(--gold); }
-.presence-choices[data-auto] .stamp.struck:disabled { background: var(--gold); border-color: var(--gold); color: var(--touchstone); }
+.set-slot { position: relative; display: flex; align-items: center; }
+.set-glyph {
+  display: block; flex: none; width: calc(28 * var(--u)); height: calc(28 * var(--u)); background-color: currentColor;
+  -webkit-mask-position: center; mask-position: center; -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+}
+svg.set-glyph { background: none; fill: currentColor; padding: calc(2 * var(--u)); }
+.set-glyph[data-held="false"] { opacity: .4; }
+.set-glyph + .set-glyph { margin-left: calc(-18 * var(--u)); } /* a pair: the second copy rides 10u over the first */
+.set-slot[data-this]::after { content: ''; position: absolute; left: calc(3 * var(--u)); right: calc(3 * var(--u)); bottom: calc(-4 * var(--u)); height: 2px; background: currentColor; }
+.set-count { margin-left: calc(2 * var(--u)); font-weight: 600; line-height: 1; color: var(--text-dim); }
+
+/* overlay
+   Sized to the game's card block, one column per card the game drew, so a column here is a card
+   there. The 0.207% gap is the game's own 2px-in-242 card spacing as a fraction.
+   Height budget in u, worst case (a ledger whose set row wraps under its word): 6 + 34.5 name
+   + 6 + 57 metals + 6 + 56 ledger + 6 = 171.5u and 3px of rules, inside 180u at any height. Under
+   the 12px floor (below 864p) the name is 27.6px instead of 34.5u: 131.8px of the 133px at 800p. */
+
+.overlay-shell { min-height: 100vh; padding: 0; overflow: hidden; background: transparent; }
+.overlay-rewards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.207%; height: 100vh; }
+/* Nearly opaque: the overlay is a window of its own over the game, and a see-through slip would let
+   the text under the cards, squadmates' names among it, read through the figures. The window's size
+   is fixed, so overflow stops a line that outgrows its column from painting over the next slip. */
+.overlay-rewards .slip { overflow: hidden; border-color: var(--line-strong); background: color-mix(in srgb, var(--bg-0) 94%, transparent); }
+.overlay-empty {
+  display: grid; place-content: center; justify-items: center; gap: calc(4 * var(--u)); height: 100vh;
+  border: 1px solid var(--line-strong); border-radius: var(--radius); background: color-mix(in srgb, var(--bg-0) 94%, transparent);
+  color: var(--text-dim); font-size: max(12px, calc(15 * var(--u))); text-align: center;
+}
+.overlay-empty strong { font-weight: 600; color: var(--text); }
+
+/* A part an unmastered, unbuilt item still lacks rules the slip in platinum; the last one
+   double-rules it. After the overlay's frame, so the rule replaces it there too. */
+.slip.ruled { border-color: var(--platinum); }
+.slip.ruled-double { border-color: var(--platinum); box-shadow: inset 0 0 0 2px var(--bg-0), inset 0 0 0 3px var(--platinum); }
 
 /* kiosk
    Chips over the in-game ducat kiosk. Every position is a design pixel of the
@@ -1370,8 +729,13 @@ svg.set-glyph { background: none; fill: currentColor; padding: .125rem; }
    exactly like the game's own HUD. The strip translates during scrolls and
    re-anchors on each published epoch. */
 
-.kiosk-shell { position: fixed; inset: 0; overflow: hidden; background: transparent; pointer-events: none; }
-.kiosk-shell { --h: calc(100vh / 1080); }
+.kiosk-shell {
+  --h: calc(100vh / 1080);
+  /* The figures take the app's face; the strip's words keep a condensed one, because the strip's
+     room in a tile was budgeted on it (docs/specs/kiosk-overlay.md). */
+  --face-condensed: "Liberation Sans Narrow", "DejaVu Sans Condensed", "Archivo Narrow", "Roboto Condensed", var(--face-text);
+  position: fixed; inset: 0; overflow: hidden; background: transparent; pointer-events: none;
+}
 
 .kiosk-strip {
   position: absolute; inset: 0;
@@ -1390,7 +754,7 @@ svg.set-glyph { background: none; fill: currentColor; padding: .125rem; }
   background: rgb(8 16 26 / 84%);
   box-shadow: inset 0 0 0 1px rgb(120 180 220 / 35%);
   color: #deecfc;
-  font-family: var(--face-figure, var(--face-register));
+  font-family: var(--face-text); font-weight: 600; font-variant-numeric: tabular-nums;
   font-size: calc(17 * var(--h));
   line-height: 1;
   white-space: nowrap;
@@ -1409,7 +773,7 @@ svg.set-glyph { background: none; fill: currentColor; padding: .125rem; }
   background: rgb(8 16 26 / 84%);
   box-shadow: inset 0 0 0 1px rgb(120 180 220 / 35%);
   color: rgb(222 238 252);
-  font-family: var(--face-figure, var(--face-register));
+  font-family: var(--face-text); font-weight: 600; font-variant-numeric: tabular-nums;
   font-size: calc(15 * var(--h));
   line-height: 1;
   white-space: nowrap;
@@ -1422,77 +786,20 @@ svg.set-glyph { background: none; fill: currentColor; padding: .125rem; }
 .kiosk-total .kiosk-mark { height: calc(19 * var(--h)); }
 
 /* An unmastered part's strip takes the price chip's plate and anchor and grows left up to the owned
-   badge, in the condensed mark face: the register mono cannot fit the worst case in the tile. */
+   badge, its words in the condensed face. */
 .kiosk-strip-chip { overflow: hidden; gap: calc(5 * var(--h)); align-items: baseline; }
 /* The fit is measured before the PNG arrives, so the mark's box takes the asset's ratio up front. */
 .kiosk-strip-chip .kiosk-mark { height: calc(14 * var(--h)); aspect-ratio: 163 / 160; }
-.kiosk-fact { font: 700 calc(10 * var(--h))/1 var(--face-mark); text-transform: uppercase; }
+.kiosk-fact { font: 700 calc(10 * var(--h))/1 var(--face-condensed); }
 /* Dim, not deep: the plate lets the game show through, and deep fell to 3.6:1 over a light frame. */
-.kiosk-fraction { font: 700 calc(11 * var(--h))/1 var(--face-mark); font-variant-numeric: tabular-nums; color: var(--platinum-dim); }
+.kiosk-fraction { font: 700 calc(11 * var(--h))/1 var(--face-condensed); font-variant-numeric: tabular-nums; color: var(--platinum-dim); }
 .kiosk-strip-chip .kiosk-price { font-size: calc(15 * var(--h)); }
 
 /* Marks are on and no live inventory backs them. The note sits over the pane's header in the chip
    layer, to fade with it, and in the chips' ink: a muted tone measured 2.9:1 on the header's teal. */
 .kiosk-note {
   position: absolute;
-  font: 700 calc(10 * var(--h))/1 var(--face-mark);
-  text-transform: uppercase; color: #deecfc; white-space: nowrap;
+  font: 700 calc(10 * var(--h))/1 var(--face-condensed);
+  color: #deecfc; white-space: nowrap;
   text-shadow: 0 calc(1 * var(--h)) 1px rgb(0 0 0 / 60%);
 }
-
-/* Updates: the masthead mark is a text pill with its own diamond, never the
- * assay-state grammar (ready there means Watching Warframe) and never
- * color-only. The row reuses .setting/.stamp/.band-note; only the download
- * progress, the command chip and the checkbox rows need their own rules. */
-.update-mark {
-  display: inline-flex; align-items: center; gap: .45em;
-  padding: .4em .8em; border: 1px solid var(--gold, #c9a227); border-radius: 0;
-  background: transparent; color: inherit; font: inherit; font-size: .78rem;
-  cursor: pointer; white-space: nowrap; min-height: 24px;
-}
-/* Hallmark · component: update-mark · genre: editorial · theme: assay-register
- * states: default · hover · focus · active · disabled(n/a, never disabled) · loading(n/a) · error(n/a) · success(n/a)
- * The diamond never changes: hover lifts the pill, press strikes it. */
-.update-mark:hover { background: var(--raised); border-color: var(--platinum); }
-.update-mark:active { background: var(--raised); border-color: var(--platinum); box-shadow: var(--strike-deep); }
-.update-dot {
-  width: .6em; height: .6em; flex: none; background: var(--gold, #c9a227);
-  transform: rotate(45deg); forced-color-adjust: none;
-}
-@media (forced-colors: active) {
-  .update-mark { border-color: ButtonText; }
-  .update-dot { background: ButtonText; }
-}
-@media (max-width: 640px) {
-  .update-mark { max-width: 12em; }
-  .update-mark .update-text {
-    min-width: 0; overflow: hidden; text-overflow: ellipsis;
-  }
-}
-.update-progress {
-  width: 100%; height: 2px; margin-top: var(--tight);
-  appearance: none; border: 0; border-radius: 0;
-  background: var(--rule-bright); color: var(--platinum);
-  accent-color: var(--platinum);
-}
-/* The dial's engraved groove, struck through: the track is the same 2px
- * register groove the range inputs draw, the fill the same platinum. */
-.update-progress::-webkit-progress-bar { background: var(--rule-bright); border-radius: 0; }
-.update-progress::-webkit-progress-value { background: var(--platinum); border-radius: 0; }
-.update-progress::-moz-progress-bar { background: var(--platinum); border-radius: 0; }
-.update-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5em; margin-top: var(--tight); }
-.update-actions .prose { flex-basis: 100%; }
-.command-chip { display: flex; flex-basis: 100%; gap: .5em; align-items: center; }
-.command-chip input {
-  flex: 1; min-width: 0; padding: .45em .6em; font-family: ui-monospace, monospace;
-  font-size: .78rem; color: inherit; background: transparent;
-  border: 1px solid currentColor; border-radius: 0;
-}
-.command-chip input:focus-visible, .update-channel summary:focus-visible {
-  outline: 2px solid currentColor; outline-offset: 2px;
-}
-.check-row { display: flex; align-items: flex-start; gap: .5em; margin-top: var(--tight); font-size: .85rem; }
-.update-channel { margin-top: var(--tight); font-size: .85rem; }
-.update-channel summary { cursor: pointer; padding: .3em 0; min-height: 24px; }
-.update-channel .check-row { margin-top: .4em; }
-.capture-status:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

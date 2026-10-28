@@ -11,7 +11,7 @@ import ducatMark from './assets/ducats.png'
  * These are Digital Extremes' own icons rather than marks of our own, because recognition here is
  * not a design problem to solve, it is a memory the player already has: they have seen the platinum
  * canister and the Orokin ducat sigil thousands of times in the game running behind this overlay.
- * Anything drawn in our own grammar, however well it fit the touchstone world, would be a third
+ * Anything drawn in our own grammar, however well it fit the app, would be a third
  * shape to learn, and the flattenings all read as something else (a battery, a SIM card, a media
  * control). Recognition wins over house style on the one surface read in under a second.
  *
@@ -22,7 +22,7 @@ import ducatMark from './assets/ducats.png'
  * Sized by the caller, and never below about 18px: these are rendered objects rather than flat
  * marks, and below that the canister loses its dark chip and reads as a grey lozenge. That floor is
  * why every placement sizes the mark independently of the text it sits with, instead of scaling
- * with it. See `.metal-label`, `.price` and `.band-figure` in App.css.
+ * with it. See `.metal-mark`, `.value` and `.stat` in App.css.
  */
 export function MetalMark({ metal, alt = '', className = 'metal-mark' }: {
   metal: 'plat' | 'ducat'
