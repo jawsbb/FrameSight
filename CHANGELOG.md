@@ -16,6 +16,91 @@ see the difference.
 
 ### Added
 
+- **The reward and kiosk overlays read a game running in French.** The readers matched card text
+  against English names only, so with the game in French no card was ever named and no overlay
+  showed. The game's language is read off the top of EE.log, and while it is French each reward
+  is also matched under the name warframe.market publishes for it, which is the game's own
+  (`Braton Prime - Canon`), with accents folded so Tesseract's English model reads either way.
+  A card is still named in English. Blueprints the market does not trade are spelled as the
+  ones it does, `Forma (Schéma)`. Only French is read; other languages stay on English names.
+- **Collection shows what a game session added, the duplicates, and what a stack would sell for.**
+  The first inventory sync of each game run keeps the holding the last run left; from then on a
+  card carries "+N this session" for each copy gained since, and the This session tab lists them.
+  Ranking a mod up moves a copy between rows without the account holding one more, so it is not a
+  gain. The Duplicates tab lists every stack of two or more, resources aside, and the Sale value
+  sort ranks stacks by the month of sales the market would take of them, as Farm & sales does.
+- **The Dashboard lists the bounty rotations running now, and the endless missions' rotations.**
+  For Cetus, Orb Vallis and the Cambion Drift, each bounty tier (and each Isolation Vault) shows
+  its level range and the table it pays from, A, B or C, read off the job in the game's world
+  state, with the time left until the cycle turns. The wiki has every bounty share one letter;
+  the Cambion Drift's tiers were measured on different ones, so the job is believed. Beside it, the
+  wiki's reward intervals for the endless missions: A, A, B, C on each mission's count (Survival
+  every 5 minutes, Defense every 3 waves, Sanctuary Onslaught every 2 zones…), the Arbitrations'
+  A, A, B, B, C, C, C, C, and the spy vaults and caches.
+- **Farm & sales ranks only the bounty tables running now.** A Cetus, Orb Vallis or Cambion Drift
+  bounty table, or an Isolation Vault's, is ranked only while its cycle runs, marked with the time
+  it ends, and the page asks again when the first one ends. It reads the last world state the
+  Dashboard downloaded, which lists the running cycle and the next, and never downloads one
+  itself; until the Dashboard has read one, every table is ranked as before and the page says so.
+  Ghoul, Plague Star and Höllvania bounties keep one table and stay ranked.
+- **A drop on Farm & sales opens its item sheet.** The item names under a place open the side
+  sheet the Collection uses: the collection's own row when the account holds the item, else the
+  drop as the catalogue knows it, with its price, monthly sales, sources and sell form; the arrow
+  keys walk the place's other drops.
+- **A sell listing can be marked sold.** The count sold goes through warframe.market's own close
+  route (`POST /v2/order/{id}/close`), which records the trade: the whole listing closes it, less
+  lowers it. Bounded by the listing, never by the collection, and in whole trades for a bulk one.
+- **Order sync after an inventory read, off by default.** Once turned on, each inventory read
+  under Full access takes down the listings for what the collection no longer holds and lowers the
+  ones listing more than is held, exactly the repairs the Orders page offers, and only where it
+  would flag them; the page reports what the last sync changed.
+- **A collection row's live book.** The orders of the traders online for the very copy a row
+  holds, its rank or relic refinement, from the same one-minute cache as the Market page.
+- **The Orders page is redone around the listings and the inventory.** Each listing shows the
+  item's picture, a step either way on its count (within what the collection holds, at the
+  listing's own price) and a Sold button that records one trade. The reconciliation's claim sits
+  under the name with its repair beside it, where it used to run under the buttons. A switch turns
+  on the order sync, and the page lists what the last sync changed. Below, the inventory's sellable
+  holdings not yet listed, most valuable first and filtered by name, each opening the sell form in
+  place; this replaces the New listing picker. The sell form, from the Orders page, a card, the
+  Market page or Farm & sales, shows the cheapest sellers in game for that copy and matches the
+  cheapest on one press.
+- **An item sheet lists Overframe's best builds.** Opening a Warframe, weapon or companion (or a
+  Prime part or blueprint, which asks for the item it builds) shows its five best builds on
+  overframe.gg, best first: title, author, score, Forma count and last update, each opening the
+  build on Overframe in the browser. Only what points at a build is shown, never its mods.
+  The app asks `overframe.gg/api/v1/builds/` with the item's English name, once per item and
+  session while it answers; a sheet says when Overframe lists none or cannot be reached. Mods,
+  relics and resources ask nothing. Settings › About lists the new destination.
+- **The Market page ranks the day's trades while no item is open.** Four rankings of ten from
+  the daily warframe.market summary the app already downloads, each named for the day it
+  covers (the summary is published a day or two late): the most sold, the fastest selling
+  (sales per listing, from 20 sales in the day so one trade against one listing does not lead),
+  the most platinum traded (each variant's sales times its median), and the week's rises and
+  falls against the summary a week earlier, as on Farm & sales (from 20 sales and 10 platinum).
+  A mod's ranks, a relic's refinements and a fish's sizes are each their own row, since their
+  prices differ by up to twenty times. A row opens the item and its live orders as a search
+  does. The summary's per-day figures are now kept with the cached prices; a cache saved before
+  this is downloaded once more on the next start rather than discarded. Opening the page now
+  loads warframe.market's item list (about 1.6 MB, once per session) for the thumbnails, which
+  the first search used to.
+- **The Dashboard shows the game's world as you log in, instead of account statistics.** The
+  cycles of Earth, Cetus, Orb Vallis and the Cambion Drift count down to their next change; the
+  void fissures sit in three tabs (Normal, Steel Path, Void storms), soonest to close first, each
+  tab with filter rows to stack (era, mission, planet; a fissure shows when it matches any row),
+  kept between sessions, and a bell that sends a desktop notification when a new matching fissure
+  opens (off by default, never for what was open when the page opened); and Today lists the
+  sortie, the archon hunt, Baro Ki'Teer and the daily reset. The data is Digital Extremes' own
+  public world state, `api.warframe.com/cdn/worldState.php`, read only while the Dashboard is on
+  screen and at most once a minute, with star-chart, mission and boss names from WFCD's tables on
+  GitHub, cached on disk for a week; when the game does not answer, the last state shows with its
+  age. Cetus and the Drift are read from the Ostron bounty cycle, Earth and the Vallis computed with
+  the rules of WFCD's worldstate parser; Zariman and Duviri are left out, having no rule that could
+  be checked. Each cycle shows its place's scene, each fissure its relic and the enemy's faction
+  mark, and Today the sortie, archon and Baro marks, all pictures from the Warframe wiki
+  (`wiki.warframe.com`) that simply stay out when it does not answer. The collection, relic,
+  foundry, order and reward summaries the Dashboard held are gone from it; their own pages keep
+  them.
 - **A Mastery tab lists every masterable item the account has yet to master.** Under Full
   access, once an inventory has been read and the item catalog has loaded, the tab shows
   mastery-eligible equipment the account has never mastered. What it holds but has not ranked,
@@ -29,9 +114,31 @@ see the difference.
   masterable; a modular item built but never ranked (a Zaw, Kitgun, K-Drive, MOA or Hound) is
   listed until it earns affinity; Founders items are listed like any other. Suggested and
   implemented by [@NekoRem](https://github.com/NekoRem).
+- **The interface speaks French as well as English.** Settings gains a **Language** choice
+  (System, English, Français, each named in itself) that applies at once; System follows the
+  operating system's language, French when it starts with `fr` and English otherwise. The
+  choice is kept by the backend beside the mastery marks, so the reward overlay and the Ducat
+  Kiosk overlay follow it too, picking it up on their next refresh. Figures and dates are
+  formatted for the chosen language (`12 345`, `27 juil.`) the same way on every machine. The
+  fixed warframe.market errors are translated. Item names stay as the English catalog gives
+  them, since that is also what screen reading matches, and the Diagnostics health messages
+  stay in English, because the backend composes them from live values.
 
 ### Fixed
 
+- **The warframe.market status switch reaches the site again.** The presence socket's handshake
+  named no User-Agent, and Cloudflare in front of `ws.warframe.market` answers that with a 403
+  challenge, so online, in game and invisible never left the app. It now sends the app's own.
+- **A day of trades counts once in an item's sales pace.** The daily warframe.market summary is
+  published a day or two late, so most launches download the file the cache was built from, and
+  each time that same day was averaged into the monthly trade rate again, dragging every listing
+  toward whatever it happened to show. A re-downloaded summary now keeps the average as it stands;
+  a rate already skewed settles back within the month.
+- **86 listings whose names carry an apostrophe, an ampersand or an accent are found on
+  warframe.market.** `Hell's Chamber`, `Cobra & Crane Prime Set` or `La Cathédrale Scene` were
+  asked for under a slug the market does not use, so they never priced live nor loaded a history.
+  Checked against every listed item, 3,890 of 3,893 slugs now match; the three Itzal parts, whose
+  slugs carry a `_blueprint` their names do not, still miss.
 - **The full test suite passes on every tesseract build.** The 16:10 reward-geometry test
   asserted every card read at >= 0.9, which the combined legacy+LSTM `tessdata` that Arch and
   Fedora ship misses by one character on `2X Forma Blueprint` (0.875), so those packages had to

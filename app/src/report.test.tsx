@@ -3,12 +3,15 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const backend = vi.hoisted(() => ({
+  // The dashboard the app opens on asks for this.
+  getWorldState: vi.fn(() => new Promise(() => {})),
   getSetupStatus: vi.fn(), setAccessMode: vi.fn(), authorizeScreenCapture: vi.fn(), getView: vi.fn(), refreshInventory: vi.fn(), refreshPrices: vi.fn(),
   marketStatus: vi.fn(), marketSignIn: vi.fn(), marketLinkToken: vi.fn(), marketSignOut: vi.fn(),
   refreshOrders: vi.fn(), removeOrder: vi.fn(), setOrderQuantity: vi.fn(),
   setMarketPresence: vi.fn(), createOrder: vi.fn(),
   getVersionInfo: vi.fn(), updateCheck: vi.fn(), updateDownloadAndInstall: vi.fn(),
   collectReport: vi.fn(), collectReportText: vi.fn(),
+  getPreferences: vi.fn(() => Promise.resolve({ mastery_marks: true })),
 }))
 const overlay = vi.hoisted(() => ({ showRewardOverlay: vi.fn(), hideRewardOverlay: vi.fn() }))
 const report = vi.hoisted(() => ({
@@ -35,7 +38,7 @@ function makeView(health: AppView['health']): AppView {
     mastery: { available: false, items: [], totals: [] },
     reward: { cards: [], best_value_index: null, best_ducat_index: null },
     market_account: {
-      link: 'unlinked', orders: [], listed_platinum: 0, flagged: 0, listable: [],
+      link: 'unlinked', orders: [], synced: [], listed_platinum: 0, flagged: 0, listable: [],
       presence: { status: null, wanted: null, auto: false },
     },
     health,

@@ -598,6 +598,40 @@ fn a_duplicated_ingredient_sums_into_one_slot_and_indexes_its_consumer() {
 }
 
 #[test]
+fn a_recipe_keeps_its_resources_and_where_each_piece_drops() {
+    let catalog = CatalogIndex::from_wfcd_json(
+        br#"[{"uniqueName":"/Lotus/Weapons/Tenno/Melee/Polearms/GuandaoPrime","name":"Guandao Prime",
+          "category":"Melee","type":"Melee","masterable":true,"components":[
+          {"uniqueName":"/Lotus/Types/Recipes/Weapons/WeaponParts/GuandaoPrimeBlade","name":"Blade",
+           "itemCount":2,"tradable":true,"ducats":15,"drops":[
+             {"location":"Axi S10 Relic (Radiant)"},{"location":"Axi S10 Relic (Intact)"},
+             {"location":"Axi S9 Relic (Flawless)"}]},
+          {"uniqueName":"/Lotus/Types/Recipes/Weapons/GuandaoPrimeBlueprint","name":"Blueprint",
+           "tradable":true,"ducats":45},
+          {"uniqueName":"/Lotus/Types/Items/MiscItems/OrokinCell","name":"Orokin Cell",
+           "itemCount":15,"tradable":false,"imageName":"ComponentCell.png"}]}]"#,
+    )
+    .unwrap();
+    let recipe = catalog
+        .recipe("/Lotus/Weapons/Tenno/Melee/Polearms/GuandaoPrime")
+        .unwrap();
+    let blade = &recipe.components[1];
+    assert_eq!(blade.name, "Blade");
+    assert_eq!(
+        blade.drops,
+        vec!["Axi S10 Relic", "Axi S9 Relic"],
+        "one entry per relic, whatever the refinement"
+    );
+    assert!(recipe.components[0].drops.is_empty());
+    let resources: Vec<_> = recipe
+        .resources
+        .iter()
+        .map(|resource| (resource.name.as_str(), resource.per_build))
+        .collect();
+    assert_eq!(resources, vec![("Orokin Cell", 15)]);
+}
+
+#[test]
 fn resources_and_non_prime_items_have_no_recipe_relation() {
     let catalog = catalog();
     assert!(catalog.part_parent(OROKIN_CELL).is_none());
@@ -704,5 +738,41 @@ fn everything_held_or_unmasterable_leaves_nothing_to_pad() {
         padding.is_empty(),
         "Braton is held, Serration earns no mastery, and the Amp is not equipment the index \
          can classify: {padding:?}"
+    );
+}
+
+/// A non-Prime Warframe's parts exist only inside its recipe, so the index never named them and
+/// their cards had no art; the recipe's own art now answers for them, and for their blueprints.
+#[test]
+fn a_part_known_only_from_a_recipe_takes_the_recipes_art() {
+    let catalog = CatalogIndex::from_wfcd_json(
+        br#"[{"uniqueName":"/Lotus/Powersuits/Brawler/Brawler","name":"Atlas","type":"Warframe","category":"Warframes","masterable":true,"imageName":"Atlas.png",
+          "components":[
+            {"uniqueName":"/Lotus/Types/Recipes/WarframeRecipes/BrawlerHelmetComponent","name":"Neuroptics","itemCount":1,"tradable":false,"imageName":"GenericWarframeHelmet.png"},
+            {"uniqueName":"/Lotus/Types/Recipes/WarframeRecipes/BrawlerBlueprint","name":"Blueprint","itemCount":1,"tradable":false,"imageName":"blueprint.png"}
+          ]}]"#,
+    )
+    .expect("catalog parses");
+
+    assert!(
+        catalog
+            .resolve("/Lotus/Types/Recipes/WarframeRecipes/BrawlerHelmetComponent")
+            .is_none()
+    );
+    assert_eq!(
+        catalog.image_name("/Lotus/Types/Recipes/WarframeRecipes/BrawlerHelmetComponent"),
+        Some("GenericWarframeHelmet.png")
+    );
+    assert_eq!(
+        catalog.image_name("/Lotus/Types/Recipes/WarframeRecipes/BrawlerHelmetBlueprint"),
+        Some("GenericWarframeHelmet.png")
+    );
+    assert_eq!(
+        catalog.image_name("/Lotus/Types/Recipes/WarframeRecipes/BrawlerBlueprint"),
+        Some("blueprint.png")
+    );
+    assert_eq!(
+        catalog.image_name("/Lotus/Powersuits/Brawler/Brawler"),
+        Some("Atlas.png")
     );
 }

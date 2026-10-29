@@ -261,7 +261,10 @@ fix.
   height, which is how Warframe scales its HUD, with each position an offset from the
   window's horizontal centre. 16:10, a Steam Deck's native 1280x800, has its own capture
   fixture. Wider ratios are untested and may drift.
-- **English reward names only.** The reader matches the English display names in the item
-  catalog.
+- **English and French reward names only.** The reader matches the English display names in
+  the item catalog, and when EE.log says the game runs in French, the French names
+  warframe.market publishes for them (loaded once per game, so the first French screen needs the
+  network). Kuva and Riven Sliver rewards have no French name there and read in English only.
+  Other languages are not read.
 - Acquisition depends on undocumented game behaviour and may need maintenance after a
   Warframe update.

@@ -5,8 +5,10 @@ vi.mock('@tauri-apps/api/core', () => ({ invoke }))
 
 import {
   authorizeScreenCapture,
+  closeOrder,
   getSetupStatus,
   marketLinkToken,
+  marketRowOrders,
   marketSignIn,
   marketSignOut,
   marketStatus,
@@ -16,6 +18,7 @@ import {
   setAccessMode,
   setLanguage,
   setOrderQuantity,
+  setSyncOrders,
   updateOrder,
   updateDownloadAndInstall,
 } from './backend'
@@ -50,6 +53,12 @@ describe('typed Tauri command bridge', () => {
     invoke.mockResolvedValueOnce({ mastery_marks: true, language: null })
     await setLanguage(null)
     expect(invoke).toHaveBeenLastCalledWith('set_language', { language: null })
+  })
+
+  it('switches the order sync on and off', async () => {
+    invoke.mockResolvedValueOnce({ mastery_marks: true, language: null, sync_orders: true })
+    await expect(setSyncOrders(true)).resolves.toEqual({ mastery_marks: true, language: null, sync_orders: true })
+    expect(invoke).toHaveBeenCalledWith('set_sync_orders', { enabled: true })
   })
 
   it('waits out a backend that has not finished starting', async () => {
@@ -118,6 +127,18 @@ describe('typed Tauri command bridge', () => {
       orderId: 'order-one',
       platinum: 19,
       quantity: 3,
+    })
+
+    invoke.mockResolvedValueOnce({})
+    await closeOrder('order-one', 2)
+    expect(invoke).toHaveBeenCalledWith('close_order', { orderId: 'order-one', quantity: 2 })
+  })
+
+  it('asks for a collection row\'s live book by its row id', async () => {
+    invoke.mockResolvedValueOnce({ sell: [], buy: [], fetched_at: 0 })
+    await marketRowOrders('/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod#10')
+    expect(invoke).toHaveBeenCalledWith('market_row_orders', {
+      collectionId: '/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod#10',
     })
   })
   it('pins the offered version on the install call', async () => {

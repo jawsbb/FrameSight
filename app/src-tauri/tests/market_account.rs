@@ -3,8 +3,9 @@ use std::sync::Mutex;
 use app_core::{LinkState, MarketAccountView, OrderStatus, ReconciledOrder};
 use app_lib::market_account::{
     ITEM_NOT_LISTABLE, ITEM_NOT_OWNED, MarketSession, ORDER_EXCEEDS_HOLDING, ORDER_NOT_A_SELL,
-    ORDER_NOT_HELD, ORDER_NOT_ON_A_ROW, account_view, authorize_quantity_write, authorize_removal,
-    authorize_sell, authorize_update, failure_message,
+    ORDER_NOT_HELD, ORDER_NOT_ON_A_ROW, SALE_NOT_WHOLE_TRADES, SALE_OUTSIDE_ORDER, account_view,
+    authorize_close, authorize_quantity_write, authorize_removal, authorize_sell, authorize_update,
+    failure_message,
 };
 use warframe_domain::{
     CatalogItem, Category, Collection, InventoryEntry, InventorySnapshot, ItemId,
@@ -270,6 +271,7 @@ fn order(id: &str, status: OrderStatus) -> ReconciledOrder {
         },
         name: Some("Braton Prime Blueprint".to_owned()),
         row_id: Some("/Lotus/Types/Recipes/Weapons/BratonPrimeBlueprint".to_owned()),
+        thumb_url: None,
         status,
     }
 }
@@ -569,6 +571,70 @@ fn an_edit_is_refused_for_a_buy_order_or_an_unknown_id() {
     );
     assert_eq!(
         authorize_update(&view, &collection, "order-missing", 1),
+        Err(ORDER_NOT_HELD)
+    );
+}
+
+/// A sale is bounded by the order it closes, not by the collection: the inventory may not have
+/// caught up with a trade made a minute ago. From one copy to the whole listing is a sale; none,
+/// or more than the listing holds, is not one.
+#[test]
+fn a_sale_is_authorized_from_one_copy_to_the_whole_listing() {
+    let view = MarketAccountView::linked(
+        CredentialBacking::Database,
+        vec![order("order-one", OrderStatus::Missing)],
+        "2026-07-31T12:00:00Z".to_owned(),
+    );
+
+    assert_eq!(authorize_close(&view, "order-one", 1), Ok(()));
+    assert_eq!(authorize_close(&view, "order-one", 5), Ok(()));
+    assert_eq!(
+        authorize_close(&view, "order-one", 0),
+        Err(SALE_OUTSIDE_ORDER)
+    );
+    assert_eq!(
+        authorize_close(&view, "order-one", 6),
+        Err(SALE_OUTSIDE_ORDER)
+    );
+}
+
+/// A bulk listing trades in batches, and warframe.market refuses a close that is not whole trades.
+#[test]
+fn a_sale_from_a_bulk_listing_is_whole_trades() {
+    let mut bulk = order("order-one", OrderStatus::Ok);
+    bulk.order.quantity = 12;
+    bulk.order.per_trade = 6;
+    let view = MarketAccountView::linked(
+        CredentialBacking::Database,
+        vec![bulk],
+        "2026-07-31T12:00:00Z".to_owned(),
+    );
+
+    assert_eq!(authorize_close(&view, "order-one", 6), Ok(()));
+    assert_eq!(
+        authorize_close(&view, "order-one", 4),
+        Err(SALE_NOT_WHOLE_TRADES)
+    );
+}
+
+/// A buy order is not this application's to close, and an id absent from the held view is refused
+/// like every other write.
+#[test]
+fn a_sale_is_refused_for_a_buy_order_or_an_unknown_id() {
+    let mut buying = order("order-one", OrderStatus::Ok);
+    buying.order.kind = OrderKind::Buy;
+    let view = MarketAccountView::linked(
+        CredentialBacking::Database,
+        vec![buying],
+        "2026-07-31T12:00:00Z".to_owned(),
+    );
+
+    assert_eq!(
+        authorize_close(&view, "order-one", 1),
+        Err(ORDER_NOT_A_SELL)
+    );
+    assert_eq!(
+        authorize_close(&view, "order-missing", 1),
         Err(ORDER_NOT_HELD)
     );
 }

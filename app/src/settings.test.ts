@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clampPriceFloor,
   MAX_PRICE_FLOOR,
+  readFissureFilters,
   readPriceFloor,
   readShowDucats,
+  writeFissureFilters,
   writePriceFloor,
   writeShowDucats,
 } from './settings'
@@ -71,5 +73,27 @@ describe('show ducats', () => {
     expect(() => writeShowDucats(false)).not.toThrow()
     denied.mockRestore()
     deniedWrite.mockRestore()
+  })
+})
+
+describe('fissure filters', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('come back as they were saved, per tab, and empty when nothing was', () => {
+    expect(readFissureFilters()).toEqual({ normal: [], steel: [], storms: [] })
+    const filters = { normal: [{ era: 'axi' as const, mission: null, planet: 'Eris' }], steel: [], storms: [{ era: null, mission: 'Skirmish', planet: null }] }
+    writeFissureFilters(filters)
+    expect(readFissureFilters()).toEqual(filters)
+  })
+
+  it('read anything they cannot use as "any", never as a refusal', () => {
+    localStorage.setItem('tennoscope.fissure-filters', JSON.stringify({ normal: [{ era: 'gold', mission: 4 }, 'row'], steel: 'none' }))
+    expect(readFissureFilters()).toEqual({
+      normal: [{ era: null, mission: null, planet: null }, { era: null, mission: null, planet: null }],
+      steel: [],
+      storms: [],
+    })
+    localStorage.setItem('tennoscope.fissure-filters', '{not json')
+    expect(readFissureFilters()).toEqual({ normal: [], steel: [], storms: [] })
   })
 })

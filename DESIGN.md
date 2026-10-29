@@ -1,26 +1,29 @@
 ---
 name: TennoScope
-description: A dense, dark, quiet Warframe companion that shows values and states before words.
+description: A quiet, warm-grey desktop companion for Warframe that shows values and states before words.
 colors:
-  accent: "#5f9fdb"
-  accent-hover: "#7db3e6"
-  accent-ink: "#0b1622"
-  accent-soft: "#5f9fdb29"
-  platinum: "#e8ebef"
+  bg-0: "#1b1a19"
+  bg-1: "#242321"
+  bg-1-low: "#2a2624"
+  bg-2: "#2e2c2a"
+  fill: "#ffffff12"
+  fill-strong: "#ffffff1f"
+  line: "#ffffff12"
+  line-strong: "#ffffff21"
+  well: "#00000029"
+  line-control: "#807b76"
+  text: "#ecebe9"
+  text-dim: "#b4b0ab"
+  text-faint: "#a39e98"
+  accent: "#6b93dc"
+  accent-text: "#a3c0f2"
+  accent-soft: "#6b93dc38"
+  platinum: "#e8e8ea"
   platinum-dim: "#9aa1ab"
   gold: "#d8b04a"
-  bg-0: "#0f1114"
-  bg-1: "#15181c"
-  bg-2: "#1c2026"
-  line: "#2c313a"
-  line-strong: "#3d434d"
-  line-control: "#6a727e"
-  text: "#e8ebef"
-  text-dim: "#a9b0ba"
-  text-faint: "#8c939d"
-  ok: "#6cc28d"
-  warn: "#e69a52"
-  danger: "#ec7b6b"
+  ok: "#7cc597"
+  warn: "#e3a364"
+  danger: "#f08a7c"
 typography:
   display:
     fontFamily: "ui-sans-serif, system-ui, DejaVu Sans, Liberation Sans, sans-serif"
@@ -35,104 +38,102 @@ typography:
     fontWeight: 600
     lineHeight: 1.3
     letterSpacing: "-0.01em"
-  section:
-    fontFamily: "ui-sans-serif, system-ui, DejaVu Sans, Liberation Sans, sans-serif"
-    fontSize: "1.0625rem"
-    fontWeight: 600
-  title:
-    fontFamily: "ui-sans-serif, system-ui, DejaVu Sans, Liberation Sans, sans-serif"
-    fontSize: "0.9rem"
-    fontWeight: 600
-    lineHeight: 1.3
   value:
     fontFamily: "ui-sans-serif, system-ui, DejaVu Sans, Liberation Sans, sans-serif"
-    fontSize: "1rem"
+    fontSize: "0.9375rem"
     fontWeight: 600
     fontFeature: "tnum"
   body:
     fontFamily: "ui-sans-serif, system-ui, DejaVu Sans, Liberation Sans, sans-serif"
-    fontSize: "0.875rem"
-    fontWeight: 400
-    lineHeight: 1.45
-  body-small:
-    fontFamily: "ui-sans-serif, system-ui, DejaVu Sans, Liberation Sans, sans-serif"
     fontSize: "0.8125rem"
     fontWeight: 400
+    lineHeight: 1.45
   label:
     fontFamily: "ui-sans-serif, system-ui, DejaVu Sans, Liberation Sans, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 400
     fontFeature: "tnum"
+  group-title:
+    fontFamily: "ui-sans-serif, system-ui, DejaVu Sans, Liberation Sans, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 600
+  mono:
+    fontFamily: "ui-monospace, DejaVu Sans Mono, Liberation Mono, monospace"
+    fontSize: "0.75rem"
+    fontWeight: 400
 rounded:
-  radius-sm: "4px"
-  radius: "6px"
+  radius-xs: "4px"
+  radius-sm: "6px"
+  radius: "10px"
 spacing:
   hair: "4px"
   tight: "8px"
   step: "16px"
 components:
   button:
-    backgroundColor: "{colors.bg-2}"
+    backgroundColor: "{colors.fill}"
     textColor: "{colors.text}"
-    rounded: "{rounded.radius}"
+    rounded: "{rounded.radius-sm}"
     padding: "0 12px"
-    height: "34px"
+    height: "28px"
   button-hover:
-    backgroundColor: "{colors.line}"
+    backgroundColor: "{colors.fill-strong}"
   button-primary:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.accent-ink}"
-    rounded: "{rounded.radius}"
+    backgroundColor: "{colors.accent-soft}"
+    textColor: "{colors.accent-text}"
+    rounded: "{rounded.radius-sm}"
     padding: "0 12px"
-    height: "34px"
-  button-primary-hover:
-    backgroundColor: "{colors.accent-hover}"
-  button-armed:
-    backgroundColor: "{colors.bg-2}"
-    textColor: "{colors.danger}"
+    height: "28px"
   input:
-    backgroundColor: "{colors.bg-2}"
+    backgroundColor: "{colors.well}"
     textColor: "{colors.text}"
-    rounded: "{rounded.radius}"
+    rounded: "{rounded.radius-sm}"
     padding: "0 10px"
-    height: "34px"
+    height: "30px"
+  segment-selected:
+    backgroundColor: "{colors.accent-soft}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.radius-sm}"
+    height: "24px"
   chip:
     textColor: "{colors.text-dim}"
-    rounded: "{rounded.radius}"
-    padding: "0 8px"
-    height: "28px"
+    rounded: "{rounded.radius-sm}"
+    padding: "0 9px"
+    height: "26px"
   chip-selected:
-    backgroundColor: "{colors.accent-soft}"
+    backgroundColor: "{colors.fill-strong}"
     textColor: "{colors.text}"
-  nav-item:
+  rail-item:
     textColor: "{colors.text-dim}"
-    rounded: "{rounded.radius}"
-    padding: "0 10px"
-    height: "36px"
-  nav-item-current:
-    backgroundColor: "{colors.accent-soft}"
+    rounded: "{rounded.radius-sm}"
+    width: "40px"
+    height: "40px"
+  rail-item-current:
+    backgroundColor: "{colors.fill}"
     textColor: "{colors.text}"
-  stat:
+  group:
     backgroundColor: "{colors.bg-2}"
-    textColor: "{colors.text}"
-    typography: "{typography.body-small}"
     rounded: "{rounded.radius}"
-    padding: "3px 10px"
+  row:
+    textColor: "{colors.text}"
+    typography: "{typography.body}"
+    padding: "10px 14px"
   card:
     backgroundColor: "{colors.bg-2}"
     textColor: "{colors.text}"
     rounded: "{rounded.radius}"
-    padding: "8px"
+    padding: "10px"
   tag:
+    backgroundColor: "{colors.fill}"
     textColor: "{colors.text-dim}"
     typography: "{typography.label}"
-    rounded: "{rounded.radius-sm}"
+    rounded: "{rounded.radius-xs}"
     padding: "0 6px"
     height: "18px"
   slip:
     backgroundColor: "{colors.bg-2}"
     textColor: "{colors.text}"
-    rounded: "{rounded.radius}"
+    rounded: "{rounded.radius-sm}"
     padding: "6px 10px"
 ---
 
@@ -140,164 +141,183 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Item Grid Is the Screen"**
+**Creative North Star: "A Quiet Desktop Tool"**
 
-TennoScope is a companion read between missions and glanced at during them. The main window is a dense, dark, quiet tool: a thin drag bar, a 212px sidebar, a compact page head, one toolbar row, one row of filter chips, and then the item grid, which takes everything below about y=150. The interface puts values and states before words; a player should find an item, read its price and mastery state on the card and act without reading an explanation.
+TennoScope is a companion read between missions and glanced at during them. The main window is drawn like a recent dark desktop app: the title bar and a floating icon rail sit on the window's own ground, and the page is one lighter panel, inset by 8px with a 10px corner, whose ground warms faintly toward its foot. What the page holds comes in raised groups made of rows (what a row is on the left, its value or control on the right) split by hairlines that are barely there, each group named by a small grey title above it. The item grid stays the screen on Collection (and its To master mode, the mastery checklist): dense, but its cards are borderless raised tiles.
 
-The world is graphite. Three grounds step from the chrome (`bg-0`) to the page (`bg-1`) to the things on it (`bg-2`); 1px neutral borders separate them, every card and field shares one 6px corner, and a single steel-blue accent marks what is selected, focused or primary. The only other colours with a job are the two currencies, platinum and gold, and the three state colours. Type is the system UI sans throughout, in sentence case, with tabular figures wherever a number is read.
+The world is warm grey and almost colourless. Neutral greys carry the structure; one soft blue marks a switch that is on, keyboard focus, the selected segment of a tab control and the one primary action on a screen. The two currencies, platinum and gold, colour currency values and nothing else; ok, warn and danger say state, always next to a word or a shape. Type is the system sans at a 13px base with 20px semibold page titles; versions and shell commands are set in monospace.
 
-This world replaces the earlier "assay register" (guilloché, clip-path cartouches, tracked monospace caps, 5rem page marks, a row of giant figures). None of that returns. The ergonomic reference is AlecaFrame's pattern set (side navigation, dense item grids, decision aids up front); its name, logo and assets are never borrowed.
+The owner pinned the reference (2026-10-28): "very minimal and stylish" dark desktop windows. Its grammar is borrowed, never a product, name or mark. AlecaFrame remains the ergonomic reference for patterns (side navigation, dense grids, decision aids up front), never for its name, logo or assets. The earlier steel-blue graphite system with bordered chips, solid blue buttons and framed panels is gone, and so is the older assay register.
 
 **Key Characteristics:**
-- Three graphite grounds, separated by 1px neutral lines rather than shadows.
-- One cool accent for selection, focus and the primary action.
-- Platinum and gold appear on currency values and on the marks of the metal a reward wins, nowhere else.
-- System sans, sentence case, tabular figures, nothing under 12px in the main window.
-- The game's own platinum and ducat icons beside every currency figure, never below 18px.
+- Window ground, one lighter content panel, raised groups: depth by tone, never by shadow.
+- Groups of label-left, value-right rows split by 7% white hairlines; small grey titles above.
+- Neutral translucent buttons; soft blue only for on, focus, the selected segment and the one primary action.
+- Platinum and gold on currency values only, each with the game's own icon at 18px or more.
+- System sans at 13px, 20px semibold titles, tabular figures, nothing under 12px in the main window.
 - Every state also says itself in words or shape; colour never carries it alone.
 
 ## Colors
 
-A near-monochrome graphite palette with one steel-blue accent, two currency metals and three state hues.
+Warm greys with a hint of brown, one soft blue, two currency metals and three state hues.
 
 ### Primary
-- **Steel Blue** (`accent`): selection, keyboard focus rings, the primary button, links, progress fills and the current nav item. `accent-hover` is its hover step; `accent-ink` is the near-black text set on a solid accent fill (6.48:1); `accent-soft` (the accent at 16% over the ground) fills selected chips, the current nav item, pressed segments and the selected access level.
+- **Soft Blue** (`accent`, #6b93dc): the track of a switch that is on, the slider fill, the access rail's progress, keyboard focus rings (2px, 2px offset), the ring of a selected segment or access level, progress bars and the update dot. 4.52:1 on `bg-2`; a white thumb on it reads 3.07:1. `accent-soft` (the accent at 22%) fills the selected segment, the selected access level and the primary button. `accent-text` (#a3c0f2) is blue set as words: links and the primary button's label.
 
 ### Secondary
-- **Platinum** (`platinum`): platinum figures on cards, stats, order lines and reward slips; also the rule round a reward slip whose part an unbuilt item still lacks. It shares its value with `text`, so the game's canister icon, not the hue, is what tells the currency. `platinum-dim` is the muted figure on the kiosk strip.
-- **Ducat Gold** (`gold`): ducat figures, and the "Top ducats" crown on the slip that wins in ducats.
+- **Platinum** (`platinum`, #e8e8ea): platinum figures on cards, the figures line, order rows and reward slips; also the rule round a reward slip whose part an unbuilt item still lacks. Its hue is close to `text`, so the game's canister icon is what tells the currency. `platinum-dim` is the muted figure on the kiosk strip.
+- **Ducat Gold** (`gold`, #d8b04a): ducat figures, and the "Top ducats" crown on the slip that wins in ducats.
 
 ### Neutral
-- **Chrome Graphite** (`bg-0`): title bar and sidebar; also the ink on a platinum or gold crown.
-- **Page Graphite** (`bg-1`): the page ground, card art wells, switch tracks.
-- **Surface Graphite** (`bg-2`): cards, inputs, chips at rest, stat chips, panels, reward slips.
-- **Hairline** (`line`): borders of cards, panels and rows; section rules.
-- **Strong Hairline** (`line-strong`): hovered card borders, tag outlines, scrollbar thumbs, the overlay slip frame.
-- **Control Edge** (`line-control`): the boundary of every interactive control (buttons, inputs, selects, chips, segmented groups), kept at 3:1 against `bg-2`.
-- **Text** (`text`), **Dim Text** (`text-dim`), **Faint Text** (`text-faint`): primary copy; secondary copy and unselected controls; metadata, counts and placeholders (5.28:1 on `bg-2`, the darkest ground text sits on).
+- **Window** (`bg-0`, #1b1a19): title bar, the ground round the rail, the setup screen's frame; the ink on a platinum or gold crown; the overlay slip's ground at 94%.
+- **Panel** (`bg-1` #242321 to `bg-1-low` #2a2624): the content panel, a top-to-bottom gradient from 35% down.
+- **Raised** (`bg-2`, #2e2c2a): groups, item cards, empty-state tiles, link forms, reward slips.
+- **Fill** (`fill`, white at 7%) and **Strong Fill** (`fill-strong`, white at 12%): neutral buttons, hovers, the current nav item, a segmented track, tags; their hover state, a pressed chip, the current page number.
+- **Well** (`well`, black at 16%): the ground of fields and of card art wells.
+- **Hairline** (`line`, white at 7%) and **Strong Hairline** (`line-strong`, white at 13%): row separators and the panel edge; hovered cards, the access rail, the overlay slip frame.
+- **Control Edge** (`line-control`, #807b76): the drawn edge of fields, selects and an off switch track, and the ring of a pressed chip or current page. 3.32:1 on `bg-2`, 3.75:1 on `bg-1`.
+- **Text** (#ecebe9), **Dim Text** (#b4b0ab), **Faint Text** (#a39e98): primary copy; secondary copy, row notes and unselected controls; metadata, counts, placeholders and footnotes (5.23:1 on `bg-2`, the lightest ground faint text sits on).
 
 ### State
-- **Ok** (`ok`), **Warn** (`warn`), **Danger** (`danger`): the reader's state icon, verdicts, the "Mastered" tag, pending access changes, flagged orders and errors. Tinted grounds are the state colour mixed at 5–12% into the surface, with a 40–45% border.
+- **Ok** (#7cc597), **Warn** (#e3a364), **Danger** (#f08a7c): the reader icon, verdicts, the "Mastered" tag, pending access changes, flagged orders and errors. Tinted grounds mix the state colour at 5–16% into the surface (`danger-ground`, danger at 6% over `bg-2`, for a flagged order row, a broken report group and the relink block); a state tint never replaces the word.
 
 ### Named Rules
-**The One Accent Rule.** Steel blue means "selected, focused or the thing to do next". It is never used for decoration, for a category or for a currency.
+**The Soft Blue Rule.** Blue means "on, focused, selected segment, or the thing to do next". One primary action per screen at most; never decoration, a category, a nav item or a currency.
 
 **The Two Metals Rule.** Platinum and gold are spent on currency values and on the marks of the metal a reward wins. They never colour chrome, headings or icons, and the two always read as two distinct values, each with the game's own icon.
 
-**The Words Too Rule.** No state is carried by colour alone: a flagged order has a dot and a sentence, an absent item has a dashed tag that says "Not owned", a dimmed card still says so in its badge.
+**The Words Too Rule.** No state is carried by colour alone: a flagged order has a dot and a sentence, an absent item has a dashed tag that says so, a pressed chip has a drawn ring as well as a fill.
 
 ## Typography
 
 **Display Font:** system UI sans (`ui-sans-serif, system-ui`, with DejaVu Sans and Liberation Sans)
 **Body Font:** the same face
-**Label/Mono Font:** none for labels; `ui-monospace` only inside the shell-command field and `kbd` keys.
+**Mono Font:** `ui-monospace` with DejaVu Sans Mono and Liberation Mono (`--face-mono`), for the version line, shell commands and `kbd` keys only.
 
-**Character:** One plain, native face at small sizes and moderate weights, so the item art and the figures carry the screen. Hierarchy comes from weight (600 for names and titles) and from the three text tones, not from size jumps.
+**Character:** One plain native face at small sizes and moderate weights, so the item art and the figures carry the screen. Hierarchy comes from weight and from the three text tones, not from size jumps.
 
 ### Hierarchy
-- **Display** (700, 28px at the overlay's 1080p design pixel, line-height 1, -0.02em): the platinum and ducat figures on a reward slip. Scales with `--u` on the overlay.
-- **Headline** (600, 1.25rem, 1.3, -0.01em): the one page title per page, inline with its stat chips. There is no larger type in the main window.
-- **Section** (600, 1.0625rem): section titles inside a page. Panel headings step down to 0.9375rem.
-- **Title** (600, 0.9rem, 1.3): item names on cards and order lines; two lines at most on a card.
-- **Value** (600, 1rem, tabular): the price figure on an item card.
-- **Body** (400, 0.875rem, 1.45): controls, page notes, prose (prose capped at 70ch, line-height 1.55).
-- **Body small** (400, 0.8125rem): stat chips, filter chips, segmented options, status lines, helper text.
-- **Label** (400–700, 0.75rem, tabular where numeric): tags, card metadata, count badges, snapshot age. 12px is the floor.
+- **Display** (700, 28px at the overlay's 1080p design pixel, line-height 1, -0.02em): the platinum and ducat figures on a reward slip. Scales with `--u` over the game. In the main window it sets one figure per card on Farm & sales (the trend's change, the best platinum per run) and nothing else.
+- **Headline** (600, 1.25rem, 1.3, -0.01em): the one page title per page. Nothing larger in the main window.
+- **Body** (400, 0.8125rem / 13px, 1.45): the base of the main window: controls, rows, nav, card names (600), prose (70ch, 1.5).
+- **Value** (600, 0.9375rem, tabular): the price figure on an item card.
+- **Group title** (600, 0.75rem, dim): the small grey title above a group.
+- **Label** (400, 0.75rem / 12px, tabular where numeric): row notes, tags, card metadata, footnotes, counts, snapshot age. 12px is the floor.
 
 ### Named Rules
-**The 12px Floor Rule.** No text in the main window or on a reward slip is set under 12px (0.75rem); slip text is `max(12px, 15u)`.
+**The 12px Floor Rule.** No text in the main window or on a reward slip is set under 12px; slip text is `max(12px, 15u)`.
 
-**The Sentence Case Rule.** Labels, buttons, tags and headings are sentence case at normal tracking. No uppercase, no letter-spaced caps, no monospace labels.
+**The Sentence Case Rule.** Labels, buttons, tags and titles are sentence case at normal tracking. No uppercase, no letter-spaced caps.
 
-**The Tabular Figures Rule.** Every number a player compares (prices, counts, stats, page numbers, ages) is set with tabular figures.
+**The Mono For Values Rule.** Monospace is for things a player may copy (a version, a command), never for labels or sentences.
 
 ## Layout
 
-The main window is a two-by-two grid: a 36px title bar across the top (44px under a coarse pointer), a 212px sidebar on the left, and a scrolling content column (padding 20px 24px 48px) whose page caps at 120rem. The sidebar stacks the nav (2px gaps, 36px rows) and, pinned to its foot above a hairline, the reader state, snapshot age and the Refresh button.
+The main window is a two-by-two grid: a 36px title bar (44px under a coarse pointer) across the top, the icon rail on the left, and the content panel (margin 0 8px 8px 0, padding 22px 28px 48px, page capped at 120rem). The rail is its own panel (`bg-1`, hairline edge, 10px corner, 6px padding, margin 0 8px 8px): the pages at the top (Dashboard, the page the app opens on; Collection; Relics, Foundry, Market, Farm & sales, Rewards, Orders), Diagnostics and Settings at its foot, then under a hairline the reader state, Refresh inventory and the update mark. The title bar carries the TennoScope mark over the rail's centre line, and on its right the warframe.market status before the window controls.
 
-A page is a vertical stack with 12px gaps: a page head (title and stat chips wrapping on one line, actions pushed right), one toolbar row (search, sort, segmented filter, ducat switch), one filter row (chips left, price status and action right, the right group wrapping as one piece), then the content. Item cards fill an auto-fill grid with a 14.5rem minimum column and an 8px gap; reward slips use a 13.5rem minimum; diagnostics rows 20rem. Order lines are fixed-column grids so prices and quantities read down a column.
+A page is a vertical stack with 12px gaps. The page head puts the title and, on its right, its tabs (the ownership filter) or its actions (Refresh orders, Unlink); under them one line of figures in dim text separated by middle dots; then the page note. Collection follows with one toolbar row (search, sort, ducat switch), one row of category words with the price state and action on its right, and the grid: auto-fill, 14.5rem minimum, 8px gap. Settings, Diagnostics and Orders are made of groups: a 12px grey title, the group, an optional footnote, 16px between sections. The Dashboard reads the game's world: a row of cycle tiles (the place's scene from the wiki behind its words, darkened toward the text, dimmer at night), then two columns of unequal weight, the void fissures on the left (each row led by its era's relic, the enemy's faction mark before the node) and on the right Today (each row led by a 36px well holding the sortie, archon or Baro mark), the bounty rotations (a row per open world, its scene in the well, each tier a tag of its levels in dim tabular figures and its letter in text colour, the vaults on their own line, the time until the cycle turns on the title line) and the endless rotations (a group of mission-left, marks-right rows: each letter in text colour before its counts, the unit faint at the end), one column below 900px. On Collection, a copy gained this game session carries an accent-blue "+N this session" tag, and the This session tab says since when. On Farm & sales, a bounty table running now carries a tag saying until when, and a drop's name opens the item sheet. Every picture is decoration with an empty alt and steps aside when it does not load.
 
-Spacing runs on one named rhythm, `hair` 4px, `tight` 8px and `step` 16px, used for gaps and padding. Inside components, 2px, 6px, 10px, 12px and 14px recur as literals (control inline padding 10px, panel padding 12px 14px, page gap 12px).
+Responsive behaviour: below 900px order rows fold to two lines and paired forms stack. Below 640px the search takes a full row and the setup confirm stops being sticky. Under `pointer: coarse` (the Steam Deck) every control is at least 44px tall.
 
-Responsive behaviour: below 900px the sidebar collapses to 64px icons (labels stay in the accessibility tree, count badges ride the icon's corner), order lines fold to two rows and paired forms stack. Below 640px the search takes a full row and sliders stack under their label. Under `pointer: coarse` (the Steam Deck) every control is at least 44px tall.
-
-**The Grid First Rule.** Nothing above the item grid is taller than it needs to be: one title line, one toolbar row, one chip row. The grid starts near y=150 on a 1280×800 window.
+**The Grid First Rule.** Nothing above the item grid is taller than it needs to be: a title line, a figures line, one toolbar row, one row of categories. The grid starts near y=205 on a 1280×800 window.
 
 ## Elevation & Depth
 
-TennoScope is flat. Depth is tonal: the three graphite grounds layer chrome, page and surface, and 1px borders do the separating. There are no drop shadows for lift. The few `box-shadow` values in the build are rings and masks, not elevation.
+Flat, by tone. The window ground, the panel and the raised groups are three steps of the same warm grey; the panel has a 1px hairline edge and a faint warm gradient, and nothing casts a shadow for lift.
 
 ### Shadow Vocabulary
-- **Selection ring** (`box-shadow: inset 0 0 0 1px var(--accent)`): pressed segments and pressed presence buttons; the current nav item uses the accent at 40%.
-- **Active node ring** (`box-shadow: 0 0 0 3px var(--bg-2), 0 0 0 4px var(--text)`): the effective level's node on the access rail.
-- **Scroll-under mask** (`box-shadow: 0 -12px 24px var(--bg-1)`): the sticky confirm button on the setup screen, so content scrolling under it fades into the page.
+- **Selection ring** (`box-shadow: inset 0 0 0 1px var(--accent)`): the selected segment and the selected access level.
+- **Pressed ring** (`box-shadow: inset 0 0 0 1px var(--line-control)`): a pressed category chip, the current page number.
+- **Thumb lift** (`box-shadow: 0 1px 2px rgb(0 0 0 / 40%)`): the white thumbs of the slider and the access rail.
+- **Active node ring** (`box-shadow: 0 0 0 3px var(--bg-2), 0 0 0 4px var(--text-dim)`): the effective level's node on the access rail.
 - **Double rule** (`box-shadow: inset 0 0 0 2px var(--bg-0), inset 0 0 0 3px var(--platinum)`): a reward slip whose part is the last one an unbuilt item lacks.
 
 ### Named Rules
-**The Flat Graphite Rule.** Surfaces never float. A surface is distinguished by its ground step and its hairline; hover strengthens the hairline (`line` to `line-strong`), it does not lift.
+**The No Lift Rule.** Surfaces never float. A surface is told apart by its tone; hover lightens a fill or shows a hairline, it never adds a shadow.
 
 ## Shapes
 
-One corner for everything rectangular: 6px (`radius`) on cards, panels, inputs, buttons, chips, stat chips, nav items, order lines and slips; 4px (`radius-sm`) on what sits inside them (tags, card art wells, segmented options, crowns, `kbd`). Round shapes are reserved for small state marks: the 8px status and flag dots, the switch thumb and its 9px track, the 10px count badge, the access-rail nodes. Borders are 1px; a dashed 1px border means absent or unverifiable. Disclosures draw one chevron, rotated from -45° to 45°, in place of the native triangle.
-
-**The One Corner Rule.** A new rectangle takes 6px, or 4px if it nests inside one that does. No other radius, no clipped or cut corners.
+Three corners: 10px (`radius`) for the content panel, groups, item cards and empty tiles; 6px (`radius-sm`) for controls (buttons, fields, chips, segments, nav rows, access tiles) and for reward slips; 4px (`radius-xs`) for what sits inside (tags, crowns, hallmarks, `kbd`). Round shapes are small state marks: status and flag dots, switch thumbs and their 9px tracks, count badges, rail nodes. Lines are 1px; a dashed 1px edge means absent, unverifiable or the effective-but-unselected access level. Disclosures draw one chevron rotated from -45° to 45°.
 
 ## Components
 
 ### Buttons
-Plain and compact; a button is a bordered label, and only one per view is filled.
-- **Shape:** gently rounded (6px), 34px tall, 12px inline padding, 0.875rem at weight 500.
-- **Default:** surface graphite ground, text colour, a control-edge border. Hover moves the ground to the hairline tone and the border to faint text.
-- **Primary:** solid steel blue with `accent-ink` text at weight 600; hover lightens to `accent-hover`. Used for the page's next action (Price this page, the setup confirm, Confirm an access change).
-- **Armed:** a destructive button awaiting its second click turns its border and label danger.
-- **Disabled:** 50% opacity, `not-allowed` cursor; a disabled button that blocks a choice has its reason written under it.
-- **Link button:** accent text, 1px underline at 0.2em offset, 0.8125rem.
+Quiet and compact; a button is a label on a translucent fill.
+- **Default:** `fill`, text colour, no frame, 6px, 28px tall, 12px inline padding, 13px at weight 500. Hover: `fill-strong`.
+- **Primary:** the accent at 22% (32% on hover) with an `accent-text` label, never a solid blue block; one per screen (Price this page, the setup confirm, Confirm an access change). The mix is made over `--primary-under`, transparent by default; the sticky setup confirm sets it to the panel colour so text scrolling under it does not read through.
+- **Armed:** a destructive button awaiting its second click turns danger, on a 16% danger ground.
+- **Rail item:** Refresh inventory is an icon on the rail like the pages, not a button standing on it.
+- **Disabled:** 45% opacity; a disabled button that blocks a choice has its reason written next to it.
+- **Link:** `accent-text` with a 45% underline at 0.2em, full on hover.
 
-### Chips
-- **Filter chip:** 28px, 8px inline padding, transparent with a control-edge border, dim text and a faint tabular count. Selected: accent border, `accent-soft` ground, text colour.
-- **Stat chip:** an inline figure in the page head: surface ground, hairline border, 3px 10px padding, 0.8125rem; the figure in 600 tabular, its label dim. Currency stats colour only the figure, in its metal, with the game icon at 18px.
-- **Tag:** 18px line, 0 6px, `radius-sm`, strong-hairline border, dim 0.75rem text. "Mastered" in ok; absent dashed and faint; ranked-max and listed in a control-edge border with text colour.
+### Groups and Rows
+- **Group:** `bg-2`, 10px, no border; children split by a `line` hairline.
+- **Row** (`.setting`): label and its note on the left (13px weight 500, note 12px dim, 62ch), value or control on the right, 10px 14px padding, wrapping under the label when narrow. Footnotes and errors take the row's full width.
+- **Group title:** 12px, 600, dim, 2px inset, above the group.
+
+### Chips and Tabs
+- **Category chip:** words at rest (dim, 26px, no frame); hover takes `fill`; pressed takes `fill-strong`, text colour and a control-edge ring. Counts in faint tabular 12px.
+- **Segmented tabs:** a `fill` track with 2px padding and 8px corners; 24px options; the selected one `accent-soft` with a 1px accent ring. Used for ownership and language.
+- **Tag:** `fill`, 4px, 18px line, dim 12px. Mastered in ok on an ok tint; absent dashed and faint; maxed rank and listed on `fill-strong` in text colour.
 
 ### Cards / Containers
-- **Item card:** a two-column grid, 60px art well (page ground, `radius-sm`) beside the name (two lines max), category meta, tags and values pinned to the foot. Surface ground, hairline border, 8px padding; hover strengthens the border only. A card the account does not hold greys its art to 55% and dims its name, and its tag still says so.
-- **Panels** (presence, listing forms, reports, health rows): surface ground, hairline, 6px, 10–14px padding. A broken or flagged panel takes a danger border at 40–45% and a 5–6% danger tint.
+- **Item card:** borderless `bg-2` tile, 10px corner, 10px padding; 56px art well (black at 16%, 6px) beside the name (two lines max), category, tags and the values line with Sell at its end. Hover shows a strong hairline. A card the account does not hold greys its art and dims its name, and its tag says so.
+- **Empty state:** one tile (22rem max, centred): the page's 20px icon, a 13px title, a 12px faint line, an optional action.
+- **Order list:** one group, an order per row in fixed columns (mark, name, price × count, value, claim, actions); a flagged row adds a danger dot, a danger sentence and a 6% danger tint.
+
+### Cards and Bars (Farm & sales)
+- **Card:** a group-toned tile (`bg-2`, 10px, 12px 14px padding) with a 13px semibold title and, on its right, a segmented control. Two sit side by side above the page's table, one column under 1100px. No gradient and no glow: the reference's lit trend card is translated to tone, like everything else here.
+- **Trend figure:** the Display size, `ok` for a rise and `danger` for a fall, always with its sign; a line under it says over what it was observed. Carousel dots are 3px rules in 28px buttons, the current one in text colour.
+- **Bar chart:** horizontal, one row per entry (label, 10px bar, figure with its metal). Pace is a fill and a shape: fast a full `ok` bar, steady a `text-faint` bar, slow an outline in control edge only; a legend under the chart names all three, and each row speaks its pace to a screen reader.
+- **Sparkline:** one 1.5px `text-dim` line, no axes, no fill; its accessible name states the first and last figure and the period.
+
+### Rankings (Market)
+While no item is open, the Market page shows the day's trades under the search: a 13px semibold heading that names the day the daily summary covers ("Trades of 27 Oct", never "today"), a 12px faint line on where it comes from, then four groups, two abreast from 27rem each and one column below. Each group is a ranking of ten rows under a 12px grey title: a faint column line (Item, the ranking's figure, Median), then rows of a 28px art well, the name with its rank or variant tag, the figure in dim tabular text right-aligned, and the median as a platinum figure. A relic tier is named as the Relics page names it (Meso I3 Radiant). A row is a button that opens the item as a search would, its hover a `fill`; one the item list cannot name stays a plain row. The fourth group, Over 7 days, carries a segmented control (Rising, Falling) on its title line; its change is `ok` with a plus or `danger` with a minus, the sign always written. A threshold a ranking applies is said in a footnote under its group, and a ranking that cannot be drawn yet says why in its group's place. Opening an item puts a link back to the rankings above it.
+
+### Orders
+A listing is a ledger line in a group, on fixed columns so figures read down the page: a 40px thumbnail well (warframe.market's picture, else the collection's, else two letters), the name with one 12px line under it (the reconciliation's claim in `danger` with its repair as a link beside it, else what the row is: unverifiable, hidden, a buy order), the price in platinum, the count, the listing's value, then a 14rem action column right-aligned so rows with fewer buttons keep the figures in line. The count is a 28px stepper (minus and plus icons in a `fill` well with a control edge, the number between) when a held row bounds it, a plain `× n` otherwise. Sold is the row's one filled stamp (`accent-soft`, accent edge); Edit and Remove stay plain. A flagged line takes `danger-ground`. Above the list, the sync switch with its note beside it, and while there is one, the last sync's report: a `bg-2` block of 24px thumbnails with the name and `taken down` or `3 → 1`. Below, the inventory's unlisted sellable holdings on the same line grammar (thumbnail, name over rank and count, price, Sell), headed by its title and a search field, eight rows at most. The sell form's market line sits under its two fields: the in-game sellers' prices in platinum and a Match link.
+
+### Item Sheet
+A card opens its item in a panel over the page's right edge (`bg-1`, a `line-strong` edge, 10px, 460px wide at most), the grid left in place: a sticky bar (previous, position, next, close), the title and its tags, the art in a 300px well, the description, then titled groups of rows, each shown only when the catalogue says something: In your collection, Value, Components (a missing part opens on its relics), Obtained in, Abilities, Stats, Builds, and the introduction and wiki link last. **Builds** lists Overframe's five best builds for a Warframe, weapon or companion (a Prime part or blueprint asks for the item it builds; mods, relics and resources show no group and ask nothing): each row is a button the width of the group, the build's title over a 12px faint line (author · score · Forma · updated date) with an arrow at its end, opening the build on overframe.gg; its hover is a `fill`. While Overframe is asked, when it lists none and when it cannot be reached, the group holds one faint sentence saying so and the rest of the sheet stands. A 12px faint footnote names Overframe as the source. Only what points at a build is shown, never its mods.
 
 ### Inputs / Fields
-- **Style:** 34px, surface ground, control-edge border, 6px, 10px inline padding (32px left when a search icon leads), 0.875rem. Select shows a 16px chevron; placeholders are faint.
-- **Hover / Focus:** hover shifts the border to faint text; focus draws the global 2px accent outline at 2px offset.
-- **Switch:** a 30×18 track with a 12px thumb; on, the track fills accent and the thumb slides 12px and turns `accent-ink`. Position and fill both carry the state.
-- **Segmented:** a bordered 2px-padded group of 28px options; pressed takes `accent-soft` and an inset accent ring.
-- **Slider:** 4px track filled accent up to the value; a 16px thumb with a 2px accent ring.
+- **Field:** 30px, black at 16% over the ground, control-edge border, 6px, 10px inline padding (30px with a search icon), 13px. Hover lightens the edge to faint text; focus draws the 2px soft-blue outline.
+- **Switch:** 32×18 track with a 12px thumb; off is `fill` inside a control edge with a dim thumb; on fills soft blue and the thumb slides 14px and turns white.
+- **Slider:** 4px track, soft blue up to the value and control edge after; a 16px white thumb.
 
 ### Navigation
-- **Sidebar item:** 36px row, 18px stroke icon, 0.875rem dim label, 10px inline padding, 6px corner. Hover takes the surface ground; current takes `accent-soft`, a 1px accent ring at 40%, text colour and an accent icon. A count badge sits right: a 10px-radius pill, strong-hairline border, 0.75rem bold tabular, neutral, never accent.
-- **Title bar:** 36px, chrome ground, the 0.9375rem bold wordmark left, three 44px window controls right.
-- **Pagination:** 32px square buttons, borderless at rest; current page takes the accent border and `accent-soft`.
+- **Rail item:** a 40px square (44px under a coarse pointer), 18px icon at a 1.5 stroke, dim, 6px corner, no label. Hover takes `fill` and text colour; current takes `fill`, a `line` inset ring and text colour, never the accent. A count rides the top-right corner inside the button: a 16px neutral pill on `bg-2`, carved from the icon by a 2px ring of the rail.
+- **Tip:** the name of a rail item, shown on hover and on keyboard focus, gone on Escape: `bg-2`, a `line-strong` inset ring, 6px, 12px text, 10px right of the item; the reader's tip adds its detail and the snapshot age in dim text. Never `title`.
+- **Market status:** a 24px pill on `fill` in the title bar: a 12px mark (dot online, ringed dot in game, dashed ring invisible, ring offline, warn triangle for a refused link), the status word, `· auto` when it follows the game, a chevron. It opens a 16rem popover on `bg-2` with a `line-strong` ring and a 10px corner: the four choices as rows (the one asked for in `accent-soft` with an accent ring), the Follow the game checkbox and the note. Unlinked, the pill says Not linked and opens Orders.
+- **Title bar:** 36px on the window ground, the 13px semibold wordmark in dim text, three 44px window controls.
+- **Pagination:** 28px buttons, bare at rest; the current page takes `fill-strong` and a control-edge ring.
 
 ### Reward Slip
-The one surface shared by the Rewards page and the in-game overlay. Every size is a count of `--u`, one design pixel of the 1080p overlay (1px on the page, `100vh / 180` over the game). A column: the item name in two reserved lines so figures land level across four slips, a hairline, then two equal metal columns (game icon at 25u, figure at 28u bold, word below), then a foot of hallmarks or the mastery ledger pinned to the bottom. The winning metal's word is replaced by a crown set in that metal ("Top plat", "Top ducats") with chrome-graphite ink. Over the game the slip sits on chrome graphite at 94% opacity with a strong-hairline frame.
+Shared by the Rewards page and the in-game overlay. Every size is a count of `--u`, one design pixel of the 1080p overlay (1px on the page, `100vh / 180` over the game). A column: the name in two reserved lines, a hairline, two equal metal columns (game icon at 25u, figure at 28u bold, word below), then hallmarks or the mastery ledger pinned to the foot. The winning metal's word becomes a crown in that metal with window-ground ink. Over the game the slip sits on the window ground at 94% with a strong-hairline frame. Its corners are 6px and 4px, as before this world, so the overlay's geometry does not move.
 
 ### Access Selector
-One bordered panel whose rows are the effective-mode status, the rail, the detail and the always-prohibited list. The rail's three levels are framed choices at rest (hairline), stronger on hover, solid accent with `accent-soft` when selected, and dashed control-edge for the effective mode when it differs. A pending change tints the detail warn at 5% and says "Proposed. Not yet effective."
+One group whose rows are the effective-mode status, the rail, the detail and the always-prohibited list. The rail's three levels are `fill` tiles; hover takes `fill-strong`; selected takes `accent-soft` with an accent ring; the effective level, when it differs, a dashed control-edge outline. A pending change tints the detail warn at 5% and says "Proposed. Not yet effective."
 
 ### Kiosk Plate
-Over the Ducat Kiosk, every reading (grid price chips and basket rows alike) sits on the same plate: a 4-design-pixel radius, a near-opaque navy glass (`rgb(8 16 26 / 84%)`) with a 1px inset cool ring and a soft text shadow, in the app face at weight 600 with tabular figures. No reading floats as bare digits over the game. Sizes are design pixels of the 1920×1080 calibration times `--h`.
+Over the Ducat Kiosk, every reading sits on its own plate: a 4-design-pixel radius, near-opaque navy glass (`rgb(8 16 26 / 84%)`) with a 1px inset cool ring and a soft text shadow, weight 600 with tabular figures. The plate keeps these colours of its own rather than the window's greys: it is read against the game's teal panels, not against the app. Sizes are design pixels of the 1920×1080 calibration times `--h`.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** start every new rectangle on `bg-2` with a 1px `line` border and the 6px `radius`.
-- **Do** give every interactive control a `line-control` border so its boundary holds 3:1.
-- **Do** keep steel blue for selection, focus, links and the one primary action in view.
-- **Do** colour a currency figure in its metal and set the game's own platinum or ducat icon beside it, at 18px or more.
-- **Do** use tabular figures for every number a player compares.
-- **Do** say every state in words or shape as well as colour, and keep visible focus, `prefers-reduced-motion` and `forced-colors` support.
+- **Do** put settings and data in a group of label-left, value-right rows, titled in small grey above.
+- **Do** keep soft blue for a switch that is on, focus, the selected segment and the one primary action.
+- **Do** draw a 3:1 edge (`line-control`) on every field, select and off switch track.
+- **Do** colour a currency figure in its metal and set the game's platinum or ducat icon beside it at 18px or more.
+- **Do** use tabular figures for every number a player compares, and monospace for versions and commands.
+- **Do** say every state in words or shape as well as colour; keep visible focus, `prefers-reduced-motion` and `forced-colors` support.
 - **Do** give every control 44px under `pointer: coarse`.
 
 ### Don't:
 - **Don't** set text under 12px in the main window or on a reward slip.
-- **Don't** use uppercase or letter-spaced labels, or monospace outside code and keys.
-- **Don't** add drop shadows to lift a surface; strengthen its hairline instead.
-- **Don't** bring back the assay register: no guilloché, no clip-path cartouches, no 5rem page marks, no row of giant figures, and no hallmark or assay vocabulary in visible labels.
+- **Don't** frame chips, stats or panels with borders; separate rows with hairlines and surfaces with tone.
+- **Don't** fill a button with solid blue, or use blue on a nav item, a category or a heading.
+- **Don't** add shadows for lift.
+- **Don't** use uppercase, letter-spaced labels, or monospace for labels and sentences.
 - **Don't** use platinum or gold on chrome, headings, icons or anything that is not a currency value or the metal a reward wins.
-- **Don't** borrow AlecaFrame's name, logo or assets; borrow only its patterns.
+- **Don't** bring back the assay register or the graphite world: no guilloché, no cartouches, no bordered stat chips, no solid accent buttons.
+- **Don't** borrow a product's or AlecaFrame's name, logo or assets; borrow only grammar and patterns.

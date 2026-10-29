@@ -18,8 +18,9 @@ use local_store::{SnapshotInstant, SnapshotMeta, StoreError};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 use warframe_acquisition::{
-    CatalogCache, CollectionPriceCache, InventoryAcquirer, InventoryHttpTransport,
-    MarketPriceCache, RelicsRunHttp, WarmOutcome, WfcdCatalogHttp, dump_is_current, latest_dump,
+    CatalogCache, CollectionPriceCache, DUMP_LOOKBACK_DAYS, InventoryAcquirer,
+    InventoryHttpTransport, MarketPriceCache, RelicsRunHttp, WarmOutcome, WfcdCatalogHttp,
+    days_between, latest_dump, unix_days_before,
 };
 
 /// The platform's process-memory backend. Both sides implement `MemoryReader` and
@@ -31,6 +32,8 @@ use warframe_acquisition::LinuxProc as GameMemory;
 use warframe_acquisition::WindowsProc as GameMemory;
 
 mod access;
+mod builds;
+mod game_language;
 mod kiosk_geometry;
 mod kiosk_log;
 mod kiosk_ocr;
@@ -39,6 +42,7 @@ mod kiosk_view;
 #[cfg(target_os = "linux")]
 pub mod linux_renderer;
 pub mod market_account;
+mod market_lookup;
 pub mod monitor;
 mod overlay_window;
 mod preferences;
@@ -53,6 +57,7 @@ mod reward_source;
 // is likewise absent on mobile, so everything referencing it gates together.
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod update;
+mod world_state;
 pub use access::{AccessMode, AccessPolicy};
 pub use kiosk_ocr::{BasketRow, GridCell};
 pub use kiosk_view::{KioskState, KioskView};
@@ -577,6 +582,109 @@ async fn get_view(state: State<'_, SharedRuntime>) -> Result<AppView, String> {
     .map_err(|_| "application view task failed".to_owned())?
 }
 
+/// The item sheet for one collection or Mastery row, from the catalogue and collection already in
+/// memory: nothing is fetched to answer it.
+#[tauri::command]
+async fn get_item_detail(
+    state: State<'_, SharedRuntime>,
+    item_id: String,
+) -> Result<app_core::ItemDetailView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let runtime = shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?;
+        runtime
+            .core
+            .item_detail(&item_id)
+            .map_err(|_| "item details are unavailable".to_owned())?
+            .ok_or_else(|| "item is not in the collection".to_owned())
+    })
+    .await
+    .map_err(|_| "item details task failed".to_owned())?
+}
+
+/// WFCD's relic tables, from the disk cache the game monitor keeps, read on first use so the pages
+/// that value relics answer in Companion too and never ask the network.
+fn ensure_relic_index(shared: &SharedRuntime) -> Result<(), String> {
+    let unavailable = |_| "application state is unavailable".to_owned();
+    let app_data = {
+        let runtime = shared.lock().map_err(unavailable)?;
+        (!runtime.core.has_relic_index()).then(|| runtime.app_data.clone())
+    };
+    // Parsed outside the lock: the cache is megabytes, and the 2.5s view poll needs the lock.
+    if let Some(app_data) = app_data
+        && let Ok(load) =
+            warframe_acquisition::RelicCatalogCache::new(app_data.join("catalog")).load_cached()
+    {
+        let index = Arc::new(load.index().clone());
+        shared
+            .lock()
+            .map_err(unavailable)?
+            .core
+            .set_relic_index(index);
+    }
+    Ok(())
+}
+
+/// The Relics page.
+#[tauri::command]
+async fn get_relics(state: State<'_, SharedRuntime>) -> Result<app_core::RelicsView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        ensure_relic_index(&shared)?;
+        shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?
+            .core
+            .relics_view()
+            .map_err(|_| "relics view is unavailable".to_owned())
+    })
+    .await
+    .map_err(|_| "relics view task failed".to_owned())?
+}
+
+/// The Farm & sales page: built from the collection, the two price dumps, the catalogue's drop
+/// lists and the relic tables already in hand, and the bounty tiers the Dashboard's last world state
+/// says run now.
+#[tauri::command]
+async fn get_farm(
+    state: State<'_, SharedRuntime>,
+    world: State<'_, world_state::WorldCache>,
+) -> Result<app_core::FarmView, String> {
+    let shared = Arc::clone(state.inner());
+    let world = world.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        ensure_relic_index(&shared)?;
+        let bounties = world_state::running_bounties(&world);
+        shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?
+            .core
+            .farm_view(bounties.as_deref())
+            .map_err(|_| "farm view is unavailable".to_owned())
+    })
+    .await
+    .map_err(|_| "farm view task failed".to_owned())?
+}
+
+/// The Foundry page: built from the collection, catalogue and prices already in memory.
+#[tauri::command]
+async fn get_foundry(state: State<'_, SharedRuntime>) -> Result<app_core::FoundryView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let runtime = shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?;
+        runtime
+            .core
+            .foundry_view()
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|_| "foundry view task failed".to_owned())?
+}
+
 /// Assemble the GitHub-safe report text only (used by "Copy diagnostics").
 #[tauri::command]
 async fn collect_report_text(
@@ -794,6 +902,23 @@ async fn set_mastery_marks(
     .map_err(|_| "preferences task failed".to_owned())?
 }
 
+/// Turn on or off the order repair that follows an inventory read. See `sync_orders_after_read`.
+#[tauri::command]
+async fn set_sync_orders(
+    state: State<'_, SharedRuntime>,
+    enabled: bool,
+) -> Result<Preferences, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut runtime = shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?;
+        save_sync_orders(&mut runtime, enabled)
+    })
+    .await
+    .map_err(|_| "preferences task failed".to_owned())?
+}
+
 #[tauri::command]
 async fn set_language(
     state: State<'_, SharedRuntime>,
@@ -816,6 +941,14 @@ fn save_mastery_marks(runtime: &mut Runtime, enabled: bool) -> Result<Preference
         ..runtime.preferences
     };
     store_preferences(runtime, next, "mastery marks setting could not be saved")
+}
+
+fn save_sync_orders(runtime: &mut Runtime, enabled: bool) -> Result<Preferences, String> {
+    let next = Preferences {
+        sync_orders: enabled,
+        ..runtime.preferences
+    };
+    store_preferences(runtime, next, "order sync setting could not be saved")
 }
 
 fn save_language(runtime: &mut Runtime, language: Option<Language>) -> Result<Preferences, String> {
@@ -1539,6 +1672,34 @@ async fn remove_order(
     .map_err(|_| "order removal task failed".to_owned())?
 }
 
+/// Record that some or all of a sell listing was sold, then refresh.
+///
+/// Not gated on Full access, like `remove_order` and unlike the writes that read the collection:
+/// the count is the player's own statement of a trade, bounded by `authorize_close` against the
+/// order alone, so nothing here depends on inventory evidence a Companion or Overlay mode lacks.
+#[tauri::command]
+async fn close_order(
+    order_id: String,
+    quantity: u32,
+    state: State<'_, SharedRuntime>,
+) -> Result<AppView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        {
+            let runtime = shared
+                .lock()
+                .map_err(|_| "application state is unavailable".to_owned())?;
+            market_account::authorize_close(runtime.core.market_account(), &order_id, quantity)
+                .map_err(str::to_owned)?;
+        }
+        write_then_refresh(&shared, "close", |transport, token| {
+            warframe_market::close_order(transport, token, &order_id, quantity)
+        })
+    })
+    .await
+    .map_err(|_| "order close task failed".to_owned())?
+}
+
 /// Publish a sell listing for one row of the collection.
 ///
 /// The item is named by its collection row id: the whole key, rank suffix or relic tier
@@ -1667,7 +1828,7 @@ async fn update_order(
     .map_err(|_| "order edit task failed".to_owned())?
 }
 
-/// Both writes share this: perform it, keep whatever token came back, then refresh.
+/// Every write shares this: perform it, keep whatever token came back, then refresh.
 ///
 /// The refresh happens whether or not the renewed token could be stored. A write that changed the
 /// account and left the list showing the old state would invite the player to press the same
@@ -1678,6 +1839,19 @@ fn write_then_refresh<F>(
     kind: &'static str,
     write: F,
 ) -> Result<AppView, String>
+where
+    F: FnOnce(
+        &dyn warframe_market::MarketTransport,
+        &warframe_market::MarketToken,
+    ) -> Result<warframe_market::MarketToken, warframe_market::MarketError>,
+{
+    write_order(shared, kind, write)?;
+    publish_account(shared)
+}
+
+/// One write with no lock held across it, and the renewed token kept. The token is read from the
+/// store per write, so a run of writes each sends the one the write before it renewed.
+fn write_order<F>(shared: &SharedRuntime, kind: &'static str, write: F) -> Result<(), String>
 where
     F: FnOnce(
         &dyn warframe_market::MarketTransport,
@@ -1714,8 +1888,8 @@ where
             return Err(market_account::failure_message(error).to_owned());
         }
     };
-    // Not propagated on failure: the write already happened on the account, and returning early
-    // here would leave the list on screen out of date with no way back except pressing the same
+    // Not propagated on failure: the write already happened on the account, and reporting it as
+    // failed would leave the list on screen out of date with no way back except pressing the same
     // button again. `publish_account` re-reads the token itself and reports whatever it finds.
     let _ = {
         let mut runtime = shared
@@ -1726,7 +1900,65 @@ where
         runtime.market.supersede_reads();
         runtime.market.adopt(renewed)
     };
-    publish_account(shared)
+    Ok(())
+}
+
+/// Repair the account's flagged orders after an inventory read, when the player has asked for it.
+///
+/// Runs only under the conditions a press of either repair button would: the setting is on and
+/// Full access holds. An unlinked account needs no check of its own: `publish_account` asks
+/// nothing without a token and the unlinked view it publishes has no orders to act on. The
+/// account is fetched and reconciled against the snapshot just read, and the repairs are exactly
+/// `sync_actions` of that, so every refusal the reconciliation makes (a stale or incoherent
+/// snapshot, a set, a relic, a ranked copy) is a refusal here too.
+///
+/// No lock is held over the network, as in `publish_account` and `write_order`. A write that fails
+/// is logged and the rest carry on; nothing is retried, and the one republish at the end shows
+/// whatever the account now holds. Returns that view, or `None` when nothing ran.
+fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
+    {
+        let runtime = shared.lock().ok()?;
+        if !runtime.preferences.sync_orders || market_inventory_writes_authorized(&runtime).is_err()
+        {
+            return None;
+        }
+    }
+    let view = publish_account(shared)
+        .inspect_err(|error| log::warn!("market: order sync could not read the account: {error}"))
+        .ok()?;
+    let actions = app_core::sync_actions(&view.market_account().orders);
+    if actions.is_empty() {
+        return Some(view);
+    }
+    let (mut synced, at) = (Vec::new(), now_unix_seconds());
+    for (entry, to) in actions {
+        let name = entry.name.as_deref().unwrap_or(&entry.order.item_id);
+        let kind = if to == 0 { "remove" } else { "quantity" };
+        let written = write_order(shared, kind, |transport, token| {
+            if to == 0 {
+                warframe_market::delete_order(transport, token, &entry.order.id)
+            } else {
+                warframe_market::set_order_quantity(transport, token, &entry.order.id, to)
+            }
+        });
+        match written {
+            Ok(()) => {
+                log::info!("market: sync {name}: {} -> {to}", entry.order.quantity);
+                synced.push(app_core::SyncedOrder {
+                    name: entry.name.clone(),
+                    thumb_url: entry.thumb_url.clone(),
+                    from: entry.order.quantity,
+                    to,
+                    at: at.clone(),
+                });
+            }
+            Err(error) => log::warn!("market: sync {name} failed: {error}"),
+        }
+    }
+    if !synced.is_empty() {
+        shared.lock().ok()?.core.set_synced(synced);
+    }
+    publish_account(shared).ok()
 }
 
 async fn refresh_shared(shared: SharedRuntime) -> Result<AppView, String> {
@@ -1753,7 +1985,12 @@ fn refresh_blocking(shared: &SharedRuntime) -> Result<AppView, String> {
     };
     let port = ProductionAcquisition { app_data };
     let outcome = port.refresh();
-    let result = apply_outcome(shared, outcome);
+    let read = matches!(outcome, InventoryRefreshOutcome::Success { .. });
+    let mut result = apply_outcome(shared, outcome);
+    // Inside the refresh window, so a second read cannot start a second sync over the first.
+    if read && result.is_ok() {
+        result = sync_orders_after_read(shared).map_or(result, Ok);
+    }
     if let Ok(mut runtime) = shared.lock() {
         runtime.refresh.finish();
     }
@@ -1909,10 +2146,7 @@ fn start_collection_prices(shared: SharedRuntime) {
                 let _ = runtime.core.record_collection_prices_ready(priced, date);
             }
         }
-        if !cached
-            .as_ref()
-            .is_some_and(|table| dump_is_current(table.dump_date(), now))
-        {
+        if !cached.as_ref().is_some_and(|table| table.is_current(now)) {
             let Some(source) = RelicsRunHttp::new() else {
                 return;
             };
@@ -1945,7 +2179,53 @@ fn start_collection_prices(shared: SharedRuntime) {
                 ),
             };
         }
+        start_earlier_prices(&shared, &app_data);
     });
+}
+
+/// How far back the Farm page's change looks.
+const EARLIER_DAYS: i64 = 7;
+
+/// The dump a week before the one in use, for the Farm page's 7-day change: one more file of the
+/// same 3.9 MB, downloaded at most once per dump in use and kept on disk, never a series. The
+/// publisher lags, so whatever `latest_dump` finds walking back from a week before is the
+/// comparison, and the page names its date.
+fn start_earlier_prices(shared: &SharedRuntime, app_data: &Path) {
+    let Some(current) = shared
+        .lock()
+        .ok()
+        .and_then(|runtime| runtime.core.collection_prices())
+        .map(|table| table.dump_date().to_owned())
+    else {
+        return;
+    };
+    let cache = CollectionPriceCache::earlier(app_data);
+    let reach = EARLIER_DAYS..=EARLIER_DAYS + DUMP_LOOKBACK_DAYS as i64;
+    let earlier = match cache.load_cached() {
+        Some(table)
+            if days_between(table.dump_date(), &current)
+                .is_some_and(|days| reach.contains(&days)) =>
+        {
+            table
+        }
+        _ => {
+            let (Some(source), Some(start)) = (
+                RelicsRunHttp::new(),
+                unix_days_before(&current, EARLIER_DAYS),
+            ) else {
+                return;
+            };
+            let Ok(table) = latest_dump(&source, start) else {
+                return;
+            };
+            // Unsaved, it is downloaded again next start; the page works either way.
+            let _ = cache.store_table(&table);
+            table
+        }
+    };
+    if let Ok(mut runtime) = shared.lock() {
+        runtime.core.set_earlier_prices(Arc::new(earlier));
+    }
 }
 
 /// What the collection price row says when a checked price reached memory but not disk.
@@ -2137,6 +2417,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_notification::init())
         // `reward-overlay` is only ever hidden, never destroyed, so Tauri still holds a live window
         // once the main window closes and the app stays up: tailing the log and drawing the overlay
         // over the game with no UI left to close it by.
@@ -2202,6 +2483,10 @@ pub fn run() {
             // The kiosk window's whole IPC surface: `get_kiosk_view` pulls whatever the poller
             // last published, so the cell exists from the start, empty until a kiosk opens.
             app.manage(kiosk_view::KioskState::default());
+            // The Market page's short cache of live orders.
+            app.manage(market_lookup::MarketLookup::default());
+            app.manage(world_state::WorldCache::default());
+            app.manage(builds::BuildsCache::default());
             if let Some(access_mode) = startup.access_mode {
                 start_collection_prices(Arc::clone(app.state::<SharedRuntime>().inner()));
                 // The stored mode is installed here without a transition, so the switch a
@@ -2238,9 +2523,13 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_view,
+            get_relics,
+            get_foundry,
+            get_farm,
             get_setup_status,
             get_preferences,
             set_mastery_marks,
+            set_sync_orders,
             set_language,
             set_access_mode,
             authorize_screen_capture,
@@ -2262,6 +2551,15 @@ pub fn run() {
             create_order,
             set_order_quantity,
             update_order,
+            close_order,
+            get_item_detail,
+            builds::get_item_builds,
+            market_lookup::market_search,
+            market_lookup::market_board,
+            market_lookup::market_item_orders,
+            market_lookup::market_row_orders,
+            market_lookup::market_item_history,
+            world_state::get_world_state,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             update::get_version_info,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -2596,6 +2894,7 @@ mod tests {
             Ok(Preferences {
                 mastery_marks: false,
                 language: None,
+                sync_orders: false,
             })
         );
         assert!(!runtime.preferences.mastery_marks);
@@ -2619,6 +2918,7 @@ mod tests {
         let both = Preferences {
             mastery_marks: false,
             language: Some(Language::Fr),
+            sync_orders: false,
         };
         assert_eq!(save_language(&mut runtime, Some(Language::Fr)), Ok(both));
         assert_eq!(preferences::load_preferences(&writable), both);
@@ -2644,6 +2944,34 @@ mod tests {
             "None goes back to following the system"
         );
         assert_eq!(preferences::load_preferences(&writable).language, None);
+    }
+
+    /// The order sync switch writes only itself, and moves only when its save lands.
+    #[test]
+    fn the_order_sync_switch_saves_beside_the_other_settings() {
+        let directory = tempfile::tempdir().expect("temp dir");
+        let shared = test_runtime(directory.path());
+        let mut runtime = shared.lock().expect("lock");
+        let writable = directory.path().join("tennoscope-preferences.json");
+        runtime.preferences_path = writable.clone();
+        save_language(&mut runtime, Some(Language::Fr)).expect("language saved");
+
+        let saved = save_sync_orders(&mut runtime, true).expect("sync saved");
+        assert!(saved.sync_orders);
+        assert_eq!(saved.language, Some(Language::Fr), "the language is kept");
+        assert_eq!(preferences::load_preferences(&writable), saved);
+
+        let regular_file = directory.path().join("not-a-directory");
+        fs::write(&regular_file, b"").expect("regular file");
+        runtime.preferences_path = regular_file.join("tennoscope-preferences.json");
+        assert_eq!(
+            save_sync_orders(&mut runtime, false).err().as_deref(),
+            Some("order sync setting could not be saved")
+        );
+        assert!(
+            runtime.preferences.sync_orders,
+            "a failed save leaves it on"
+        );
     }
 
     /// A refresh that is already running, and one that just finished, are both reasons not to

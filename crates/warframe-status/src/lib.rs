@@ -214,6 +214,7 @@ fn session(
         .uri(url)
         .header("Sec-WebSocket-Protocol", SUBPROTOCOL)
         .header("Host", "ws.warframe.market")
+        .header("User-Agent", warframe_market::USER_AGENT)
         .header("Connection", "Upgrade")
         .header("Upgrade", "websocket")
         .header("Sec-WebSocket-Version", "13")
@@ -372,8 +373,16 @@ mod handshake_tests {
     fn accept_socket(stream: std::net::TcpStream) -> tungstenite::WebSocket<std::net::TcpStream> {
         tungstenite::accept_hdr(
             stream,
-            |_request: &tungstenite::handshake::server::Request,
+            |request: &tungstenite::handshake::server::Request,
              mut response: tungstenite::handshake::server::Response| {
+                // Cloudflare refuses the real socket's handshake without one.
+                assert_eq!(
+                    request
+                        .headers()
+                        .get("User-Agent")
+                        .map(|value| value.as_bytes()),
+                    Some(warframe_market::USER_AGENT.as_bytes()),
+                );
                 let headers = response.headers_mut();
                 headers.insert(
                     "Sec-WebSocket-Protocol",

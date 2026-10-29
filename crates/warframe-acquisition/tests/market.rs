@@ -25,7 +25,15 @@ fn reward_names_become_market_slugs() {
         ),
         // Forma is not tradeable, so this slug has no market entry and the price stays unknown.
         ("2X Forma Blueprint", "2x_forma_blueprint"),
-        ("Cobra & Crane Prime Hilt", "cobra_crane_prime_hilt"),
+        ("Cobra & Crane Prime Hilt", "cobra_and_crane_prime_hilt"),
+        ("Hell's Chamber", "hells_chamber"),
+        ("Albrecht’s Archive Scene", "albrechts_archive_scene"),
+        ("Nihil's Oubliette (Key)", "nihils_oubliette_key"),
+        (
+            "Höllvanian Subway Junction Scene",
+            "hollvanian_subway_junction_scene",
+        ),
+        ("La Cathédrale Scene", "la_cathedrale_scene"),
     ] {
         assert_eq!(market_slug(name), slug, "for {name}");
     }
@@ -34,7 +42,7 @@ fn reward_names_become_market_slugs() {
 #[test]
 fn a_name_with_nothing_quotable_produces_no_slug() {
     assert_eq!(market_slug("   "), "");
-    assert_eq!(market_slug("&&&"), "");
+    assert_eq!(market_slug("(-)"), "");
 }
 
 /// The shape of `/v2/orders/item/{slug}/top`: top buy and sell orders, already filtered to sellers

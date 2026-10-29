@@ -12,7 +12,7 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "oxlint && tsc --noEmit && vitest run && node --test ../scripts/tauri-env.test.mjs",
+    "check": "oxlint && tsc -b --noEmit && vitest run && node --test ../scripts/tauri-env.test.mjs",
     "tauri": "node ../scripts/tauri.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
@@ -20,6 +20,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-clipboard-manager": "^2.2.0",
+    "@tauri-apps/plugin-notification": "~2.4.0",
     "@tauri-apps/plugin-opener": "^2.2.0",
     "@tauri-apps/plugin-process": "~2.3.1",
     "@tauri-apps/plugin-updater": "~2.12.0",

@@ -1,0 +1,57 @@
+/* foundry
+   One raised card per build: the head says what it is and what it sells for, the pieces follow as
+   hairline rows, and a piece still to find is drawn in full text with its price and its relics. */
+
+.foundry-section { display: grid; gap: var(--tight); margin-top: 4px; }
+.foundry-section .section-title { display: flex; align-items: baseline; gap: 6px; }
+
+.foundry-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(21rem, 100%), 1fr)); gap: var(--tight);
+  margin: 0; padding: 0; list-style: none;
+}
+.foundry-grid > li { display: grid; min-width: 0; }
+
+.foundry-card {
+  display: grid; align-content: start; gap: var(--tight); min-width: 0; padding: 10px;
+  border: 1px solid transparent; border-radius: var(--radius); background: var(--bg-2);
+  transition: border-color .12s ease;
+}
+.foundry-card:hover { border-color: var(--line-strong); }
+
+.foundry-head { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: start; gap: 10px; }
+.foundry-head .card-art { grid-row: auto; }
+.tag.gain { background: var(--fill-strong); color: var(--text); }
+
+.foundry-values { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.foundry-value { display: inline-flex; align-items: center; gap: 6px; color: var(--text-faint); font-size: .75rem; }
+.foundry-verdict { max-width: 11rem; color: var(--text-dim); font-size: .75rem; }
+
+.foundry-pieces { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.foundry-piece {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto auto; align-items: center; gap: 2px 8px;
+  min-height: 30px; padding: 4px 0; color: var(--text-dim);
+}
+.foundry-piece + .foundry-piece { border-top: 1px solid var(--line); }
+/* The slip's part silhouettes, at a fixed row size rather than in slip units. */
+.foundry-piece .set-glyph { width: 20px; height: 20px; }
+.foundry-piece svg.set-glyph { padding: 2px; }
+.foundry-piece[data-missing] { color: var(--text); }
+.foundry-piece[data-missing] .foundry-piece-name { font-weight: 500; }
+.foundry-piece-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.foundry-piece .foundry-count { grid-column: 3; }
+.foundry-piece .value { grid-column: 4; }
+.foundry-drops { grid-column: 2 / -1; color: var(--text-faint); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.foundry-label { color: var(--text-dim); font-weight: 600; }
+
+.foundry-count { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.foundry-held-mark { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.foundry-held-mark[data-full="true"] { color: var(--ok); }
+.foundry-held-mark[data-full="false"] { color: var(--text-faint); }
+
+.foundry-resources {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; padding-top: 6px;
+  border-top: 1px solid var(--line); color: var(--text-dim); font-size: .75rem;
+}
+.foundry-resource { display: inline-flex; align-items: center; gap: 4px; }
+.foundry-resource[data-short] { color: var(--text); }
+.foundry-resource[data-short] .foundry-held-mark { color: var(--warn); }

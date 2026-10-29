@@ -1138,3 +1138,59 @@ fn a_carried_trade_count_expires() {
     past.adopt(&old);
     assert_eq!(past.monthly_trades("Intruder"), None, "thirty-one does not");
 }
+
+/// The Farm page's 7-day change reads two dumps against each other, never a checked price against
+/// a dump: a minute-old ask set against a day's median is two measurements, not a move.
+#[test]
+fn a_price_change_compares_dump_to_dump() {
+    let earlier = PriceTable::from_dump_json(
+        br#"{"Serration":[{"order_type":"sell","median":40.0,"volume":12}]}"#,
+        "2026-07-20",
+    )
+    .expect("earlier dump");
+    let mut now = table();
+    assert_eq!(now.change_since(&earlier, "Serration"), Some(0.25));
+    now.insert_checked("Serration", 80);
+    assert_eq!(now.change_since(&earlier, "Serration"), Some(0.25));
+    // Priced in one dump only: no change is made up.
+    assert_eq!(
+        now.change_since(&earlier, "Zephyr Prime Chassis Blueprint"),
+        None
+    );
+    assert!(now.dump_names().any(|name| name == "Serration"));
+}
+
+#[test]
+fn an_earlier_dump_is_found_a_week_back_from_the_current_one() {
+    use warframe_acquisition::{days_between, unix_days_before};
+    assert_eq!(days_between("2026-07-20", "2026-07-27"), Some(7));
+    assert_eq!(days_between("2026-02-28", "2026-03-01"), Some(1));
+    assert_eq!(days_between("", "2026-03-01"), None);
+    assert_eq!(
+        unix_days_before("2026-07-27", 7).map(warframe_acquisition::civil_date),
+        Some("2026-07-20".to_owned())
+    );
+}
+
+/// The dumps lag, so most launches download the file the cache was built from. That file is a day
+/// the running average has already counted; counting it again on every launch drags each listing
+/// toward whatever that one day happened to show.
+#[test]
+fn a_dump_downloaded_again_is_not_averaged_in_twice() {
+    let yesterday = r#"{"Intruder": [
+        {"order_type":"closed","median":3.0,"mod_rank":0,"volume":6},
+        {"order_type":"sell","median":3.0,"mod_rank":0,"volume":14436}
+    ]}"#;
+    let today = r#"{"Intruder": [{"order_type":"sell","median":3.0,"mod_rank":0,"volume":14436}]}"#;
+    let yesterday =
+        PriceTable::from_dump_json(yesterday.as_bytes(), "2026-07-29").expect("fixture parses");
+    let mut cached =
+        PriceTable::from_dump_json(today.as_bytes(), "2026-07-30").expect("fixture parses");
+    cached.adopt(&yesterday);
+
+    let mut again =
+        PriceTable::from_dump_json(today.as_bytes(), "2026-07-30").expect("fixture parses");
+    again.adopt(&cached);
+
+    assert_eq!(again.monthly_trades("Intruder"), Some(90));
+}

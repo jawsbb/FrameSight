@@ -19,9 +19,10 @@ const RELIC_ID: &str = "56783f24cbfa8f0432dd89a2";
 const SET_ID: &str = "54a73e65e779893a797ffef1";
 
 const ITEMS: &str = r#"{"apiVersion":"0.25.0","data":[
-    {"id":"54a73e65e779893a797fff33",
+    {"id":"54a73e65e779893a797fff33","slug":"braton_prime_blueprint",
      "gameRef":"/Lotus/Types/Recipes/Weapons/BratonPrimeBlueprint",
-     "i18n":{"en":{"name":"Braton Prime Blueprint"}}},
+     "i18n":{"en":{"name":"Braton Prime Blueprint",
+                   "thumb":"items/images/en/thumbs/braton_prime_blueprint.128x128.png"}}},
     {"id":"54ca39abe7798915c1c11e10",
      "gameRef":"/Lotus/Upgrades/Mods/Pistol/DualStat/CorruptedCritChanceFireRatePistol",
      "maxRank":5,
@@ -364,4 +365,25 @@ fn an_order_that_names_no_row_says_so() {
 
     assert_eq!(reconciled[0].row_id, None);
     assert_eq!(reconciled[1].row_id, None);
+}
+
+/// The row shows the item's picture and can open its live book, both read off the item table the
+/// reconciliation already holds, so the interface never needs the table itself. An item the table
+/// publishes neither for carries neither, rather than a broken address.
+#[test]
+fn a_reconciled_order_carries_the_item_picture_and_url_name() {
+    let orders = vec![
+        sell_order(BRATON_ID, 1, 1_785_405_600),
+        sell_order(RETIRED_ID, 1, 1_785_405_600),
+    ];
+
+    let reconciled = reconcile_orders(&orders, &items(), &Collection::default(), None);
+
+    assert_eq!(
+        reconciled[0].thumb_url.as_deref(),
+        Some(
+            "https://warframe.market/static/assets/items/images/en/thumbs/braton_prime_blueprint.128x128.png"
+        )
+    );
+    assert_eq!(reconciled[1].thumb_url, None);
 }

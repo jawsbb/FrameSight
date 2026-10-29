@@ -1,0 +1,70 @@
+{
+  "count": 25,
+  "next": "https://overframe.gg/api/v1/builds/?item_name=Nova+Prime&limit=5&offset=5",
+  "previous": null,
+  "results": [
+    {
+      "id": 2646,
+      "created": "2019-07-29T18:20:29.611336Z",
+      "updated": "2025-10-26T13:37:55.082121Z",
+      "score": 1438,
+      "url": "/build/2646/nova-prime/tanky-slow-fast-nova/",
+      "author": {
+        "id": 1071,
+        "username": "Taurael",
+        "url": "/user/1071/taurael/",
+        "is_staff": false
+      },
+      "formas": 4,
+      "item_data": {
+        "id": 2,
+        "locTag": "/Lotus/Language/Primes/NovaPrimeName",
+        "texture": "/Lotus/Interface/Icons/Store/NovaPrime.png",
+        "texture_new": "/Lotus/Interface/Icons/StoreIcons/Primes/NovaPrime.png"
+      },
+      "title": "Tanky Slow/Fast Nova"
+    },
+    {
+      "id": 215302,
+      "created": "2021-09-11T06:41:14.042420Z",
+      "updated": "2026-06-18T23:45:55.344724Z",
+      "score": 1173,
+      "url": "/build/215302/nova-prime/event-horizon-general-use-slowva-speedva-non-helminth/",
+      "author": {
+        "id": 2890,
+        "username": "ninjase",
+        "url": "/user/2890/ninjase/",
+        "is_staff": false
+      },
+      "formas": 4,
+      "item_data": {
+        "id": 2,
+        "locTag": "/Lotus/Language/Primes/NovaPrimeName",
+        "texture": "/Lotus/Interface/Icons/Store/NovaPrime.png",
+        "texture_new": "/Lotus/Interface/Icons/StoreIcons/Primes/NovaPrime.png"
+      },
+      "title": "Event Horizon | General Use Slowva/Speedva (non-helminth)"
+    },
+    {
+      "id": 215299,
+      "created": "2021-09-11T06:35:30.764269Z",
+      "updated": "2025-09-10T09:39:32.396329Z",
+      "score": 311,
+      "url": "/build/215299/nova-prime/rave-party-speed-nova-high-range-resonator-quiver/",
+      "author": {
+        "id": 2890,
+        "username": "ninjase",
+        "url": "/user/2890/ninjase/",
+        "is_staff": false
+      },
+      "formas": 4,
+      "item_data": {
+        "id": 2,
+        "locTag": "/Lotus/Language/Primes/NovaPrimeName",
+        "texture": "/Lotus/Interface/Icons/Store/NovaPrime.png",
+        "texture_new": "/Lotus/Interface/Icons/StoreIcons/Primes/NovaPrime.png"
+      },
+      "title": "Rave Party Speed Nova | High Range Resonator/Quiver"
+    }
+  ]
+}

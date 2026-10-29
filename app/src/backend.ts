@@ -4,7 +4,7 @@ export type HealthState = 'ready' | 'idle' | 'degraded' | 'failed'
 export interface BackendHealth { state: HealthState; message: string; last_success: string | null }
 export interface AcquisitionStageHealth { stage: string; state: HealthState; message: string }
 export type ItemCategory = 'frame' | 'weapon' | 'companion' | 'prime_part' | 'relic' | 'resource' | 'blueprint' | 'vehicle' | 'mod' | 'arcane'
-export interface CollectionItem { id: string; name: string; category: ItemCategory; quantity: number; mastered: boolean; image_url?: string; platinum?: number; platinum_ceiling?: number; ducats?: number; rank?: number; max_rank?: number; live: boolean; priceable: boolean; monthly_trades?: number }
+export interface CollectionItem { id: string; name: string; category: ItemCategory; quantity: number; mastered: boolean; image_url?: string; platinum?: number; platinum_ceiling?: number; ducats?: number; rank?: number; max_rank?: number; live: boolean; priceable: boolean; monthly_trades?: number; gained?: number }
 /** Mastered and total for one equipment category, counted as the game's profile counts: an item mastered and since sold is still mastered. */
 export interface MasteryCategoryTotal { category: ItemCategory; mastered: number; total: number }
 /** What is left to master. `available` is false until an inventory has been read under Full access and the catalog has loaded. */
@@ -33,14 +33,20 @@ export type OrderStatus =
   | { state: 'overshoot'; owned: number }
   | { state: 'unverifiable' }
 export interface MarketOrder { id: string; item_id: string; kind: 'sell' | 'buy'; platinum: number; quantity: number; per_trade: number; rank?: number; subtype?: string; visible: boolean; updated_at?: number }
-export interface ReconciledOrder { order: MarketOrder; name?: string; row_id?: string; status: OrderStatus }
-export interface MarketAccount { link: LinkState; backing?: CredentialBacking; orders: ReconciledOrder[]; fetched_at?: string; listed_platinum: number; flagged: number; listable: string[]; presence: PresenceView }
+/** `thumb_url` is absolute. */
+export interface ReconciledOrder { order: MarketOrder; name?: string; row_id?: string; thumb_url?: string; status: OrderStatus }
+/** One change an automatic order sync made. `to` 0 is a listing taken down; `at` is in the form of `fetched_at`. */
+export interface SyncedOrder { name?: string; thumb_url?: string; from: number; to: number; at: string }
+/** `synced` is what the most recent sync that changed anything changed, empty before one has. */
+export interface MarketAccount { link: LinkState; backing?: CredentialBacking; orders: ReconciledOrder[]; fetched_at?: string; listed_platinum: number; flagged: number; listable: string[]; presence: PresenceView; synced: SyncedOrder[] }
 
 export interface AppView {
   collection: {
     items: CollectionItem[]
     total_entries: number
     snapshot?: { observed_at: number; game_build: string; source: string } | null
+    /** Unix seconds at which the open game session started; each item's `gained` counts from it. */
+    session_started?: number | null
     pricing?: PricingProgress | null
   }
   mastery: MasteryChecklist
@@ -87,7 +93,50 @@ export interface KioskView {
 }
 
 export const getView = () => invoke<AppView>('get_view')
+
+export type Refinement = 'intact' | 'exceptional' | 'flawless' | 'radiant'
+export type RelicRarity = 'common' | 'uncommon' | 'rare'
+/** One reward of a relic at its refinement. `ducats` absent: Baro does not take it, or the values have not loaded. */
+export interface RelicReward { name: string; rarity: RelicRarity | null; chance: number | null; platinum: number | null; ducats: number | null; owned: number; mastery?: MasteryMark }
+/** What one opening returns on average: chance × price over the priced rewards. `unpriced` rewards are left out, so it is a floor. */
+export interface RelicOpening { platinum: number; ducats: number | null; unpriced: number; unpriced_chance: number }
+export interface Relic { id: string; name: string; era: string; refinement: Refinement | null; quantity: number; vaulted: boolean | null; platinum: number | null; monthly_trades: number | null; opening: RelicOpening | null; rewards: RelicReward[] }
+/** `catalog` false: WFCD's relic tables are not loaded. `prices_date` null: no price table yet. */
+export interface RelicsView { catalog: boolean; prices_date: string | null; ducats: boolean; relics: Relic[] }
+export const getRelics = () => invoke<RelicsView>('get_relics')
 export const getKioskView = () => invoke<KioskView | null>('get_kiosk_view')
+
+export type Era = 'lith' | 'meso' | 'neo' | 'axi' | 'requiem' | 'omnia'
+export type CyclePlace = 'earth' | 'cetus' | 'vallis' | 'cambion'
+export type CycleState = 'day' | 'night' | 'warm' | 'cold' | 'fass' | 'vome'
+/** `expiry`s are Unix milliseconds: the page counts down to them itself. */
+export interface Cycle { place: CyclePlace; state: CycleState; expiry: number }
+/** Names as WFCD's table gives them, in English; a node it does not know is its code, with no planet. */
+export interface WorldNode { name: string; planet: string | null; enemy: string | null }
+/** `mission_type` is WFCD's English name ("Mobile Defense"), which the catalogs translate. */
+export interface Fissure { id: string; era: Era; mission_type: string; node: WorldNode; steel_path: boolean; expiry: number }
+export interface WorldMission { mission_type: string; node: WorldNode }
+/** A sortie or an archon hunt. */
+export interface Sortie { boss: string; faction: string | null; missions: WorldMission[]; expiry: number }
+export type Rotation = 'A' | 'B' | 'C'
+export type Hub = Exclude<CyclePlace, 'earth'>
+/** One bounty tier on offer, and the drop table it pays from until `expiry`. */
+export interface Bounty { hub: Hub; vault: boolean; min_level: number; max_level: number; rotation: Rotation; expiry: number }
+export interface WorldView {
+  cycles: Cycle[]
+  fissures: Fissure[]
+  storms: Fissure[]
+  sortie: Sortie | null
+  archon_hunt: Sortie | null
+  baro: { activation: number; expiry: number; relay: WorldNode } | null
+  /** The tiers running now, by hub, field before vault, then level. */
+  bounties: Bounty[]
+  /** When this state was downloaded; `stale` when the latest attempt failed and this is the one before. */
+  fetched_at: number
+  stale: boolean
+}
+/** The game's public world state, kept a minute by the backend. */
+export const getWorldState = () => invoke<WorldView>('get_world_state')
 export const refreshInventory = () => invoke<AppView>('refresh_inventory')
 export const refreshPrices = (ids: string[]) => invoke<AppView>('refresh_prices', { itemIds: ids })
 export const loadFakeSession = () => invoke<AppView>('load_fake_session')
@@ -120,10 +169,12 @@ export const authorizeScreenCapture = () => invoke<SetupStatus>('authorize_scree
 
 /** Preferences the backend owns; the overlays never read browser storage for them. */
 export type Language = 'en' | 'fr'
-/** `language` absent or null follows the system language. */
-export interface Preferences { mastery_marks: boolean; language?: Language | null }
+/** `language` absent or null follows the system language. `sync_orders`: an inventory read takes
+ * down listings for what is no longer held and lowers ones listing more than is held. */
+export interface Preferences { mastery_marks: boolean; language?: Language | null; sync_orders: boolean }
 export const getPreferences = () => invoke<Preferences>('get_preferences')
 export const setMasteryMarks = (enabled: boolean) => invoke<Preferences>('set_mastery_marks', { enabled })
+export const setSyncOrders = (enabled: boolean) => invoke<Preferences>('set_sync_orders', { enabled })
 export const setLanguage = (language: Language | null) => invoke<Preferences>('set_language', { language })
 
 export const marketStatus = () => invoke<AppView>('market_status')
@@ -139,6 +190,39 @@ export const createOrder = (collectionId: string, platinum: number, quantity: nu
   invoke<AppView>('create_order', { collectionId, platinum, quantity, visible })
 export const updateOrder = (orderId: string, platinum: number, quantity: number) =>
   invoke<AppView>('update_order', { orderId, platinum, quantity })
+/** Mark `quantity` of a sell listing sold: the whole listing closes it, less lowers it. Whole trades only. */
+export const closeOrder = (orderId: string, quantity: number) => invoke<AppView>('close_order', { orderId, quantity })
+
+/** The item sheet: what the catalogue already loaded says about one row, and what the collection
+ * holds of its recipe. Optional fields are absent where the catalogue gives nothing. */
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary'
+/** `chance` is in percent; `vaulted` is known for relics only. */
+export interface DropSource { location: string; chance?: number; rarity?: Rarity; vaulted?: boolean }
+export type StatKey = 'health' | 'shield' | 'armor' | 'energy' | 'sprint_speed' | 'damage' | 'critical_chance' | 'critical_multiplier' | 'status_chance' | 'fire_rate' | 'magazine' | 'reload'
+/** `held` is absent without a collection to count from. */
+export interface ComponentDetail { name: string; image_url?: string; count: number; held?: number; drops: DropSource[] }
+export interface ItemDetail {
+  /** The wiki's render; the wiki has none under the name for many mods and parts. */
+  wiki_image_url?: string
+  image_url?: string
+  description?: string
+  mastery_req?: number
+  vaulted?: boolean
+  prime: boolean
+  introduced?: { name: string; date?: string }
+  wiki_url?: string
+  /** The English name Overframe lists this item's builds under; absent for what has none. */
+  builds_for?: string
+  abilities: Array<{ name: string; description: string }>
+  stats: Array<{ key: StatKey; value: number }>
+  components: ComponentDetail[]
+  drops: DropSource[]
+}
+export const getItemDetail = (itemId: string) => invoke<ItemDetail>('get_item_detail', { itemId })
+/** One of Overframe's best builds, in its order. `updated` is ISO 8601; `url` is the build's page
+ * on overframe.gg. */
+export interface Build { title: string; author: string | null; score: number; formas: number; updated: string; url: string }
+export const getItemBuilds = (itemName: string) => invoke<Build[]>('get_item_builds', { itemName })
 
 export type InstallKind = 'appimage' | 'system_linux' | 'portable_win' | 'system_win' | 'unknown'
 export interface VersionInfo { version: string; channel: string; kind: InstallKind; writable: boolean; updatable: boolean; manager: string | null; manager_command: string | null }
@@ -148,3 +232,76 @@ export const getVersionInfo = () => invoke<VersionInfo>('get_version_info')
 export const updateCheck = (feed: string) => invoke<CheckResult>('update_check', { feed })
 export const updateDownloadAndInstall = (feed: string, expectedVersion: string) =>
   invoke<UpdateSummary>('update_download_and_install', { feed, expectedVersion })
+
+/** One Market search suggestion. The figures come from the daily summary; `held` names the
+ * collection rows that hold the item. */
+export interface MarketHit {
+  id: string
+  slug: string
+  name: string
+  thumb_url: string | null
+  max_rank: number | null
+  median: number | null
+  median_max_rank: number | null
+  checked_live: boolean
+  monthly_trades: number | null
+  held: string[]
+}
+/** `dump_date` is the day the daily summary describes, null until it has loaded. */
+export interface MarketSearch { hits: MarketHit[]; dump_date: string | null }
+export type TraderStatus = 'ingame' | 'online'
+/** `platinum` buys one trade of `per_trade` units. */
+export interface LiveOrder { user: string; status: TraderStatus; platinum: number; quantity: number; per_trade: number; rank: number | null; subtype: string | null }
+/** `fetched_at` is when warframe.market answered, in Unix seconds; a cached answer keeps it. */
+export interface MarketItemOrders { sell: LiveOrder[]; buy: LiveOrder[]; fetched_at: number }
+export const marketSearch = (query: string) => invoke<MarketSearch>('market_search', { query })
+export const marketItemOrders = (slug: string) => invoke<MarketItemOrders>('market_item_orders', { slug })
+/** The live book narrowed to the copy one collection row holds: its rank, its relic refinement. */
+export const marketRowOrders = (collectionId: string) => invoke<MarketItemOrders>('market_row_orders', { collectionId })
+/** One variant's day on warframe.market (a change row: one item). `median` is what it traded at, or on a
+ * change row the price the change is measured on; `traded` the platinum that changed hands; `change` the
+ * 7-day move, 0.22 for +22%. */
+export interface BoardRow { name: string; subtype: string | null; rank: number | null; sales: number; listings: number; median: number; traded: number; change: number | null }
+/** The Market page's rankings, from the daily summary. `date` null until one carrying its day's trades
+ * has loaded; `earlier_date` null until the one a week before it has. `hits` is the item each row's
+ * name opens; a name it lacks opens nothing. */
+export interface MarketBoard {
+  date: string | null
+  earlier_date: string | null
+  most_sold: BoardRow[]
+  fastest: BoardRow[]
+  most_platinum: BoardRow[]
+  rising: BoardRow[]
+  falling: BoardRow[]
+  hits: Record<string, MarketHit>
+}
+export const marketBoard = () => invoke<MarketBoard>('market_board')
+/** The Foundry page, built from what the backend already holds. `status` names what it waits for. */
+export type FoundryStage = 'ready' | 'almost' | 'set'
+/** One recipe slot. A part counts its blueprint too; builds already in the foundry are not in hand. */
+export interface FoundryPiece { name: string; image: string | null; kind: 'blueprint' | 'part' | 'ingredient'; uses: number; held: number; platinum?: number; drops: string[] }
+/** Only resources the inventory can count are sent. */
+export interface FoundryResource { name: string; uses: number; held: number }
+export interface FoundryItem { id: string; name: string; category?: ItemCategory; image_url?: string; masterable: boolean; mastered: boolean; stage: FoundryStage; missing: number; pieces: FoundryPiece[]; resources: FoundryResource[]; set_platinum?: number; pieces_platinum?: number }
+export interface FoundryView { status: 'no_catalog' | 'no_inventory' | 'ready'; items: FoundryItem[] }
+export const getFoundry = () => invoke<FoundryView>('get_foundry')
+/** How fast an item sells: `fast` from 30 sales a month, `fair` from 10. */
+export type Pace = 'fast' | 'fair' | 'slow'
+/** A held stack: `value` is what a month's sales take of it (the Collection's sellable value). `change` is the 7-day move, 0.22 for +22%. `market` is warframe.market's name. */
+export interface FarmSell { id: string; name: string; quantity: number; platinum: number; monthly_trades: number | null; value: number; pace: Pace; change: number | null; market: string | null }
+/** A held relic: `value` is one solo opening on average, each reward weighed by its sales. */
+export interface FarmOpen { id: string; name: string; refinement: Refinement | null; quantity: number; vaulted: boolean | null; value: number; pace: Pace; change: number | null; market: string | null }
+/** One thing that falls at a place: `chance` in percent per run, `unit` one copy at its price (a relic: the better of opening and selling it), `value` its share of the run. */
+/** `id` is the inventory path; `row` the collection row holding the most copies, which its sheet opens on. */
+export interface FarmDrop { id: string; row: string | null; category: ItemCategory; name: string; chance: number; unit: number; value: number; monthly_trades: number | null; change: number | null }
+/** One run of a place: `value` is the platinum expected, sales counted. */
+export interface FarmPlace { location: string; value: number; pace: Pace; until: number | null; drops: FarmDrop[] }
+export interface FarmTrend { name: string; change: number; platinum: number; monthly_trades: number; held: number }
+/** `prices_date`/`earlier_date` null: that dump has not loaded. `drops`/`relic_tables` false: the catalogue or relic tables are missing.
+ * `bounties` false: the running bounty tiers are unknown, so every bounty table is ranked; true, only
+ * the tables running now are, each with its `until`. */
+export interface FarmView { prices_date: string | null; earlier_date: string | null; drops: boolean; relic_tables: boolean; bounties: boolean; sell: FarmSell[]; open: FarmOpen[]; farm: FarmPlace[]; trends: FarmTrend[] }
+export const getFarm = () => invoke<FarmView>('get_farm')
+/** One day of completed trades at rank 0, oldest first. */
+export interface DayTrades { date: string; median: number; volume: number }
+export const marketItemHistory = (name: string) => invoke<DayTrades[]>('market_item_history', { name })

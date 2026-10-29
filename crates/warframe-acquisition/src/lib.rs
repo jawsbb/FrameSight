@@ -10,21 +10,26 @@ mod catalog;
 mod catalog_cache;
 mod collection_prices;
 mod inventory;
+mod item_facts;
 #[cfg(target_os = "linux")]
 mod linux_proc;
 mod market;
 mod mastery;
 mod orchestrator;
+mod overframe;
 mod relic_catalog;
 mod reward_memory;
 mod reward_ui_memory;
+mod run_drops;
 #[cfg(windows)]
 mod windows_proc;
+mod world_state;
 
 pub use authorization::AuthorizationScanner;
 pub use catalog::{
     CatalogError, CatalogIndex, CatalogMetadata, ComponentKind, DucatTable, Recipe,
-    RecipeComponent, RewardCatalogEntry, holding_matches_reward, reward_name_matches,
+    RecipeComponent, RecipeResource, RewardCatalogEntry, holding_matches_reward,
+    reward_name_matches,
 };
 pub use catalog_cache::{
     CatalogCache, CatalogCacheError, CatalogFetch, CatalogLoad, CatalogLoadSource, CatalogSource,
@@ -32,13 +37,16 @@ pub use catalog_cache::{
     WFCD_RELICS_JSON_URL, WfcdCatalogHttp, WfcdRelicCatalogHttp,
 };
 pub use collection_prices::{
-    CollectionPriceCache, CollectionPriceSource, DUMP_LOOKBACK_DAYS, MAX_DUMP_BYTES,
+    CollectionPriceCache, CollectionPriceSource, DUMP_LOOKBACK_DAYS, DaySales, MAX_DUMP_BYTES,
     PriceDumpError, PriceFetch, PriceTable, RELICS_RUN_HISTORY_URL, RelicsRunHttp, civil_date,
-    dump_is_current, latest_dump, relic_base,
+    days_between, dump_is_current, latest_dump, relic_base, unix_days_before,
 };
 pub use inventory::{
     INVENTORY_ENDPOINT, InventoryHttpTransport, InventoryJsonDecoder, MAX_INVENTORY_RESPONSE_BYTES,
     MasteryFacts, mastery_rank,
+};
+pub use item_facts::{
+    Ability, ComponentSlot, DropSource, Introduced, ItemFacts, Rarity, StatKey, StatValue,
 };
 #[cfg(target_os = "linux")]
 pub use linux_proc::LinuxProc;
@@ -48,15 +56,21 @@ pub use market::{
 };
 pub use mastery::{Holdings, MasteryEvidence, MasteryLedger};
 pub use orchestrator::{AcquisitionFailure, InventoryAcquirer};
-pub use relic_catalog::RelicRewardIndex;
+pub use overframe::{Build, OverframeHttp, parse_builds};
+pub use relic_catalog::{Relic, RelicDrop, RelicRewardIndex};
 pub use reward_memory::{
     RewardFingerprint, RewardHeapAddressOrder, RewardHit, RewardMemoryScanner, RewardNeedle,
     RewardRecordEvidence, RewardRecordPolicy, RewardRecordQuery, RewardRepresentation,
     RewardResolution, resolve_reward_choices,
 };
 pub use reward_ui_memory::PersistentRewardResolver;
+pub use run_drops::RunDrop;
 #[cfg(windows)]
 pub use windows_proc::WindowsProc;
+pub use world_state::{
+    Bounty, BountyTier, Cycle, CycleState, Era, Hub, Node, Place, Rotation, WorldNames,
+    WorldNamesCache, WorldState, WorldStateHttp, WorldView,
+};
 
 /// A credential whose standard formatting surfaces never expose its contents.
 pub struct SecretString(Zeroizing<String>);
@@ -141,6 +155,15 @@ impl GameProcess {
 
     pub const fn pid(self) -> u32 {
         self.pid
+    }
+
+    /// What tells one run of the game from the next: the PID, and its start time where the
+    /// backend reads one, so a PID the system hands out again is not taken for the same run.
+    pub fn session_key(self) -> String {
+        match self.start_time_ticks {
+            Some(ticks) => format!("{}@{ticks}", self.pid),
+            None => self.pid.to_string(),
+        }
     }
 
     pub(crate) const fn identified(pid: u32, start_time_ticks: u64) -> Self {
@@ -568,6 +591,7 @@ pub struct AcquisitionResult {
     snapshot: InventorySnapshot,
     health: AcquisitionHealth,
     mastery_facts: MasteryFacts,
+    process: Option<GameProcess>,
 }
 
 impl AcquisitionResult {
@@ -582,7 +606,18 @@ impl AcquisitionResult {
             snapshot,
             health,
             mastery_facts: MasteryFacts::default(),
+            process: None,
         })
+    }
+
+    /// The game process the inventory was read from. Absent for results built without one.
+    pub fn with_process(mut self, process: GameProcess) -> Self {
+        self.process = Some(process);
+        self
+    }
+
+    pub fn process(&self) -> Option<GameProcess> {
+        self.process
     }
 
     /// The affinity and pending builds the decoded inventory reported. Empty unless set:

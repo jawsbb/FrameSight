@@ -2,8 +2,8 @@ mod common;
 
 use common::{FakeTransport, ok, ok_with_token, status};
 use warframe_market::{
-    MarketError, MarketToken, Method, NewSellOrder, OrderKind, create_order, delete_order,
-    list_mine, set_order_quantity, update_order,
+    MarketError, MarketToken, Method, NewSellOrder, OrderKind, close_order, create_order,
+    delete_order, list_mine, set_order_quantity, update_order,
 };
 
 const FAKE_TOKEN: &str = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0.";
@@ -231,6 +231,43 @@ fn editing_with_a_slash_in_the_id_is_refused() {
         transport.seen().is_empty(),
         "no request should have been sent"
     );
+}
+
+/// Marking a listing sold is the site's own close route, a POST naming the order, carrying only
+/// the count that changed hands: the site settles the remainder itself.
+#[test]
+fn marking_a_sale_closes_the_order_with_the_count_sold() {
+    let transport = FakeTransport::new(vec![ok(
+        r#"{"apiVersion":"0.25.0","data":{},"error":null}"#,
+    )]);
+
+    close_order(&transport, &token(), "order-one", 2).expect("close succeeds");
+
+    let seen = transport.seen();
+    assert_eq!(seen[0].method, Method::Post);
+    assert!(
+        seen[0].url.ends_with("/v2/order/order-one/close"),
+        "url: {}",
+        seen[0].url
+    );
+    assert_eq!(seen[0].body.as_deref(), Some(r#"{"quantity":2}"#));
+}
+
+/// The API's own bounds, and the id rule every write shares, refused before a request is spent.
+#[test]
+fn a_close_outside_what_the_api_accepts_is_refused_without_asking() {
+    for (order_id, quantity) in [("order-one", 0), ("order-one", 10_000), ("order/one", 1)] {
+        let transport = FakeTransport::new(vec![]);
+        assert_eq!(
+            close_order(&transport, &token(), order_id, quantity).unwrap_err(),
+            MarketError::Rejected,
+            "({order_id}, {quantity}) should be refused"
+        );
+        assert!(
+            transport.seen().is_empty(),
+            "no request should have been sent"
+        );
+    }
 }
 
 /// The edit is a write like the others, and renews the token the same way.

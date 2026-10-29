@@ -15,6 +15,7 @@ fn the_transport_records_what_it_was_asked_for() {
         .send(MarketRequest {
             method: Method::Get,
             url: "https://api.warframe.market/v2/orders/my".to_owned(),
+            language: None,
             token: Some("fake-token".to_owned()),
             body: None,
         })
@@ -34,6 +35,7 @@ fn an_exhausted_transport_reports_the_api_unreachable() {
     let outcome = transport.send(MarketRequest {
         method: Method::Get,
         url: "https://api.warframe.market/v2/me".to_owned(),
+        language: None,
         token: None,
         body: None,
     });

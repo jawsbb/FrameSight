@@ -57,7 +57,7 @@ where
             snapshot.entries().len()
         );
         AcquisitionResult::new(snapshot, AcquisitionHealth::successful())
-            .map(|result| result.with_mastery_facts(facts))
+            .map(|result| result.with_mastery_facts(facts).with_process(process))
             .map_err(AcquisitionFailure::from_error)
     }
 

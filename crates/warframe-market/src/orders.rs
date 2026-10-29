@@ -108,6 +108,7 @@ pub fn list_mine(
     let response = transport.send(MarketRequest {
         method: Method::Get,
         url: format!("{API_V2}/orders/my"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: None,
     })?;
@@ -132,6 +133,9 @@ pub fn list_mine(
 
 /// Rejects an id that could not name a single existing order: empty, or carrying a `/` that would
 /// let it address something other than one order in the path it is interpolated into.
+/// The most units one order may list or close, by the API's own bound.
+const MAX_QUANTITY: u32 = 9_999;
+
 fn validate_order_id(order_id: &str) -> Result<(), MarketError> {
     if order_id.is_empty() || order_id.contains('/') {
         return Err(MarketError::Rejected);
@@ -149,6 +153,7 @@ pub fn delete_order(
     let response = transport.send(MarketRequest {
         method: Method::Delete,
         url: format!("{API_V2}/order/{order_id}"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: None,
     })?;
@@ -178,6 +183,7 @@ pub fn set_order_quantity(
     let response = transport.send(MarketRequest {
         method: Method::Patch,
         url: format!("{API_V2}/order/{order_id}"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: Some(format!("{{\"quantity\":{quantity}}}")),
     })?;
@@ -201,16 +207,45 @@ pub fn update_order(
     quantity: u32,
 ) -> Result<MarketToken, MarketError> {
     validate_order_id(order_id)?;
-    if !(1..=900_000).contains(&platinum) || !(1..=9_999).contains(&quantity) {
+    if !(1..=900_000).contains(&platinum) || !(1..=MAX_QUANTITY).contains(&quantity) {
         return Err(MarketError::Rejected);
     }
     let response = transport.send(MarketRequest {
         method: Method::Patch,
         url: format!("{API_V2}/order/{order_id}"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: Some(format!(
             "{{\"platinum\":{platinum},\"quantity\":{quantity}}}"
         )),
+    })?;
+    write_outcome(response, token)
+}
+
+/// Record that `quantity` units of a sell listing were traded away, which is how warframe.market
+/// counts a sale.
+///
+/// Not a delete with extra steps: a close is the site's own record of the trade, and the remainder
+/// is the site's to settle. A quantity at or above what the order still holds closes the whole of
+/// it and the order disappears; anything less lowers the order by that much. The API also requires
+/// the quantity to be a multiple of the order's per-trade size, which only the caller knows, so
+/// that is checked where the order is in view, not here. The bounds are the API's own.
+pub fn close_order(
+    transport: &dyn MarketTransport,
+    token: &MarketToken,
+    order_id: &str,
+    quantity: u32,
+) -> Result<MarketToken, MarketError> {
+    validate_order_id(order_id)?;
+    if !(1..=MAX_QUANTITY).contains(&quantity) {
+        return Err(MarketError::Rejected);
+    }
+    let response = transport.send(MarketRequest {
+        method: Method::Post,
+        url: format!("{API_V2}/order/{order_id}/close"),
+        language: None,
+        token: Some(token.expose().to_owned()),
+        body: Some(format!("{{\"quantity\":{quantity}}}")),
     })?;
     write_outcome(response, token)
 }
@@ -282,7 +317,7 @@ pub fn create_order(
     if order.per_trade.is_some_and(|per_trade| per_trade == 0) {
         return Err(MarketError::Rejected);
     }
-    if !(1..=900_000).contains(&order.platinum) || !(1..=9_999).contains(&order.quantity) {
+    if !(1..=900_000).contains(&order.platinum) || !(1..=MAX_QUANTITY).contains(&order.quantity) {
         return Err(MarketError::Rejected);
     }
     // Appended rather than one `format!`, so a field goes in exactly when it is present and the
@@ -304,6 +339,7 @@ pub fn create_order(
     let response = transport.send(MarketRequest {
         method: Method::Post,
         url: format!("{API_V2}/order"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: Some(body),
     })?;

@@ -13,6 +13,11 @@ pub struct Preferences {
     /// written before the setting existed has no key and reads as `None`.
     #[serde(default)]
     pub language: Option<Language>,
+    /// Whether an inventory read goes on to repair the account's flagged orders: take down a
+    /// listing for something no longer held, lower one listing more than is held. Off unless the
+    /// player turns it on, because it writes to a real account without a press per order.
+    #[serde(default)]
+    pub sync_orders: bool,
 }
 
 /// The interface languages the frontend ships catalogs for. An enum rather than a string so a
@@ -33,6 +38,7 @@ impl Default for Preferences {
         Self {
             mastery_marks: true,
             language: None,
+            sync_orders: false,
         }
     }
 }
@@ -85,15 +91,17 @@ mod tests {
             Preferences {
                 mastery_marks: false,
                 language: Some(Language::Fr),
+                sync_orders: true,
             },
         )
         .unwrap();
         let read = load_preferences(&path);
         assert!(!read.mastery_marks);
         assert_eq!(read.language, Some(Language::Fr));
+        assert!(read.sync_orders);
         assert_eq!(
             std::fs::read_to_string(&path).unwrap(),
-            r#"{"mastery_marks":false,"language":"fr"}"#,
+            r#"{"mastery_marks":false,"language":"fr","sync_orders":true}"#,
             "the language is stored as the code the frontend sends"
         );
     }
@@ -108,8 +116,9 @@ mod tests {
             Preferences {
                 mastery_marks: false,
                 language: None,
+                sync_orders: false,
             },
-            "the old choice survives and the language follows the system"
+            "the old choice survives, the language follows the system and orders are not synced"
         );
     }
 

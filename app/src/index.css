@@ -1,32 +1,38 @@
 /* TennoScope base layer.
-   Main window: three graphite grounds, 1px neutral borders, 6px radius, one steel-blue accent for
-   selection, focus and the primary action. Platinum and gold colour currency values only.
-   The in-game overlays draw from the same tokens. */
+   Main window: warm neutral greys, the window ground for the title bar and sidebar, one lighter
+   content panel, raised groups split by hairlines barely there. One soft blue for switches, focus,
+   the selected segment and a screen's one primary action. Platinum and gold colour currency values
+   only. The reward overlay draws its slips from these tokens too; the kiosk overlay keeps its own
+   plate colours (App.css, "kiosk"). */
 
 :root {
-  /* Main window */
-  --bg-0: #0f1114;   /* title bar, sidebar */
-  --bg-1: #15181c;   /* page */
-  --bg-2: #1c2026;   /* cards, inputs, chips */
-  --line: #2c313a;
-  --line-strong: #3d434d;
-  /* Control boundaries need 3:1 under WCAG 1.4.11 (3.37:1 on --bg-2). */
-  --line-control: #6a727e;
-  --text: #e8ebef;
-  --text-dim: #a9b0ba;
-  --text-faint: #8c939d;   /* 5.28:1 on --bg-2, the darkest ground text sits on */
-  --accent: #5f9fdb;
-  --accent-ink: #0b1622;   /* text on --accent, 6.48:1 */
-  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
-  --accent-hover: #7db3e6;
-  --ok: #6cc28d;
-  --warn: #e69a52;
-  --danger: #ec7b6b;
-  --radius: 6px;
-  --radius-sm: 4px;
+  --bg-0: #1b1a19;      /* window: title bar, sidebar */
+  --bg-1: #242321;      /* content panel, top */
+  --bg-1-low: #2a2624;  /* content panel, bottom: the warm end of its gradient */
+  --bg-2: #2e2c2a;      /* groups, cards, slips */
+  --fill: rgb(255 255 255 / 7%);         /* neutral buttons, hovers, the current nav item */
+  --fill-strong: rgb(255 255 255 / 12%); /* their hover, a pressed chip */
+  --line: rgb(255 255 255 / 7%);         /* the hairline between rows */
+  --line-strong: rgb(255 255 255 / 13%);
+  --well: rgb(0 0 0 / 16%);              /* field grounds, card art wells */
+  /* Field and track edges need 3:1 under WCAG 1.4.11: 3.32:1 on --bg-2, 3.75:1 on --bg-1. */
+  --line-control: #807b76;
+  --text: #ecebe9;
+  --text-dim: #b4b0ab;
+  --text-faint: #a39e98;  /* 5.23:1 on --bg-2, the lightest ground faint text sits on */
+  --accent: #6b93dc;      /* 4.52:1 on --bg-2; a white thumb on it reads 3.07:1 */
+  --accent-text: #a3c0f2; /* blue words: links, the primary action's label */
+  --accent-soft: color-mix(in srgb, var(--accent) 22%, transparent);
+  --ok: #7cc597;
+  --warn: #e3a364;
+  --danger: #f08a7c;
+  --danger-ground: color-mix(in srgb, var(--danger) 6%, var(--bg-2)); /* a flagged row, a broken group */
+  --radius: 10px;    /* groups, cards, the content panel */
+  --radius-sm: 6px;  /* controls, nav items, chips, slips */
+  --radius-xs: 4px;  /* what sits inside those: tags, art wells, crowns */
 
   /* Currency values */
-  --platinum: #e8ebef;
+  --platinum: #e8e8ea;
   --platinum-dim: #9aa1ab;
   --gold: #d8b04a;
 
@@ -36,6 +42,8 @@
   --step: 16px;
 
   --face-text: ui-sans-serif, system-ui, "DejaVu Sans", "Liberation Sans", sans-serif;
+  /* Paths, versions, commands: values a player may copy, never labels. */
+  --face-mono: ui-monospace, "DejaVu Sans Mono", "Liberation Mono", monospace;
 
   font-family: var(--face-text);
   color: var(--text);
@@ -48,7 +56,7 @@
 
 * { box-sizing: border-box; }
 
-html { min-width: 20rem; min-height: 100%; background: var(--bg-1); }
+html { min-width: 20rem; min-height: 100%; background: var(--bg-0); }
 html.overlay-mode, html.overlay-mode body { background: transparent; }
 
 body { margin: 0; min-width: 20rem; min-height: 100vh; overflow-x: hidden; }
@@ -65,7 +73,7 @@ input, select { caret-color: var(--accent); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 5px; background: var(--line-strong) padding-box; }
-::-webkit-scrollbar-thumb:hover { background-color: var(--line-control); }
+::-webkit-scrollbar-thumb:hover { background-color: var(--fill-strong); }
 ::-webkit-scrollbar-corner { background: transparent; }
 
 .sr-only {

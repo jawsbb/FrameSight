@@ -1,0 +1,75 @@
+/* The world at a glance: the cycles across the top, then the fissures beside today's rotations. */
+.world-section { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.world-columns { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--step); align-items: start; }
+
+.world-cycles { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--tight); margin: 0; padding: 0; list-style: none; }
+.world-cycle {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: grid; gap: 2px; align-content: end; min-height: 92px; padding: 10px 14px;
+  border-radius: var(--radius); background: var(--bg-2);
+}
+/* The place's scene behind its words, darkened toward the text so they keep their contrast. */
+.cycle-art { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+.world-cycle::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to right, rgb(20 19 18 / 82%) 25%, rgb(20 19 18 / 15%));
+}
+.world-cycle[data-state="night"] .cycle-art, .world-cycle[data-state="vome"] .cycle-art { filter: brightness(.55) saturate(.7); }
+.world-cycle[data-state="cold"] .cycle-art { filter: saturate(.6) hue-rotate(-15deg); }
+.cycle-place { color: var(--text-dim); font-size: .75rem; }
+.cycle-state { display: inline-flex; align-items: center; gap: 6px; font-size: 1.0625rem; font-weight: 600; }
+.cycle-state .icon { color: var(--text-dim); }
+.cycle-left { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+.world-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px var(--tight); }
+.world-head .display-switch { height: 26px; font-size: .75rem; }
+.band-note.warn { color: var(--warn); }
+.world-label .band-note { font-weight: 400; }
+.world-section > .segmented { justify-self: start; }
+
+.fissure-filters { display: grid; gap: 6px; }
+.fissure-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--tight); }
+.fissure-filter .select { font-size: .75rem; }
+.fissure-filter .select select { min-width: 7.5rem; font-size: .8125rem; }
+.fissure-filter-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--step); }
+
+/* A fissure row: its era, what and where, and how long it stays open. */
+.fissure-list { margin: 0; }
+.fissure-row { display: grid; grid-template-columns: 7rem minmax(0, 1fr) auto; align-items: center; gap: var(--step); padding: 6px 14px; }
+.fissure-era { display: inline-flex; align-items: center; gap: var(--tight); color: var(--text-dim); }
+.relic-art { width: 36px; height: 36px; object-fit: contain; }
+/* A faction's mark sits before the words that name it, a size with the line. */
+.world-where { display: inline-flex; align-items: center; gap: 6px; }
+.faction-mark { width: 14px; height: 14px; object-fit: contain; }
+.world-empty { padding: 10px 14px; color: var(--text-dim); }
+
+.world-row { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 10px 14px; }
+.world-badge {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px;
+  border-radius: var(--radius-sm); background: var(--well); color: var(--text-dim);
+}
+.badge-art { width: 24px; height: 24px; object-fit: contain; opacity: .85; }
+.badge-art.portrait { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; opacity: 1; }
+.world-label { flex: 1; display: grid; gap: 2px; min-width: 0; font-weight: 500; }
+.world-figure { flex: none; color: var(--text-dim); font-variant-numeric: tabular-nums; text-align: right; }
+.world-missions { display: grid; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; font-weight: 400; }
+.world-missions .band-note { margin-left: 4px; }
+
+.world-stack { display: grid; gap: var(--step); align-content: start; min-width: 0; }
+
+/* A bounty tier: its levels in dim tabular figures, then its table's letter in text colour. */
+.rotation-tiers { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; font-weight: 400; }
+.rotation-tier { display: inline-flex; gap: 6px; font-variant-numeric: tabular-nums; }
+.rotation-tier b, .rotation-mark b { color: var(--text); font-weight: 600; }
+
+/* An endless mission's interval: the mission on the left, A, B and C at their marks on the right. */
+.rotation-list { margin: 0; }
+.rotation-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--step); padding: 6px 14px; }
+.rotation-row dt { font-weight: 500; }
+.rotation-row dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+.world-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight) var(--step); }
+
+@media (max-width: 900px) {
+  .world-columns { grid-template-columns: minmax(0, 1fr); }
+}

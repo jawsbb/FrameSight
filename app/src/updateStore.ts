@@ -25,6 +25,7 @@ import {
   writeUpdateLastSurfaced,
   writeUpdateOffered,
 } from './settings'
+import type { Messages } from './i18n/en'
 
 export type UpdatePhase =
   | 'loading'
@@ -43,10 +44,13 @@ export interface UpdateSnapshot {
   available: UpdateSummary | null
   downloaded: number | null
   total: number | null
-  /** Status-line text for the current phase; failures say what went wrong. */
-  note: string | null
+  /** Status-line note for the current phase; failures say what went wrong. A key into the
+   * catalog's `updates.notes` rather than a sentence, so it reads in the language on screen. */
+  note: UpdateNote | null
   lastCheck: number | null
 }
+
+export type UpdateNote = Exclude<keyof Messages['updates']['notes'], 'snoozed'> | { snoozed: string }
 
 const DAY_MS = 86_400_000
 
@@ -109,7 +113,7 @@ let checking = false
 
 // One sentence for both callers, so the manual and automatic paths cannot drift into saying
 // different things about the same failure.
-const OFFLINE_NOTE = 'Could not check. You are offline. Reconnect, then press Check now.'
+const OFFLINE_NOTE: UpdateNote = 'offline'
 
 async function runCheck(manual: boolean): Promise<void> {
   // A download in flight owns the phase: a concurrent check would wipe its
@@ -161,7 +165,7 @@ async function runCheck(manual: boolean): Promise<void> {
     } catch {
       set({
         phase: 'failed',
-        note: 'Could not reach the release feed. Check your connection, then press Check now.',
+        note: 'feedUnreachable',
       })
     }
   } finally {
@@ -216,7 +220,7 @@ export function bootUpdateChecks(): void {
         set({ info, phase: 'idle' })
       }
     } catch {
-      set({ phase: 'idle', note: 'Could not read the installed version. Press Check now to try again.' })
+      set({ phase: 'idle', note: 'versionUnreadable' })
       return
     }
     if (!readUpdateAutoCheck()) return
@@ -249,7 +253,7 @@ export async function downloadUpdate(): Promise<void> {
         phase: 'failed',
         downloaded: null,
         total: null,
-        note: 'Could not start the download. Press Check now to try again.',
+        note: 'downloadUnstartable',
       })
       return
     }
@@ -274,9 +278,7 @@ export async function downloadUpdate(): Promise<void> {
         phase: 'failed',
         downloaded: null,
         total: null,
-        note: /signature/i.test(message)
-          ? 'Update blocked: the signature check failed. Nothing was installed. Try again from Check now, or get this version from the release page.'
-          : 'The download stopped before finishing. Press Retry download to try again.',
+        note: /signature/i.test(message) ? 'signatureFailed' : 'downloadStopped',
       })
     }
   } finally {
@@ -313,7 +315,7 @@ export function dismissOffered(): void {
     snoozeVersion(available.version)
     // The idle row would otherwise give no acknowledgment that the reminder
     // was armed; the next check clears this note when it reports.
-    set({ phase: 'idle', available: null, note: `Noted, ${available.version} will remind you in 7 days.` })
+    set({ phase: 'idle', available: null, note: { snoozed: available.version } })
     return
   }
   set({ phase: 'idle', available: null, note: null })

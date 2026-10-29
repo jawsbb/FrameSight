@@ -44,11 +44,12 @@ game or automates input.
 
 ## Capabilities and Constraints
 
-- Screen reading matches English item names only.
+- Screen reading matches English item names, and French ones when the game runs in French
+  (warframe.market publishes the game's own French names).
 - Collection ~1,000 entries, paginated client-side.
 - UI copy is English today. Planned (owner, 2026-10-28): a multilingual interface, starting
   with French and English, after the current UX pass. Item names stay as the English catalog
-  gives them, which is also what the OCR matches.
+  gives them, which is also what the OCR names a card by.
 - This is a personal fork, taken over from Deftera186/tennoscope. It no longer needs to stay
   mergeable upstream; upstream may be credited in the repo.
 

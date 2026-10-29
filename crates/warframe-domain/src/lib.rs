@@ -6,7 +6,7 @@ mod inventory;
 mod mastery;
 mod rewards;
 
-pub use catalog::{CatalogItem, Category, ItemId};
+pub use catalog::{CatalogItem, Category, ItemId, catalog_path};
 pub use error::DomainError;
 pub use inventory::{Collection, InventoryEntry, InventorySnapshot};
 pub use mastery::{KioskMastery, MasteryMark, SetPart};

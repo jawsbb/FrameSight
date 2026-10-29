@@ -792,8 +792,8 @@ fn accumulated_entry(
         max_rank: metadata.map(|metadata| metadata.max_rank()),
         rank: None,
         fusion_limit: metadata.and_then(|metadata| metadata.fusion_limit()),
-        image_name: metadata
-            .and_then(|metadata| metadata.image_name())
+        image_name: catalog
+            .and_then(|catalog| catalog.image_name(path))
             .map(str::to_owned),
     }
 }

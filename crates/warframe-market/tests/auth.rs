@@ -149,6 +149,7 @@ fn neither_the_token_nor_the_password_survives_into_a_rendering() {
     let request = MarketRequest {
         method: Method::Post,
         url: "https://api.warframe.market/v1/auth/signin".to_owned(),
+        language: None,
         token: Some(FAKE_TOKEN.to_owned()),
         body: Some(format!(
             r#"{{"email":"player@example.invalid","password":"{password}"}}"#

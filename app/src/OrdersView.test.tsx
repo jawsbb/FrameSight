@@ -2,7 +2,13 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CollectionItem, MarketAccount, ReconciledOrder } from './backend'
-import { OrdersView } from './OrdersView'
+import { OrdersView } from './pages/OrdersView'
+
+// The sell form reads the market beside the price; these tests are about the screen around it.
+vi.mock('./backend', async original => ({
+  ...await original<typeof import('./backend')>(),
+  marketRowOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }),
+}))
 
 afterEach(() => {
   cleanup()
@@ -45,6 +51,7 @@ function account(overrides: Partial<MarketAccount> = {}): MarketAccount {
     listable: [],
     presence: { status: null, wanted: null, auto: false },
     flagged: 0,
+    synced: [],
     ...overrides,
   }
 }
@@ -53,13 +60,15 @@ const handlers = {
   items: [],
   onSell: vi.fn(),
   onUpdate: vi.fn().mockResolvedValue(undefined),
-  onPresence: vi.fn().mockResolvedValue(undefined),
   onSignIn: vi.fn().mockResolvedValue(undefined),
   onLinkToken: vi.fn().mockResolvedValue(undefined),
   onSignOut: vi.fn().mockResolvedValue(undefined),
   onRefresh: vi.fn().mockResolvedValue(undefined),
   onRemove: vi.fn().mockResolvedValue(undefined),
   onLowerTo: vi.fn().mockResolvedValue(undefined),
+  onClose: vi.fn().mockResolvedValue(undefined),
+  syncOrders: false,
+  onSyncOrders: vi.fn().mockResolvedValue(undefined),
 }
 
 describe('the unlinked screen', () => {
@@ -150,7 +159,7 @@ describe('the linked screen', () => {
     )
 
     expect(screen.getByText(/no longer own this/i)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /remove listing/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
     expect(handlers.onRemove).toHaveBeenCalledWith('gone')
   })
 
@@ -168,7 +177,7 @@ describe('the linked screen', () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /remove listing/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
     expect(handlers.onRemove).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: /confirm remove/i }))
     expect(handlers.onRemove).toHaveBeenCalledWith('fine')
@@ -246,7 +255,7 @@ describe('the linked screen', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: /remove listing/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
   })
 
   // `fetched_at` is Unix seconds, and read as a calendar string it is `Invalid Date`, not a 2026
@@ -336,7 +345,7 @@ describe('editing a listing from its row', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: /edit listing/i }))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByLabelText('Platinum')).toHaveValue(12)
     expect(screen.getByLabelText('Quantity')).toHaveValue(2)
     await user.clear(screen.getByLabelText('Quantity'))
@@ -367,40 +376,122 @@ describe('editing a listing from its row', () => {
       />,
     )
 
-    expect(screen.queryByRole('button', { name: /edit listing/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
   })
 
-  /** The picker offers the same collection the cards do, and a row that is already listed is edited
-   * there for the same reason it is edited from the card: the market allows one sell order per
-   * item, and a second create would be refused after the request. */
-  it('routes the new-listing picker to an edit when the chosen row is already listed', async () => {
+  it('steps the count by one within the holding, at the listing\'s own price', async () => {
     const user = userEvent.setup()
     render(
       <OrdersView
-        account={{
-          ...account({ listable: [braton.id] }),
-          orders: [entry('o1', { state: 'ok' }, 1, braton.id)],
-        }}
+        account={account({ orders: [entry('o1', { state: 'ok' }, 2, braton.id)] })}
         {...handlers}
-        items={[braton]}
+        items={[{ ...braton, quantity: 3 }]}
         busy={false}
         error={null}
       />,
     )
-    await user.click(screen.getByRole('button', { name: /new listing/i }))
-    await user.type(screen.getByLabelText('Item'), 'brat')
-    await user.click(screen.getByRole('button', { name: /braton/i }))
 
-    expect(screen.getByRole('form', { name: /edit listing for/i })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /save listing/i }))
-    expect(handlers.onUpdate).toHaveBeenCalledWith('o1', 12, 1)
+    await user.click(screen.getByRole('button', { name: 'One more' }))
+    expect(handlers.onUpdate).toHaveBeenLastCalledWith('o1', 12, 3)
+    await user.click(screen.getByRole('button', { name: 'One fewer' }))
+    expect(handlers.onUpdate).toHaveBeenLastCalledWith('o1', 12, 1)
+  })
+
+  it('stops the count at the holding and at one', () => {
+    render(
+      <OrdersView
+        account={account({ orders: [entry('o1', { state: 'ok' }, 1, braton.id)] })}
+        {...handlers}
+        items={[{ ...braton, quantity: 1 }]}
+        busy={false}
+        error={null}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'One more' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'One fewer' })).toBeDisabled()
+  })
+
+  /** A sale closes one trade, which for a bulk listing is the whole bundle a buyer takes. */
+  it('records a sale of one trade', async () => {
+    const bulk = entry('o1', { state: 'ok' }, 12, braton.id)
+    bulk.order.per_trade = 6
+    render(<OrdersView account={account({ orders: [bulk] })} {...handlers} items={[braton]} busy={false} error={null} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sold' }))
+    expect(handlers.onClose).toHaveBeenCalledWith('o1', 6)
+  })
+
+  it('offers no sale on a buy order', () => {
+    const buying = entry('b', { state: 'unverifiable' })
+    buying.order.kind = 'buy'
+    render(<OrdersView account={account({ orders: [buying] })} {...handlers} busy={false} error={null} />)
+
+    expect(screen.queryByRole('button', { name: 'Sold' })).toBeNull()
+    expect(screen.getByText('Buy order')).toBeInTheDocument()
   })
 })
 
-describe('publishing a listing', () => {
+describe('the automatic sync', () => {
+  it('is a switch the player turns on', async () => {
+    render(<OrdersView account={account()} {...handlers} busy={false} error={null} />)
+
+    const toggle = screen.getByRole('switch', { name: /follow the inventory/i })
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await userEvent.click(toggle)
+    expect(handlers.onSyncOrders).toHaveBeenCalledWith(true)
+  })
+
+  it('says what the last sync changed', () => {
+    render(
+      <OrdersView
+        account={account({ synced: [
+          { name: 'Ash Prime Systems Blueprint', from: 1, to: 0, at: '1785492000' },
+          { name: 'Paris Prime String', from: 3, to: 1, at: '1785492000' },
+        ] })}
+        {...handlers}
+        busy={false}
+        error={null}
+      />,
+    )
+
+    expect(screen.getByText('Ash Prime Systems Blueprint').nextSibling).toHaveTextContent('listing taken down')
+    expect(screen.getByText('Paris Prime String').nextSibling).toHaveTextContent('3 → 1')
+  })
+})
+
+describe('selling from the inventory', () => {
+  const serration: CollectionItem = {
+    id: '/Lotus/Upgrades/Mods/RifleSerrationMod#10',
+    name: 'Serration',
+    category: 'mod',
+    quantity: 1,
+    mastered: false,
+    platinum: 48,
+    live: false,
+    priceable: true,
+  }
+
   it('offers nothing when the account can list nothing', () => {
     render(<OrdersView account={account()} {...handlers} items={[braton]} busy={false} error={null} />)
-    expect(screen.queryByRole('button', { name: /new listing/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Sell' })).toBeNull()
+  })
+
+  it('lists what can be sold, most valuable first, leaving out what is already listed', () => {
+    const listed = { ...braton, id: '/Lotus/Listed', name: 'Listed Thing' }
+    render(
+      <OrdersView
+        account={account({ listable: [braton.id, serration.id, listed.id], orders: [entry('o1', { state: 'ok' }, 1, listed.id)] })}
+        {...handlers}
+        items={[braton, serration, listed]}
+        busy={false}
+        error={null}
+      />,
+    )
+
+    const section = screen.getByRole('region', { name: /sell from your inventory/i })
+    const names = Array.from(section.querySelectorAll('h3'), heading => heading.textContent)
+    expect(names).toEqual(['Serration', 'Braton Prime Blueprint'])
   })
 
   it('sends the price and quantity typed, for the item chosen', async () => {
@@ -414,9 +505,7 @@ describe('publishing a listing', () => {
         error={null}
       />,
     )
-    await user.click(screen.getByRole('button', { name: /new listing/i }))
-    await user.type(screen.getByLabelText('Item'), 'brat')
-    await user.click(screen.getByRole('button', { name: /braton/i }))
+    await user.click(screen.getByRole('button', { name: 'Sell' }))
     // The price prefills from the card's own quote, so only the quantity is typed here.
     await user.clear(screen.getByLabelText('Quantity'))
     await user.type(screen.getByLabelText('Quantity'), '2')
@@ -428,16 +517,6 @@ describe('publishing a listing', () => {
   // from, and a path with the suffix stripped would name the unranked stack instead.
   it('sends the whole row id for a ranked copy', async () => {
     const user = userEvent.setup()
-    const serration: CollectionItem = {
-      id: '/Lotus/Upgrades/Mods/RifleSerrationMod#10',
-      name: 'Serration',
-      category: 'mod',
-      quantity: 1,
-      mastered: false,
-      platinum: 48,
-      live: false,
-      priceable: true,
-    }
     render(
       <OrdersView
         account={account({ listable: [serration.id] })}
@@ -447,14 +526,12 @@ describe('publishing a listing', () => {
         error={null}
       />,
     )
-    await user.click(screen.getByRole('button', { name: /new listing/i }))
-    await user.type(screen.getByLabelText('Item'), 'serr')
-    await user.click(screen.getByRole('button', { name: /serration/i }))
+    await user.click(screen.getByRole('button', { name: 'Sell' }))
     await user.click(screen.getByRole('button', { name: /list for sale/i }))
     expect(handlers.onSell).toHaveBeenCalledWith(serration.id, 48, 1, true)
   })
 
-  it('lists nothing until the query narrows the collection', async () => {
+  it('narrows the list to the name typed', async () => {
     const user = userEvent.setup()
     render(
       <OrdersView
@@ -465,10 +542,8 @@ describe('publishing a listing', () => {
         error={null}
       />,
     )
-    await user.click(screen.getByRole('button', { name: /new listing/i }))
-    // An empty field offering the whole collection is the wall of names this control avoids.
-    expect(screen.queryByRole('button', { name: /braton/i })).toBeNull()
     await user.type(screen.getByLabelText('Item'), 'zzz')
+    expect(screen.queryByRole('button', { name: 'Sell' })).toBeNull()
     expect(screen.getByText(/nothing sellable here matches/i)).toBeInTheDocument()
   })
 
@@ -483,91 +558,9 @@ describe('publishing a listing', () => {
         error={null}
       />,
     )
-    await user.click(screen.getByRole('button', { name: /new listing/i }))
-    await user.type(screen.getByLabelText('Item'), 'brat')
-    await user.click(screen.getByRole('button', { name: /braton/i }))
+    await user.click(screen.getByRole('button', { name: 'Sell' }))
     await user.clear(screen.getByLabelText('Quantity'))
     await user.type(screen.getByLabelText('Quantity'), '9')
     expect(screen.getByRole('button', { name: /list for sale/i })).toBeDisabled()
-  })
-})
-
-describe('the market status switch', () => {
-  it('asks for a status the server accepts, chosen by hand', async () => {
-    const user = userEvent.setup()
-    render(<OrdersView account={account()} {...handlers} busy={false} error={null} />)
-    await user.click(screen.getByRole('button', { name: 'In game' }))
-    expect(handlers.onPresence).toHaveBeenCalledWith('ingame', false)
-  })
-
-  it('spells offline as no status at all', async () => {
-    const user = userEvent.setup()
-    render(
-      <OrdersView
-        account={account({ presence: { status: 'online', wanted: 'online', auto: false } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    await user.click(screen.getByRole('button', { name: 'Offline' }))
-    // warframe.market has no settable `offline`: the backend closes the socket instead.
-    expect(handlers.onPresence).toHaveBeenCalledWith(null, false)
-  })
-
-  it('marks what was asked for, so a press registers before the socket answers', () => {
-    render(
-      <OrdersView
-        account={account({ presence: { status: null, wanted: 'invisible', auto: false } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    expect(screen.getByRole('button', { name: 'Invisible' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Online' })).toHaveAttribute('aria-pressed', 'false')
-  })
-
-  it('says so while the server has not confirmed the choice', () => {
-    render(
-      <OrdersView
-        account={account({ presence: { status: null, wanted: 'ingame', auto: false } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    expect(screen.getByRole('status')).toHaveTextContent(/asking warframe\.market/i)
-  })
-
-  it('reports the status automatic mode settled on, in the same row', () => {
-    render(
-      <OrdersView
-        account={account({ presence: { status: 'ingame', wanted: 'ingame', auto: true } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    // Automatic is not a fifth status: the row still names which of the four is in force.
-    expect(screen.getByRole('button', { name: 'In game' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('checkbox', { name: /follow the game/i })).toBeChecked()
-    // Reporting, not offering. Pressing one would be undone by the next poll.
-    expect(screen.getByRole('button', { name: 'Online' })).toBeDisabled()
-  })
-
-  it('hands the choice back when automatic is switched off', async () => {
-    const user = userEvent.setup()
-    render(
-      <OrdersView
-        account={account({ presence: { status: 'ingame', wanted: 'ingame', auto: true } })}
-        {...handlers}
-        busy={false}
-        error={null}
-      />,
-    )
-    await user.click(screen.getByRole('checkbox', { name: /follow the game/i }))
-    // Whatever it had settled on is what is held, so switching off does not change what others see.
-    expect(handlers.onPresence).toHaveBeenCalledWith('ingame', false)
   })
 })

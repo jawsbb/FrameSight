@@ -1,4 +1,4 @@
-use local_store::{SnapshotMeta, SqliteStore};
+use local_store::{SnapshotInstant, SnapshotMeta, SqliteStore};
 use warframe_domain::{CatalogItem, Category, InventoryEntry, InventorySnapshot, ItemId};
 
 fn entry(
@@ -349,7 +349,7 @@ fn clearing_removes_the_credential() {
 /// A version 3 database opens and migrates rather than being rejected. Every existing installation
 /// is at version 3, so a migration that failed here would lose a working collection.
 #[test]
-fn a_version_three_database_migrates_to_four() {
+fn a_version_three_database_migrates_to_the_current_schema() {
     let directory = tempfile::tempdir().expect("temporary directory");
     let path = directory.path().join("store.sqlite3");
     {
@@ -372,11 +372,86 @@ fn a_version_three_database_migrates_to_four() {
     let store = SqliteStore::open(&path).expect("v3 database migrates");
 
     assert_eq!(store.market_credential().expect("credential reads"), None);
+    assert_eq!(store.session_baseline().expect("session reads"), None);
     assert_eq!(
         store
             .load_collection()
             .expect("collection loads")
             .quantity(&ItemId::new("paris").unwrap()),
         2
+    );
+}
+
+fn at(seconds: i64) -> SnapshotInstant {
+    SnapshotInstant::from_unix_seconds(seconds).unwrap()
+}
+
+fn held(store: &SqliteStore) -> Vec<(String, u32)> {
+    let mut held = store
+        .session_baseline()
+        .unwrap()
+        .expect("a session is open")
+        .held
+        .into_iter()
+        .collect::<Vec<_>>();
+    held.sort();
+    held
+}
+
+fn replace(store: &mut SqliteStore, process: &str, at: i64, forma: u32) {
+    let meta = SnapshotMeta::new(
+        SnapshotInstant::from_unix_seconds(at).unwrap(),
+        "build".into(),
+        "warframe-memory".into(),
+    )
+    .unwrap()
+    .with_session(process);
+    store
+        .replace_collection(
+            &snapshot(vec![entry(
+                "forma",
+                "Forma",
+                Category::Resource,
+                forma,
+                false,
+            )]),
+            &meta,
+        )
+        .unwrap();
+}
+
+/// A first sync has nothing before it to measure gains from, so the session opens on the next
+/// snapshot of the same process, from what the first one stored.
+#[test]
+fn a_session_opens_only_once_something_is_held() {
+    let mut store = SqliteStore::in_memory().unwrap();
+    replace(&mut store, "41", 1_800_000_000, 1);
+    assert_eq!(store.session_baseline().unwrap(), None);
+
+    replace(&mut store, "41", 1_800_000_060, 2);
+
+    assert_eq!(held(&store), vec![("forma".to_owned(), 1)]);
+    assert_eq!(
+        store.session_baseline().unwrap().unwrap().started_at,
+        at(1_800_000_060)
+    );
+}
+
+/// Later snapshots of the same process keep the baseline; a new process takes what the last one
+/// left behind as its own.
+#[test]
+fn a_new_game_process_measures_from_what_the_last_one_left() {
+    let mut store = SqliteStore::in_memory().unwrap();
+    replace(&mut store, "40", 1_799_000_000, 2);
+    replace(&mut store, "41", 1_800_000_000, 5);
+    replace(&mut store, "41", 1_800_000_600, 6);
+    assert_eq!(held(&store), vec![("forma".to_owned(), 2)]);
+
+    replace(&mut store, "42", 1_800_090_000, 6);
+
+    assert_eq!(held(&store), vec![("forma".to_owned(), 6)]);
+    assert_eq!(
+        store.session_baseline().unwrap().unwrap().started_at,
+        at(1_800_090_000)
     );
 }

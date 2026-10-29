@@ -29,12 +29,26 @@ pub use credential_store::{
 };
 
 mod items;
-pub use items::{Listing, MAX_ITEMS_BYTES, MarketItems};
+pub use items::{ItemSummary, Listing, MAX_ITEMS_BYTES, MarketItems, localized_names};
+
+mod live_orders;
+pub use live_orders::{ItemOrders, LiveOrder, MAX_TOP_BYTES, TraderStatus, item_orders, parse_top};
+
+mod statistics;
+pub use statistics::{DayTrades, MAX_STATISTICS_BYTES, item_statistics, parse_statistics};
+
+/// A slug as the item table spells them, so nothing else is ever put into a request path.
+fn valid_slug(slug: &str) -> bool {
+    !slug.is_empty()
+        && slug
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+}
 
 mod orders;
 pub use orders::{
-    MAX_ORDERS_BYTES, MarketOrder, NewSellOrder, OrderKind, create_order, delete_order, list_mine,
-    set_order_quantity, update_order,
+    MAX_ORDERS_BYTES, MarketOrder, NewSellOrder, OrderKind, close_order, create_order,
+    delete_order, list_mine, set_order_quantity, update_order,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -55,6 +69,9 @@ pub struct MarketRequest {
     pub url: String,
     pub token: Option<String>,
     pub body: Option<String>,
+    /// The `Language` header, which picks the language the item names come back in beside
+    /// English. `None` asks for English alone.
+    pub language: Option<&'static str>,
 }
 
 /// Hand-written so a stray `{request:?}`, in a log line, a panic message or an `.expect(&format!())`,

@@ -286,7 +286,7 @@ impl RelicCatalogCache {
     }
 }
 
-fn fetch_bounded(client: &Client, url: &str) -> Result<Vec<u8>, CatalogFetch> {
+pub(crate) fn fetch_bounded(client: &Client, url: &str) -> Result<Vec<u8>, CatalogFetch> {
     let response = client
         .get(url)
         .send()

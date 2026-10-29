@@ -78,6 +78,71 @@ fn daily_trade_count(records: &[DumpRecord], subtype: Option<&str>) -> Option<f6
     (daily > 0.0).then_some(daily)
 }
 
+/// One variant of one listing on the day a dump covers: what traded, at what median, against how
+/// much was up for sale. What the Market page ranks.
+///
+/// A variant is a `(subtype, rank)` the dump quotes on its own, because the price differs by up to
+/// two orders of magnitude between them: on 2026-10-27 `Arcane Sculptor` traded 446 times at 10p
+/// unranked and 243 times at 199p maxed, and one row for both would carry a median that is neither.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct DaySales {
+    /// The price-table key: the listing, or a relic's tier as `market_name` spells it.
+    pub name: String,
+    /// Any other variant the listing is split by (a fish's size, a riven's state), as the dump
+    /// spells it. Never set on a relic, whose tier is in `name`.
+    pub subtype: Option<String>,
+    pub rank: Option<u32>,
+    /// Trades completed that day.
+    pub sales: u32,
+    /// What they completed at. Unrounded: relics trade at fractions of a platinum.
+    pub median: f64,
+    /// The `sell` volume beside them: what sellers had up that day.
+    pub listings: u32,
+}
+
+/// Every variant of one listing that completed a trade on the day.
+fn day_sales(name: &str, records: &[DumpRecord], relic: bool) -> Vec<DaySales> {
+    // Sales, platinum traded and listings per `(subtype, rank)`. Traded rather than a median, so
+    // the two variants the dump lists twice average by their volumes instead of one winning.
+    let mut groups: HashMap<_, (f64, f64, f64)> = HashMap::new();
+    for record in records {
+        let volume = record
+            .volume
+            .filter(|volume| volume.is_finite() && *volume > 0.0)
+            .unwrap_or(0.0);
+        let group = groups
+            .entry((record.subtype.as_deref(), record.mod_rank))
+            .or_default();
+        match (record.order_type.as_str(), record.median) {
+            ("closed", Some(median)) if median.is_finite() && median >= 0.0 => {
+                group.0 += volume;
+                group.1 += volume * median;
+            }
+            ("sell", _) => group.2 += volume,
+            _ => {}
+        }
+    }
+    groups
+        .into_iter()
+        .filter(|(_, (sales, ..))| sales.round() >= 1.0)
+        .filter_map(|((subtype, rank), (sales, traded, listings))| {
+            let (name, subtype) = if relic {
+                (relic_tier_name(name, subtype)?, None)
+            } else {
+                (name.to_owned(), subtype.map(str::to_owned))
+            };
+            Some(DaySales {
+                name,
+                subtype,
+                rank,
+                sales: sales.round() as u32,
+                median: traded / sales,
+                listings: listings.round() as u32,
+            })
+        })
+        .collect()
+}
+
 /// The window a holding is valued over: what the market takes in a month, matching `CARRY_DAYS`.
 ///
 /// Long enough that a slow listing still registers, short enough to be a plan rather than a
@@ -257,6 +322,14 @@ pub struct PriceTable {
     /// trade happened: it read `Quickdraw` as thirty a month.
     #[serde(default)]
     trade_rate: HashMap<String, (f64, u32, String)>,
+    /// The day's trades as this dump recorded them, variant by variant. Never carried: they are
+    /// this dump's day and no other's.
+    ///
+    /// Absent from a table saved before it existed, and no `CACHE_SCHEMA` bump for it: no stored
+    /// price changes meaning, and a bump would throw away a month of `trade_rate` and carried
+    /// relic prices to get it. `is_current` has such a table's dump downloaded again instead.
+    #[serde(default)]
+    day_sales: Vec<DaySales>,
     dump_date: String,
     /// Which version of the parse produced `prices`. Absent, and so zero, in every table written
     /// before this field existed.
@@ -294,8 +367,10 @@ impl PriceTable {
         let mut max_rank_prices = HashMap::new();
         let mut trade_rate = HashMap::new();
         let mut relic_names = std::collections::HashSet::new();
+        let mut day = Vec::new();
         for (name, records) in raw {
             let relic = name.ends_with(RELIC_SUFFIX);
+            day.extend(day_sales(&name, &records, relic));
             let groups = quotes(&records, !relic);
             if relic {
                 // A relic is priced per refinement tier, under the same key `market_name` produces,
@@ -350,9 +425,22 @@ impl PriceTable {
             max_rank_prices,
             carried_relic_prices: HashMap::new(),
             trade_rate,
+            day_sales: day,
             dump_date: dump_date.to_owned(),
             schema: CACHE_SCHEMA,
         })
+    }
+
+    /// What traded on this dump's day, one entry per variant that traded at all.
+    pub fn day_sales(&self) -> &[DaySales] {
+        &self.day_sales
+    }
+
+    /// Whether this table is as new as any dump on offer (`dump_is_current`) and carries
+    /// everything a parse now keeps. A table saved before `day_sales` existed has its dump
+    /// downloaded again rather than leaving the Market page blank until the next one.
+    pub fn is_current(&self, now_unix: u64) -> bool {
+        dump_is_current(&self.dump_date, now_unix) && !self.day_sales.is_empty()
     }
 
     /// warframe.market's own name for an item the catalog calls `name`.
@@ -597,26 +685,31 @@ impl PriceTable {
         //
         // The date carried is the last dump that saw a trade, not today, so a listing nobody has
         // bought in `CARRY_DAYS` drops out entirely rather than decaying towards zero forever.
-        for (name, (rate, days, seen)) in &previous.trade_rate {
-            if self.expired(seen) {
-                continue;
-            }
-            let today = self.trade_rate.get(name);
-            let observed = today.map_or(0.0, |(rate, ..)| *rate);
-            let seen = today.map_or(seen, |(_, _, seen)| seen).clone();
-            let weight = (1.0 / f64::from(days + 1)).max(DAY_WEIGHT);
-            self.trade_rate.insert(
-                name.clone(),
-                (
-                    observed * weight + rate * (1.0 - weight),
-                    (days + 1).min(MONTH_DAYS),
-                    seen,
-                ),
-            );
-        }
+        //
+        // The same dump downloaded again, which the publication lag makes most launches, is a day
+        // the average already holds: counting it again drags every listing toward that one day.
+        // It takes the average as it stands, and the day's checked prices with it.
         if self.dump_date != previous.dump_date {
+            for (name, (rate, days, seen)) in &previous.trade_rate {
+                if self.expired(seen) {
+                    continue;
+                }
+                let today = self.trade_rate.get(name);
+                let observed = today.map_or(0.0, |(rate, ..)| *rate);
+                let seen = today.map_or(seen, |(_, _, seen)| seen).clone();
+                let weight = (1.0 / f64::from(days + 1)).max(DAY_WEIGHT);
+                self.trade_rate.insert(
+                    name.clone(),
+                    (
+                        observed * weight + rate * (1.0 - weight),
+                        (days + 1).min(MONTH_DAYS),
+                        seen,
+                    ),
+                );
+            }
             return;
         }
+        self.trade_rate = previous.trade_rate.clone();
         for (market_name, platinum) in &previous.checked_prices {
             self.checked_prices
                 .entry(market_name.clone())
@@ -640,6 +733,21 @@ impl PriceTable {
 
     pub fn dump_date(&self) -> &str {
         &self.dump_date
+    }
+
+    /// How far this dump's price for `name` moved since `earlier`'s, as a fraction: 0.22 is +22%.
+    ///
+    /// Dump against dump only. A price checked live this minute set against a day-old median would
+    /// report the difference between two ways of measuring as a move of the market.
+    pub fn change_since(&self, earlier: &PriceTable, name: &str) -> Option<f64> {
+        let key = self.market_name(name)?;
+        let (now, then) = (self.prices.get(&key)?, earlier.prices.get(&key)?);
+        Some(f64::from(*now) / f64::from(*then) - 1.0)
+    }
+
+    /// Every listing this dump prices, under the dump's own name.
+    pub fn dump_names(&self) -> impl Iterator<Item = &str> {
+        self.prices.keys().map(String::as_str)
     }
 
     /// How many items this table can price, dump prices and checked prices together. What the
@@ -719,7 +827,7 @@ pub const MAX_DUMP_BYTES: usize = 32 * 1024 * 1024;
 /// How far back to look for a dump. Measured lag on 2026-07-29 was two days; five is slack for a
 /// missed publication, and a bound so a dead host costs six requests rather than an unbounded walk.
 pub const DUMP_LOOKBACK_DAYS: u64 = 5;
-const USER_AGENT: &str = concat!(
+pub(crate) const USER_AGENT: &str = concat!(
     "TennoScope/",
     env!("CARGO_PKG_VERSION"),
     " (+https://github.com/Deftera186/tennoscope)"
@@ -757,6 +865,17 @@ pub fn civil_date(unix_seconds: u64) -> String {
     };
     let year = year_of_era + era * 400 + i64::from(month <= 2);
     format!("{year:04}-{month:02}-{day:02}")
+}
+
+/// Whole days from one dump date to another, or `None` when either is not a date.
+pub fn days_between(from: &str, to: &str) -> Option<i64> {
+    Some(epoch_day(to)? - epoch_day(from)?)
+}
+
+/// Midnight UTC `days` before a dump date, in Unix seconds: where `latest_dump` starts walking back
+/// when the dump wanted is an older one.
+pub fn unix_days_before(date: &str, days: i64) -> Option<u64> {
+    u64::try_from((epoch_day(date)? - days) * 86_400).ok()
 }
 
 /// Whether a cached dump of this date is already as new as anything that could be published.
@@ -844,17 +963,28 @@ impl CollectionPriceSource for RelicsRunHttp {
 /// thousand name-and-price pairs, which loads instantly and costs nothing to keep.
 pub struct CollectionPriceCache {
     directory: PathBuf,
+    file: &'static str,
 }
 
 impl CollectionPriceCache {
     pub fn new(directory: impl Into<PathBuf>) -> Self {
         Self {
             directory: directory.into(),
+            file: "collection-prices.json",
+        }
+    }
+
+    /// The dump a week before the one in use, kept apart: the Farm page's 7-day change compares
+    /// the two, and it must never be mistaken for the table that prices the collection.
+    pub fn earlier(directory: impl Into<PathBuf>) -> Self {
+        Self {
+            directory: directory.into(),
+            file: "collection-prices-earlier.json",
         }
     }
 
     fn path(&self) -> PathBuf {
-        self.directory.join("collection-prices.json")
+        self.directory.join(self.file)
     }
 
     /// The stored table, unless it was written by a parse that no longer means what this one does.

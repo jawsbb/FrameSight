@@ -132,3 +132,35 @@ fn relic_quantity_prefix_resolves_the_underlying_catalog_item() {
         [b"/Lotus/Types/Recipes/Components/FormaBlueprint".as_slice()]
     );
 }
+
+#[test]
+fn a_relic_keeps_its_name_vault_status_and_each_reward_chance() {
+    let relics = RelicRewardIndex::from_wfcd_json(
+        br#"[{
+          "uniqueName":"/Lotus/Types/Game/Projections/T4VoidProjectionESilver",
+          "name":"Axi A1 Exceptional","vaulted":true,
+          "rewards":[
+            {"chance":23.33,"rarity":"Uncommon","item":{"name":"Braton Prime Stock"}},
+            {"chance":4,"rarity":"Rare","item":{"name":"Nikana Prime Blueprint"}}
+          ]
+        }]"#,
+    )
+    .unwrap();
+
+    let relic = relics
+        .relic("/Lotus/Types/Game/Projections/T4VoidProjectionESilver")
+        .expect("indexed by its inventory path");
+    assert_eq!(relic.name, "Axi A1 Exceptional");
+    assert_eq!(relic.vaulted, Some(true));
+    assert_eq!(
+        relic
+            .drops
+            .iter()
+            .map(|drop| (drop.name.as_str(), drop.chance))
+            .collect::<Vec<_>>(),
+        [
+            ("Braton Prime Stock", Some(23.33)),
+            ("Nikana Prime Blueprint", Some(4.0))
+        ]
+    );
+}

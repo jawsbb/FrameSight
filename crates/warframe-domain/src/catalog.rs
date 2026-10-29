@@ -28,8 +28,13 @@ impl ItemId {
     /// only the path, and anything asking it about one of those rows has to ask about this or be
     /// told the item does not exist.
     pub fn catalog_path(&self) -> &str {
-        self.0.split('#').next().unwrap_or(&self.0)
+        catalog_path(&self.0)
     }
+}
+
+/// [`ItemId::catalog_path`] for a row id held as a plain string, as the store keeps them.
+pub fn catalog_path(id: &str) -> &str {
+    id.split('#').next().unwrap_or(id)
 }
 
 impl fmt::Display for ItemId {

@@ -1,24 +1,40 @@
 #![forbid(unsafe_code)]
 
 mod fake_session;
+mod farm;
+mod foundry;
+mod item_detail;
+mod market_board;
+mod relics;
+mod session_gains;
+
+pub use farm::{FarmDrop, FarmRow, FarmView, OpenRow, Pace, SellRow, Trend};
+pub use foundry::{
+    FoundryItem, FoundryPiece, FoundryResource, FoundryStage, FoundryStatus, FoundryView,
+};
+pub use market_board::{BoardRow, MIN_DAY_SALES, MarketBoard, market_board};
 
 use std::path::Path;
 use std::sync::Arc;
 
-use local_store::{SnapshotMeta, SqliteStore, StoreError};
+pub use item_detail::ItemDetailView;
+use item_detail::{builds_name, entry_image_name, item_detail, wfcd_image_url};
+use local_store::{SessionBaseline, SnapshotInstant, SnapshotMeta, SqliteStore, StoreError};
 use serde::Serialize;
 use thiserror::Error;
 use warframe_acquisition::{
     AcquisitionError, AcquisitionFailure, AcquisitionResult, AcquisitionStage, CatalogIndex,
     CatalogLoadSource, DucatTable, Holdings, MarketPriceCache, MasteryEvidence, MasteryFacts,
-    MasteryLedger, PriceTable, StageState,
+    MasteryLedger, PriceTable, RelicRewardIndex, StageState,
 };
 use warframe_domain::{
-    CatalogItem, Category, Collection, DomainError, InventoryEntry, InventorySnapshot,
+    CatalogItem, Category, Collection, DomainError, InventoryEntry, InventorySnapshot, ItemId,
     KioskMastery, MasteryMark, RewardAdvisor, RewardCandidate, RewardView,
 };
 use warframe_market::{CredentialBacking, MarketItems, MarketOrder, OrderKind};
 use warframe_status::Presence;
+
+pub use relics::{Opening, Rarity, Refinement, RelicRewardView, RelicView, RelicsView, opening};
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -35,11 +51,14 @@ pub struct AppCore {
     reward: RewardView,
     health: HealthView,
     prices: Option<Arc<PriceTable>>,
+    /// The dump a week before `prices`, for the Farm page's 7-day change.
+    earlier_prices: Option<Arc<PriceTable>>,
     ducats: Option<Arc<DucatTable>>,
     live: Option<MarketPriceCache>,
     pricing: Option<PricingProgress>,
     market_account: MarketAccountView,
     presence: PresenceView,
+    synced: Vec<SyncedOrder>,
     mastery_catalog: Option<Arc<CatalogIndex>>,
     mastery_facts: Option<MasteryFacts>,
     /// Whether the installed access mode reads the inventory. Companion and Overlay show a
@@ -47,6 +66,11 @@ pub struct AppCore {
     /// which is a claim about the account as it stands, is only made under a mode that can
     /// stand behind it.
     reads_inventory: bool,
+    /// WFCD's relic tables, for the Relics page.
+    relics: Option<Arc<RelicRewardIndex>>,
+    /// What the open game session started from, held here because only a refresh that opens a
+    /// session changes it and every view reads it.
+    session: Option<SessionBaseline>,
 }
 
 /// A snapshot of what mastery marks may say, taken once per overlay publish.
@@ -130,18 +154,22 @@ impl AppCore {
 
     fn from_store(store: SqliteStore) -> Result<Self, AppError> {
         Ok(Self {
+            session: store.session_baseline()?,
             store,
             reward: RewardAdvisor::advise(Vec::new()),
             health: HealthView::phase_one()?,
             prices: None,
+            earlier_prices: None,
             ducats: None,
             live: None,
             pricing: None,
             market_account: MarketAccountView::unlinked(),
             presence: PresenceView::default(),
+            synced: Vec::new(),
             mastery_catalog: None,
             mastery_facts: None,
             reads_inventory: false,
+            relics: None,
         })
     }
 
@@ -257,12 +285,23 @@ impl AppCore {
         self.current_view()
     }
 
+    /// Replace what the last order sync changed. Only a sync that changed something calls this, so
+    /// the report stands until there is a newer one.
+    pub fn set_synced(&mut self, synced: Vec<SyncedOrder>) {
+        self.synced = synced;
+    }
+
     /// Replace the account state and say so in the health row.
     pub fn set_market_account(&mut self, account: MarketAccountView) -> Result<AppView, AppError> {
         self.health.market_account = match account.link {
             // Nothing carried forward: with no account linked there is no fetch for a timestamp
-            // to describe, and one left behind reads as though a link were still in place.
-            LinkState::Unlinked => BackendHealth::idle("No warframe.market account linked", None)?,
+            // to describe, and one left behind reads as though a link were still in place. The
+            // last sync's report goes for the same reason, and would otherwise greet the next
+            // account linked here.
+            LinkState::Unlinked => {
+                self.synced.clear();
+                BackendHealth::idle("No warframe.market account linked", None)?
+            }
             LinkState::NeedsRelink => {
                 BackendHealth::degraded("The warframe.market credential was refused")?
             }
@@ -309,6 +348,13 @@ impl AppCore {
         let collection = self.store.load_collection()?;
         let snapshot = self.store.latest_snapshot_meta()?;
         let mastery = self.mastery_checklist(&collection, snapshot.is_some())?;
+        let gains = self.session.as_ref().map(|session| {
+            let held = collection
+                .entries()
+                .map(|entry| (entry.item.id.as_str(), entry.quantity))
+                .collect::<Vec<_>>();
+            session_gains::session_gains(&held, &session.held)
+        });
         let mut items = collection
             .entries()
             .map(|entry| {
@@ -378,6 +424,11 @@ impl AppCore {
                         .and_then(|(name, prices)| prices.monthly_trades(name)),
                 )
                 .with_ducats(self.ducats_for(entry))
+                .with_gained(
+                    gains
+                        .as_ref()
+                        .and_then(|gains| gains.get(entry.item.id.as_str()).copied()),
+                )
             })
             .collect::<Vec<_>>();
         items.sort_by(|left, right| left.id.cmp(&right.id));
@@ -389,6 +440,7 @@ impl AppCore {
                 items,
                 total_entries,
                 snapshot,
+                session_started: self.session.as_ref().map(|session| session.started_at),
                 pricing: self.pricing,
             },
             mastery,
@@ -396,6 +448,7 @@ impl AppCore {
             health,
             market_account: MarketAccountView {
                 presence: self.presence,
+                synced: self.synced.clone(),
                 ..self.market_account.clone()
             },
         })
@@ -487,6 +540,35 @@ impl AppCore {
             .and_then(|table| table.get(entry.item.id.catalog_path()))
     }
 
+    /// The item sheet for a collection or Mastery row, by the row's id. None when no row of
+    /// either list has that id.
+    pub fn item_detail(&self, id: &str) -> Result<Option<ItemDetailView>, AppError> {
+        let collection = self.store.load_collection()?;
+        let path = ItemId::new(id)?.catalog_path().to_owned();
+        let catalog = self.mastery_catalog.as_deref();
+        let entry = collection
+            .entries()
+            .find(|entry| entry.item.id.as_str() == id);
+        // A Mastery row the account never held lives in the catalogue, not the store.
+        let catalogued = catalog.is_some_and(|catalog| catalog.resolve(&path).is_some());
+        if entry.is_none() && !(id == path && catalogued) {
+            return Ok(None);
+        }
+        // What the card draws, else, for a row the store never held, the catalogue's art.
+        let image_name = entry
+            .and_then(entry_image_name)
+            .or_else(|| catalog?.image_name(&path));
+        let holdings = (collection.entries().next().is_some())
+            .then(|| Holdings::from_entries(collection.entries()));
+        Ok(Some(item_detail(
+            &path,
+            image_name,
+            builds_name(&path, entry, catalog),
+            catalog,
+            holdings.as_ref(),
+        )))
+    }
+
     pub fn enrich_collection_from_catalog(
         &mut self,
         catalog: &CatalogIndex,
@@ -498,15 +580,21 @@ impl AppCore {
                 // By path, not by id: a ranked row's id carries its rank, and the catalogue has
                 // never heard of it. Resolving on the raw id left every ranked mod holding the
                 // decoder's fallback label and no artwork.
-                let Some(metadata) = catalog.resolve(entry.item.id.catalog_path()) else {
-                    return Ok(entry.clone());
+                let path = entry.item.id.catalog_path();
+                let Some(metadata) = catalog.resolve(path) else {
+                    // Only in a recipe (a Warframe's Neuroptics): no name to give it, but art.
+                    let mut entry = entry.clone();
+                    if let Some(image_name) = catalog.image_name(path) {
+                        entry.item = entry.item.with_image_name(image_name)?;
+                    }
+                    return Ok(entry);
                 };
                 let mut item = CatalogItem::new(
                     entry.item.id.clone(),
                     metadata.name(),
                     metadata.category().unwrap_or(entry.item.category),
                 )?;
-                if let Some(image_name) = metadata.image_name() {
+                if let Some(image_name) = catalog.image_name(path) {
                     item = item.with_image_name(image_name)?;
                 }
                 let enriched =
@@ -562,7 +650,12 @@ impl AppCore {
     ) -> Result<AppView, AppError> {
         match attempt {
             Ok((result, meta)) => {
+                let meta = match result.process() {
+                    Some(process) => meta.with_session(process.session_key()),
+                    None => meta,
+                };
                 self.store.replace_collection(result.snapshot(), &meta)?;
+                self.session = self.store.session_baseline()?;
                 // The inventory did not change when the request failed, so a failed refresh
                 // leaves the previous facts untouched.
                 self.mastery_facts = Some(result.mastery_facts().clone());
@@ -871,6 +964,8 @@ pub struct CollectionView {
     items: Vec<CollectionItemView>,
     total_entries: usize,
     snapshot: Option<SnapshotMeta>,
+    /// When the open game session started, which `gained` on each item counts from.
+    session_started: Option<SnapshotInstant>,
     /// A live pricing pass in flight: the player asked about the page in front of them.
     pricing: Option<PricingProgress>,
 }
@@ -975,6 +1070,10 @@ pub struct CollectionItemView {
     /// which for a holding means the same as none.
     #[serde(skip_serializing_if = "Option::is_none")]
     monthly_trades: Option<u32>,
+    /// Copies gained since the open game session started. Absent when none were, or no session
+    /// is open.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    gained: Option<u32>,
 }
 
 impl CollectionItemView {
@@ -1041,6 +1140,11 @@ impl CollectionItemView {
         self.monthly_trades
     }
 
+    /// Copies gained since the open game session started.
+    pub fn gained(&self) -> Option<u32> {
+        self.gained
+    }
+
     fn priced(
         entry: &warframe_domain::InventoryEntry,
         platinum: Option<u32>,
@@ -1053,6 +1157,11 @@ impl CollectionItemView {
             priceable,
             ..Self::from(entry)
         }
+    }
+
+    fn with_gained(mut self, gained: Option<u32>) -> Self {
+        self.gained = gained;
+        self
     }
 
     fn with_price_ceiling(mut self, ceiling: Option<u32>) -> Self {
@@ -1079,11 +1188,7 @@ impl From<&warframe_domain::InventoryEntry> for CollectionItemView {
             category: entry.item.category,
             quantity: entry.quantity,
             mastered: entry.mastered,
-            image_url: entry.item.image_name.as_ref().map(|name| {
-                format!(
-                    "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/img/{name}"
-                )
-            }),
+            image_url: entry_image_name(entry).map(wfcd_image_url),
             platinum: None,
             platinum_ceiling: None,
             ducats: None,
@@ -1092,6 +1197,7 @@ impl From<&warframe_domain::InventoryEntry> for CollectionItemView {
             live: false,
             priceable: false,
             monthly_trades: None,
+            gained: None,
         }
     }
 }
@@ -1340,6 +1446,8 @@ pub struct ReconciledOrder {
     /// the order's `item_id` and the row's key are namespaces that share nothing, and only the
     /// item table joins them.
     pub row_id: Option<String>,
+    /// The item's picture on warframe.market, absolute, for the row.
+    pub thumb_url: Option<String>,
     pub status: OrderStatus,
 }
 
@@ -1372,6 +1480,7 @@ pub fn reconcile_orders(
             order: order.clone(),
             name: items.name(&order.item_id).map(str::to_owned),
             row_id: items.row_of(&order.item_id, order.rank, order.subtype.as_deref()),
+            thumb_url: items.thumb_url(&order.item_id),
             status: status_for(order, items, &owned, snapshot),
         })
         .collect()
@@ -1419,6 +1528,39 @@ fn status_for(
     }
 }
 
+/// The repairs an automatic sync makes, and only those: the two buttons the interface already puts
+/// beside a flagged order, derived from nothing but the flag. Each is the count the listing goes
+/// to, the holding, where zero is taking it down, the same reading [`SyncedOrder::to`] reports.
+///
+/// Everything that keeps a flag honest has already happened in [`reconcile_orders`]: no claim
+/// without a coherent snapshot newer than the order, none for a set, a relic, a ranked copy or an
+/// item the table cannot place. An order that is not flagged gets nothing, and a buy order is
+/// checked for here as well as there, because owning none of something is what buying it means.
+pub fn sync_actions(orders: &[ReconciledOrder]) -> Vec<(&ReconciledOrder, u32)> {
+    orders
+        .iter()
+        .filter(|entry| entry.order.kind == OrderKind::Sell)
+        .filter_map(|entry| match entry.status {
+            OrderStatus::Missing => Some((entry, 0)),
+            OrderStatus::Overshoot { owned } => Some((entry, owned)),
+            OrderStatus::Ok | OrderStatus::Unverifiable => None,
+        })
+        .collect()
+}
+
+/// One change an automatic sync made, for the interface to report.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SyncedOrder {
+    pub name: Option<String>,
+    pub thumb_url: Option<String>,
+    /// The quantity listed before.
+    pub from: u32,
+    /// The quantity listed after; zero is a listing taken down.
+    pub to: u32,
+    /// When, in the same form as `fetched_at`.
+    pub at: String,
+}
+
 /// Whether an account is linked, and whether it still works.
 ///
 /// `NeedsRelink` is separate from `Unlinked` because they call for different things from the
@@ -1464,6 +1606,11 @@ pub struct MarketAccountView {
     /// an order fetch that reset it would blank the switch every refresh. `current_view` stamps it
     /// on instead, from the one place that holds it.
     pub presence: PresenceView,
+    /// What the most recent order sync that changed anything changed, empty before one has.
+    ///
+    /// Stamped on by `current_view` like `presence`, for the same reason: an order refresh builds a
+    /// fresh view, and the report of the last sync has to outlive it.
+    pub synced: Vec<SyncedOrder>,
 }
 
 /// The presence switch, as the screen needs it.
@@ -1537,6 +1684,7 @@ impl MarketAccountView {
             flagged,
             listable: Vec::new(),
             presence: PresenceView::default(),
+            synced: Vec::new(),
         }
     }
 

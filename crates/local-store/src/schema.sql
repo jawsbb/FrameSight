@@ -23,3 +23,14 @@ CREATE TABLE snapshot_audit (
     source TEXT NOT NULL CHECK (length(trim(source)) > 0),
     item_count INTEGER NOT NULL CHECK (item_count >= 0)
 );
+
+CREATE TABLE game_session (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    process TEXT NOT NULL CHECK (length(trim(process)) > 0),
+    started_at TEXT NOT NULL CHECK (length(trim(started_at)) > 0)
+);
+
+CREATE TABLE session_baseline (
+    item_id TEXT PRIMARY KEY,
+    quantity INTEGER NOT NULL CHECK (quantity >= 0)
+);

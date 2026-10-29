@@ -25,6 +25,7 @@ use image::{DynamicImage, GenericImageView, GrayImage};
 use warframe_acquisition::RewardCatalogEntry;
 
 use crate::{
+    game_language::{Spellings, spellings},
     overlay_window::WindowRect,
     reward_source::{CardCandidates, VisualRewardSource},
 };
@@ -564,11 +565,26 @@ fn tessdata_dir_arg(directory: &Path) -> PathBuf {
 
 /// Compare on alphanumerics only. That is what lets a read of "2 X Forma Blueprint W\:" land on
 /// "2X Forma Blueprint" instead of drifting to a different reward.
+///
+/// Accents fold to their letter first: Tesseract's English model reads `Inférieure` as often
+/// without its accent as with it, and either read has to land on the game's French name.
 fn normalise(text: &str) -> String {
-    text.chars()
-        .filter(char::is_ascii_alphanumeric)
-        .flat_map(char::to_lowercase)
-        .collect()
+    let mut normalised = String::with_capacity(text.len());
+    for character in text.chars().flat_map(char::to_lowercase) {
+        match character {
+            'à' | 'â' | 'ä' => normalised.push('a'),
+            'é' | 'è' | 'ê' | 'ë' => normalised.push('e'),
+            'î' | 'ï' => normalised.push('i'),
+            'ô' | 'ö' => normalised.push('o'),
+            'ù' | 'û' | 'ü' => normalised.push('u'),
+            'ç' => normalised.push('c'),
+            'œ' => normalised.push_str("oe"),
+            'æ' => normalised.push_str("ae"),
+            character if character.is_ascii_alphanumeric() => normalised.push(character),
+            _ => {}
+        }
+    }
+    normalised
 }
 
 /// How near-exact a fragment of a read must be before it may name the whole card.
@@ -629,8 +645,19 @@ fn text_groups(text: &str) -> Vec<String> {
 /// Still a closed-set match: it returns the nearest of `candidates`, never "none of these", so the
 /// floors are the only guard against a confident wrong answer. Which names a card may reach at
 /// all is [`best_card_match`]'s call.
+///
+/// While the game runs in another language each candidate is also read in it, through
+/// [`crate::game_language`], and the card is named by its English name either way.
 pub fn best_match(text: &str, candidates: &[RewardCatalogEntry]) -> Option<(String, f32)> {
-    let whole = best_match_of(text, candidates);
+    best_match_in(text, candidates, spellings().as_deref())
+}
+
+fn best_match_in(
+    text: &str,
+    candidates: &[RewardCatalogEntry],
+    spellings: Option<&Spellings>,
+) -> Option<(String, f32)> {
+    let whole = best_match_of(text, candidates, spellings);
     let groups = text_groups(text);
     let mut fragments = groups.clone();
     for start in 0..groups.len() {
@@ -654,7 +681,7 @@ pub fn best_match(text: &str, candidates: &[RewardCatalogEntry]) -> Option<(Stri
     }
     let best_fragment = distinct
         .iter()
-        .filter_map(|fragment| best_match_of(fragment, candidates))
+        .filter_map(|fragment| best_match_of(fragment, candidates, spellings))
         .filter(|(_, score)| *score >= PARTIAL_MATCH_FLOOR)
         .max_by(|(_, left), (_, right)| left.total_cmp(right));
     match (whole, best_fragment) {
@@ -681,14 +708,22 @@ pub fn best_match(text: &str, candidates: &[RewardCatalogEntry]) -> Option<(Stri
 /// A catalogue answer the pool also lists under the relic table's spelling takes that spelling:
 /// a garbled `Forma Blueprint` read still names what the relic drops, `2X Forma Blueprint`.
 pub fn best_card_match(text: &str, candidates: CardCandidates<'_>) -> Option<(String, f32)> {
-    let pool = best_match(text, candidates.pool);
+    best_card_match_in(text, candidates, spellings().as_deref())
+}
+
+fn best_card_match_in(
+    text: &str,
+    candidates: CardCandidates<'_>,
+    spellings: Option<&Spellings>,
+) -> Option<(String, f32)> {
+    let pool = best_match_in(text, candidates.pool, spellings);
     if pool
         .as_ref()
         .is_some_and(|(_, score)| *score >= PARTIAL_MATCH_FLOOR)
     {
         return pool;
     }
-    let catalog = best_match_of(text, candidates.catalog)
+    let catalog = best_match_of(text, candidates.catalog, spellings)
         .filter(|(_, score)| *score >= CATALOG_MATCH_FLOOR)
         .map(|(name, score)| {
             let spelling = candidates
@@ -704,20 +739,31 @@ pub fn best_card_match(text: &str, candidates: CardCandidates<'_>) -> Option<(St
     }
 }
 
-/// One read against `candidates`. This is the whole of what `best_match` used to be.
-fn best_match_of(text: &str, candidates: &[RewardCatalogEntry]) -> Option<(String, f32)> {
+/// One read against `candidates`, each scored on the better of its English name and the game's
+/// own name for it. This is the whole of what `best_match` used to be.
+fn best_match_of(
+    text: &str,
+    candidates: &[RewardCatalogEntry],
+    spellings: Option<&Spellings>,
+) -> Option<(String, f32)> {
     let read = normalise(text);
     if read.is_empty() {
         return None;
     }
+    let score = |name: &str| {
+        let known = normalise(name);
+        let distance = edit_distance(&read, &known);
+        let longest = read.chars().count().max(known.chars().count()).max(1);
+        1.0 - distance as f32 / longest as f32
+    };
     candidates
         .iter()
         .map(|candidate| {
-            let known = normalise(&candidate.name);
-            let distance = edit_distance(&read, &known);
-            let longest = read.chars().count().max(known.chars().count()).max(1);
-            let score = 1.0 - distance as f32 / longest as f32;
-            (candidate.name.clone(), score)
+            let english = score(&candidate.name);
+            let best = spellings
+                .and_then(|spellings| spellings.of(&candidate.name))
+                .map_or(english, |name| english.max(score(&name)));
+            (candidate.name.clone(), best)
         })
         .max_by(|(_, left), (_, right)| left.total_cmp(right))
 }
@@ -859,6 +905,67 @@ mod tests {
         super::RewardCatalogEntry {
             name: name.to_owned(),
             ducats: 0,
+        }
+    }
+
+    /// A game running in French draws `Braton Prime - Canon` where the pool says
+    /// `Braton Prime Barrel`. Read against English alone a name the translation changes outright
+    /// never clears the floor, which is why no overlay showed on 2026-10-28; read against the
+    /// game's own names each card is named, in English, with or without the accents Tesseract's
+    /// English model may drop.
+    #[test]
+    fn a_card_drawn_in_french_is_named_by_its_english_name() {
+        let pool = [
+            pool_entry("Braton Prime Barrel"),
+            pool_entry("Ballistica Prime Lower Limb"),
+            pool_entry("Forma Blueprint"),
+            pool_entry("Lex Prime Receiver"),
+        ];
+        let candidates = super::CardCandidates {
+            pool: &pool,
+            catalog: &[],
+        };
+        let french = crate::game_language::Spellings::new(
+            crate::game_language::FRENCH,
+            std::collections::HashMap::from([
+                (
+                    "Braton Prime Barrel".to_owned(),
+                    "Braton Prime - Canon".to_owned(),
+                ),
+                (
+                    "Ballistica Prime Lower Limb".to_owned(),
+                    "Ballistica Prime - Partie Inférieure".to_owned(),
+                ),
+                (
+                    "Lex Prime Receiver".to_owned(),
+                    "Lex Prime - Culasse".to_owned(),
+                ),
+            ]),
+        );
+        for (read, english) in [
+            ("BRATON PRIME - CANON", "Braton Prime Barrel"),
+            (
+                "BALLISTICA PRIME - PARTIE\nINFÉRIEURE",
+                "Ballistica Prime Lower Limb",
+            ),
+            (
+                "BALLISTICA PRIME - PARTIE\nINFERIEURE",
+                "Ballistica Prime Lower Limb",
+            ),
+            ("FORMA (SCHÉMA)", "Forma Blueprint"),
+        ] {
+            let (name, score) = super::best_card_match_in(read, candidates, Some(&french))
+                .expect("a French read resolves");
+            assert_eq!(name, english, "{read:?}");
+            assert!(score >= 0.95, "{read:?} scored {score}");
+        }
+        for read in ["BALLISTICA PRIME - PARTIE\nINFÉRIEURE", "FORMA (SCHÉMA)"] {
+            let english_only =
+                super::best_card_match_in(read, candidates, None).map_or(0.0, |(_, score)| score);
+            assert!(
+                english_only < super::MATCH_FLOOR,
+                "{read:?} scored {english_only} in English"
+            );
         }
     }
 

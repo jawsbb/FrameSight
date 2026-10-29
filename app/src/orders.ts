@@ -7,7 +7,8 @@
  * machine that has never read the game would be an accusation nothing supports, sitting next to a
  * button that deletes a listing the player wanted.
  */
-import type { CollectionItem, CredentialBacking, MarketOrder, OrderStatus, ReconciledOrder } from './backend'
+import type { CollectionItem, CredentialBacking, MarketAccount, MarketOrder, OrderStatus, ReconciledOrder } from './backend'
+import { en, type Messages } from './i18n/en'
 
 /** Whether the backend is making a claim about this order, as opposed to declining to. */
 export function isFlagged(status: OrderStatus): boolean {
@@ -15,14 +16,14 @@ export function isFlagged(status: OrderStatus): boolean {
 }
 
 /** What the row says about backend reconciliation, or null when the holding is verified. */
-export function statusLabel(entry: ReconciledOrder): string | null {
+export function statusLabel(entry: ReconciledOrder, t: Messages = en): string | null {
   switch (entry.status.state) {
     case 'missing':
-      return 'You no longer own this'
+      return t.orders.noLongerOwned
     case 'overshoot':
-      return `You own ${entry.status.owned} of ${entry.order.quantity} listed`
+      return t.orders.ownOf(entry.status.owned, entry.order.quantity)
     case 'unverifiable':
-      return 'Unverifiable'
+      return t.orders.unverifiable
     default:
       return null
   }
@@ -34,8 +35,8 @@ export function statusLabel(entry: ReconciledOrder): string | null {
  * Removal is not here: every row offers it now, flagged or not, so it is not a repair a status
  * chooses. Only the overshoot has a fix that depends on what the status carries.
  */
-export function fixLabel(status: OrderStatus): string | null {
-  return status.state === 'overshoot' ? `Lower to ${status.owned}` : null
+export function fixLabel(status: OrderStatus, t: Messages = en): string | null {
+  return status.state === 'overshoot' ? t.orders.lowerTo(status.owned) : null
 }
 
 /**
@@ -64,9 +65,9 @@ export function orderValue(order: MarketOrder): number | null {
 }
 
 /** Why a row contributes nothing, for the rows that do not. */
-export function uncountedReason(order: MarketOrder): string | null {
-  if (order.kind !== 'sell') return 'Buy order'
-  return order.visible ? null : 'Hidden'
+export function uncountedReason(order: MarketOrder, t: Messages = en): string | null {
+  if (order.kind !== 'sell') return t.orders.buyOrder
+  return order.visible ? null : t.orders.hidden
 }
 
 /**
@@ -93,17 +94,13 @@ export function listedOrderFor(orders: readonly ReconciledOrder[], itemId: strin
  * carries as its own claim) says the listing plain, never a division by a holding smaller than
  * itself.
  */
-export function listedLabel(order: MarketOrder, held: number): string {
-  const partial = order.quantity < held
-    ? `${order.quantity} of ${held} `
-    : `${order.quantity} `
-  return `listed ${partial}@ ${order.platinum}p`
+export function listedLabel(order: MarketOrder, held: number, t: Messages = en): string {
+  return t.orders.listedBadge(order.quantity, order.quantity < held ? held : null, order.platinum)
 }
 
 /** Where the credential lives. Stated plainly, because a keyring and a file are not the same. */
-export function backingLabel(backing: CredentialBacking | undefined): string {
-  if (backing === 'keyring') return 'System keyring'
-  return backing === 'database' ? 'Local database file' : 'Not stored'
+export function backingLabel(backing: CredentialBacking | undefined, t: Messages = en): string {
+  return t.orders.backing[backing ?? 'none']
 }
 
 /** Whether this item can be listed from here at all: held, and a row the account may publish.
@@ -113,4 +110,22 @@ export function backingLabel(backing: CredentialBacking | undefined): string {
  * path would offer one of them for all three. */
 export function isListable(item: CollectionItem, listable: readonly string[]): boolean {
   return item.quantity > 0 && listable.includes(item.id)
+}
+
+/** A card's or sheet's selling half: the row's standing listing, and whether it may be listed at
+ * all, which needs its ownership `verified` (Full access) and a linked account. */
+export function sellingFor(item: CollectionItem, account: MarketAccount, verified: boolean): { listedOrder: MarketOrder | null; sellable: boolean } {
+  return {
+    listedOrder: listedOrderFor(account.orders, item.id),
+    sellable: verified && account.link === 'linked' && isListable(item, account.listable),
+  }
+}
+
+/**
+ * Whether a row offers to sell. Nothing is offered once the whole holding is listed: the badge
+ * says so, and the market allows one sell order per item. A listing that covers part of the
+ * holding keeps the control, as an edit of the listing that already stands.
+ */
+export function canSell(item: { quantity: number }, { sellable, listedOrder }: { sellable: boolean; listedOrder: MarketOrder | null }): boolean {
+  return sellable && (!listedOrder || listedOrder.quantity < item.quantity)
 }
