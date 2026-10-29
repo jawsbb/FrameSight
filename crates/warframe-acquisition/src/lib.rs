@@ -157,6 +157,15 @@ impl GameProcess {
         self.pid
     }
 
+    /// What tells one run of the game from the next: the PID, and its start time where the
+    /// backend reads one, so a PID the system hands out again is not taken for the same run.
+    pub fn session_key(self) -> String {
+        match self.start_time_ticks {
+            Some(ticks) => format!("{}@{ticks}", self.pid),
+            None => self.pid.to_string(),
+        }
+    }
+
     pub(crate) const fn identified(pid: u32, start_time_ticks: u64) -> Self {
         Self {
             pid,
@@ -582,6 +591,7 @@ pub struct AcquisitionResult {
     snapshot: InventorySnapshot,
     health: AcquisitionHealth,
     mastery_facts: MasteryFacts,
+    process: Option<GameProcess>,
 }
 
 impl AcquisitionResult {
@@ -596,7 +606,18 @@ impl AcquisitionResult {
             snapshot,
             health,
             mastery_facts: MasteryFacts::default(),
+            process: None,
         })
+    }
+
+    /// The game process the inventory was read from. Absent for results built without one.
+    pub fn with_process(mut self, process: GameProcess) -> Self {
+        self.process = Some(process);
+        self
+    }
+
+    pub fn process(&self) -> Option<GameProcess> {
+        self.process
     }
 
     /// The affinity and pending builds the decoded inventory reported. Empty unless set:

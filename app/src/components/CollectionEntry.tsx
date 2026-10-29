@@ -43,6 +43,7 @@ export function CollectionEntry({ item, onOpen, ...context }: EntryContext & { i
             ? <span className="tag absent">{missingLabel ?? t.card.missing}</span>
             : <span className="tag">{t.card.owned(item.quantity)}</span>
           : null}
+        {ownershipVerified && item.gained !== undefined && <span className="tag gained">{t.card.gained(item.gained)}</span>}
         {rank && <span className={`tag rank${atMaxRank(item) ? ' maxed' : ''}`}>{rank}</span>}
         {ownershipVerified && item.mastered && <span className="tag mastered">{t.card.mastered}</span>}
         {listedOrder && <span className="tag listed">{listedLabel(listedOrder, item.quantity, t)}</span>}

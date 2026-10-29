@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { AccessMode, AppView, CollectionItem, ItemCategory } from '../backend'
-import { collectionTotals, figure, masteryOrder, masteryProgress, pageWindow } from '../collection'
+import { collectionTotals, figure, masteryOrder, masteryProgress, pageWindow, sellableValue } from '../collection'
 import { sellingFor } from '../orders'
 import { MetalMark } from '../MetalMark'
 import type { SellHandler, UpdateHandler } from '../SellForm'
@@ -13,9 +13,10 @@ import { SearchField } from '../components/SearchField'
 import { Stat } from '../components/Stat'
 import { shortDate, useMessages } from '../i18n'
 
-/** `toMaster` swaps the collection for the mastery checklist: equipment left to master, held or not. */
-type Ownership = 'all' | 'owned' | 'mastered' | 'toMaster' | 'missing' | 'tradeable'
-type Sort = 'name-asc' | 'quantity-desc' | 'category-asc' | 'mastery-asc' | 'platinum-desc' | 'ducats-desc'
+/** `toMaster` swaps the collection for the mastery checklist: equipment left to master, held or not.
+ * `session` is what the open game session added, `duplicates` every stack of two or more. */
+type Ownership = 'all' | 'owned' | 'mastered' | 'toMaster' | 'missing' | 'tradeable' | 'session' | 'duplicates'
+type Sort = 'name-asc' | 'quantity-desc' | 'category-asc' | 'mastery-asc' | 'platinum-desc' | 'sale-desc' | 'ducats-desc'
 type MasterySort = 'arsenal-first' | 'name-asc' | 'category-asc'
 
 /** Held by `App`, so they survive a change of page. The checklist keeps a sort of its own. */
@@ -23,26 +24,28 @@ export type CollectionFilters = { search: string; category: ItemCategory | 'all'
 
 // Their names are the catalog's (`categories`, `collection.sorts`, `mastery.sorts`).
 const categories: Array<ItemCategory | 'all'> = ['all', 'frame', 'weapon', 'companion', 'prime_part', 'relic', 'resource', 'blueprint', 'vehicle', 'mod', 'arcane']
-const allModes: Ownership[] = ['all', 'owned', 'mastered', 'toMaster', 'missing', 'tradeable']
+const allModes: Ownership[] = ['all', 'owned', 'mastered', 'toMaster', 'missing', 'tradeable', 'session', 'duplicates']
 // Without verified ownership the checklist is still offered: it says what it needs.
 const unverifiedModes: Ownership[] = ['all', 'toMaster']
 
 // Ducats is offered only while the ducat values are on screen.
-const sortOptions: Sort[] = ['name-asc', 'quantity-desc', 'category-asc', 'mastery-asc', 'platinum-desc', 'ducats-desc']
+const sortOptions: Sort[] = ['name-asc', 'quantity-desc', 'category-asc', 'mastery-asc', 'platinum-desc', 'sale-desc', 'ducats-desc']
 // What is held can be ranked tonight; what was never held is a hunt. The default order says so.
 const masterySortOptions: MasterySort[] = ['arsenal-first', 'name-asc', 'category-asc']
 
 type Order = (left: CollectionItem, right: CollectionItem) => number
 const byName: Order = (left, right) => left.name.localeCompare(right.name)
 const byCategory: Order = (left, right) => left.category.localeCompare(right.category) || byName(left, right)
-const collectionOrder: Record<Sort, Order> = {
+/** Sale value is the month's sales of the stack, the figure the Farm page ranks its sell rows by. */
+const collectionOrder = (priceFloor: number): Record<Sort, Order> => ({
   'name-asc': byName,
   'quantity-desc': (left, right) => right.quantity - left.quantity || byName(left, right),
   'category-asc': byCategory,
   'mastery-asc': (left, right) => masteryOrder(left) - masteryOrder(right) || byName(left, right),
   'platinum-desc': (left, right) => (right.platinum ?? -1) - (left.platinum ?? -1) || byName(left, right),
+  'sale-desc': (left, right) => (sellableValue(right, priceFloor) ?? -1) - (sellableValue(left, priceFloor) ?? -1) || byName(left, right),
   'ducats-desc': (left, right) => (right.ducats ?? -1) - (left.ducats ?? -1) || byName(left, right),
-}
+})
 const checklistOrder: Record<MasterySort, Order> = {
   'arsenal-first': (left, right) => Number(right.quantity > 0) - Number(left.quantity > 0) || byName(left, right),
   'name-asc': byName,
@@ -77,9 +80,12 @@ export function CollectionPage({ view, effectiveMode, filters, onFilters, pricin
         || (ownership === 'owned' && item.quantity > 0)
         || (ownership === 'mastered' && item.mastered)
         || (ownership === 'missing' && item.quantity === 0)
-        || (ownership === 'tradeable' && item.platinum !== undefined))
-      .toSorted(checklist ? checklistOrder[masterySort] : collectionOrder[sort])
-  }, [checklist, mastery.items, view.collection.items, search, category, ownership, sort, masterySort])
+        || (ownership === 'tradeable' && item.platinum !== undefined)
+        // Resources come by the thousand: every one of them would be a duplicate.
+        || (ownership === 'session' && (item.gained ?? 0) > 0)
+        || (ownership === 'duplicates' && item.quantity > 1 && item.category !== 'resource'))
+      .toSorted(checklist ? checklistOrder[masterySort] : collectionOrder(priceFloor)[sort])
+  }, [checklist, mastery.items, view.collection.items, search, category, ownership, sort, masterySort, priceFloor])
   const { current: currentPage, total: totalPages, visible: visibleItems, first: firstResult, last: lastResult } = pageWindow(filtered, filters.page)
   const sheet = useItemSheet(filtered)
   // Nothing on the checklist is sold from it: every row is either unheld or still to rank.
@@ -107,6 +113,9 @@ export function CollectionPage({ view, effectiveMode, filters, onFilters, pricin
   const progress = masteryProgress(mastery.totals)
   const inArsenal = mastery.items.filter(item => item.quantity > 0).length
   const clearFilters = () => update({ search: '', category: 'all', ownership: checklist ? 'toMaster' : 'all' })
+  const sessionStarted = view.collection.session_started
+  const sessionNote = ownership === 'session' && sessionStarted != null
+    && t.collection.sessionSince(new Intl.DateTimeFormat(t.locale, { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(sessionStarted * 1000))
 
   const collectionStats = <div className="stats">
     <Stat kind="items" value={view.collection.total_entries} label={snapshotOnly ? t.collection.savedEntries : t.collection.items}/>
@@ -224,7 +233,9 @@ export function CollectionPage({ view, effectiveMode, filters, onFilters, pricin
           </span>}
         </div>
       </div>
-      {filtered.length ? grid : <EmptyState icon="search" title={t.grid.noMatch} detail={t.grid.tryAnother} action={<button type="button" className="stamp" onClick={clearFilters}>{t.grid.clearFilters}</button>}/>}
+      {filtered.length ? grid
+        : ownership === 'session' && !sessionNote ? <EmptyState icon="collection" title={t.collection.noSession} detail={t.collection.noSessionDetail}/>
+          : <EmptyState icon="search" title={t.grid.noMatch} detail={t.grid.tryAnother} action={<button type="button" className="stamp" onClick={clearFilters}>{t.grid.clearFilters}</button>}/>}
     </>
   }
 
@@ -241,6 +252,7 @@ export function CollectionPage({ view, effectiveMode, filters, onFilters, pricin
       </div>
       {checklist ? checklistStats : collectionStats}
       {snapshotOnly && !checklist && <p className="page-note">{t.collection.snapshotNote}</p>}
+      {sessionNote && <p className="page-note">{sessionNote}</p>}
     </div>
     {body()}
     {sheet.item && <ItemSheet item={sheet.item} index={sheet.index} total={sheet.total} onStep={sheet.step} onClose={sheet.close} {...entry(sheet.item)}/>}

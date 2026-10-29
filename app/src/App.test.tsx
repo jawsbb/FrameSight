@@ -1524,6 +1524,58 @@ describe('MVP desktop interface', () => {
     expect(names).toEqual(['Lex Prime Receiver', 'Lith A1 Relic', 'Zenith Prime Receiver'])
   })
 
+  // Resources come by the thousand, so the 4 Argon Crystal are not a duplicate worth listing.
+  it('narrows to stacks of two or more, resources aside', async () => {
+    const user = userEvent.setup()
+    render(<App/>)
+    await openCollection()
+    await user.click(await screen.findByRole('button', { name: 'Duplicates' }))
+
+    const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
+    expect(names).toEqual(['Braton', 'Lith A1 Relic'])
+  })
+
+  // What the market takes of each stack in a month: 3 of the 7 Lith A1 at 20p beat 1 Lex at 19p.
+  it('sorts by sale value, the month of sales the stack would see', async () => {
+    const user = userEvent.setup()
+    render(<App/>)
+    await openCollection()
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Sort collection' }), 'Sale value')
+
+    const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
+    expect(names.slice(0, 3)).toEqual(['Lith A1 Relic', 'Lex Prime Receiver', 'Zenith Prime Receiver'])
+  })
+
+  it('narrows to what the game session added, and tags it on the card', async () => {
+    const gained: Record<string, number> = { 'lith-a1': 2, 'lex-prime-receiver': 1 }
+    backend.getView.mockResolvedValue({
+      ...view,
+      collection: {
+        ...view.collection,
+        session_started: 1_785_492_000,
+        items: view.collection.items.map(item => ({ ...item, gained: gained[item.id] })),
+      },
+    })
+    const user = userEvent.setup()
+    render(<App/>)
+    await openCollection()
+    expect(await screen.findByText('+2 this session')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'This session' }))
+
+    const names = screen.getAllByRole('article').map(article => article.getAttribute('aria-label'))
+    expect(names).toEqual(['Lex Prime Receiver', 'Lith A1 Relic'])
+    expect(screen.getByText(/^Gained since the game started/)).toBeInTheDocument()
+  })
+
+  it('says when no game session has been seen yet', async () => {
+    const user = userEvent.setup()
+    render(<App/>)
+    await openCollection()
+    await user.click(await screen.findByRole('button', { name: 'This session' }))
+
+    expect(screen.getByText('No game session yet')).toBeInTheDocument()
+  })
+
   // The market rate is the plain reading of what is owned; what the market would actually take is
   // the qualification on it, so it is under the figure at the size of one. The fixture caps in both
   // directions: the market takes all 1 Lex Prime Receiver at 19p, and 3 of the 7 Lith A1 at 20p, so

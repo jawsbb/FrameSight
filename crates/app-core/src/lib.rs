@@ -6,6 +6,7 @@ mod foundry;
 mod item_detail;
 mod market_board;
 mod relics;
+mod session_gains;
 
 pub use farm::{FarmDrop, FarmRow, FarmView, OpenRow, Pace, SellRow, Trend};
 pub use foundry::{
@@ -18,7 +19,7 @@ use std::sync::Arc;
 
 pub use item_detail::ItemDetailView;
 use item_detail::{builds_name, entry_image_name, item_detail, wfcd_image_url};
-use local_store::{SnapshotMeta, SqliteStore, StoreError};
+use local_store::{SessionBaseline, SnapshotInstant, SnapshotMeta, SqliteStore, StoreError};
 use serde::Serialize;
 use thiserror::Error;
 use warframe_acquisition::{
@@ -67,6 +68,9 @@ pub struct AppCore {
     reads_inventory: bool,
     /// WFCD's relic tables, for the Relics page.
     relics: Option<Arc<RelicRewardIndex>>,
+    /// What the open game session started from, held here because only a refresh that opens a
+    /// session changes it and every view reads it.
+    session: Option<SessionBaseline>,
 }
 
 /// A snapshot of what mastery marks may say, taken once per overlay publish.
@@ -150,6 +154,7 @@ impl AppCore {
 
     fn from_store(store: SqliteStore) -> Result<Self, AppError> {
         Ok(Self {
+            session: store.session_baseline()?,
             store,
             reward: RewardAdvisor::advise(Vec::new()),
             health: HealthView::phase_one()?,
@@ -343,6 +348,13 @@ impl AppCore {
         let collection = self.store.load_collection()?;
         let snapshot = self.store.latest_snapshot_meta()?;
         let mastery = self.mastery_checklist(&collection, snapshot.is_some())?;
+        let gains = self.session.as_ref().map(|session| {
+            let held = collection
+                .entries()
+                .map(|entry| (entry.item.id.as_str(), entry.quantity))
+                .collect::<Vec<_>>();
+            session_gains::session_gains(&held, &session.held)
+        });
         let mut items = collection
             .entries()
             .map(|entry| {
@@ -412,6 +424,11 @@ impl AppCore {
                         .and_then(|(name, prices)| prices.monthly_trades(name)),
                 )
                 .with_ducats(self.ducats_for(entry))
+                .with_gained(
+                    gains
+                        .as_ref()
+                        .and_then(|gains| gains.get(entry.item.id.as_str()).copied()),
+                )
             })
             .collect::<Vec<_>>();
         items.sort_by(|left, right| left.id.cmp(&right.id));
@@ -423,6 +440,7 @@ impl AppCore {
                 items,
                 total_entries,
                 snapshot,
+                session_started: self.session.as_ref().map(|session| session.started_at),
                 pricing: self.pricing,
             },
             mastery,
@@ -632,7 +650,12 @@ impl AppCore {
     ) -> Result<AppView, AppError> {
         match attempt {
             Ok((result, meta)) => {
+                let meta = match result.process() {
+                    Some(process) => meta.with_session(process.session_key()),
+                    None => meta,
+                };
                 self.store.replace_collection(result.snapshot(), &meta)?;
+                self.session = self.store.session_baseline()?;
                 // The inventory did not change when the request failed, so a failed refresh
                 // leaves the previous facts untouched.
                 self.mastery_facts = Some(result.mastery_facts().clone());
@@ -941,6 +964,8 @@ pub struct CollectionView {
     items: Vec<CollectionItemView>,
     total_entries: usize,
     snapshot: Option<SnapshotMeta>,
+    /// When the open game session started, which `gained` on each item counts from.
+    session_started: Option<SnapshotInstant>,
     /// A live pricing pass in flight: the player asked about the page in front of them.
     pricing: Option<PricingProgress>,
 }
@@ -1045,6 +1070,10 @@ pub struct CollectionItemView {
     /// which for a holding means the same as none.
     #[serde(skip_serializing_if = "Option::is_none")]
     monthly_trades: Option<u32>,
+    /// Copies gained since the open game session started. Absent when none were, or no session
+    /// is open.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    gained: Option<u32>,
 }
 
 impl CollectionItemView {
@@ -1111,6 +1140,11 @@ impl CollectionItemView {
         self.monthly_trades
     }
 
+    /// Copies gained since the open game session started.
+    pub fn gained(&self) -> Option<u32> {
+        self.gained
+    }
+
     fn priced(
         entry: &warframe_domain::InventoryEntry,
         platinum: Option<u32>,
@@ -1123,6 +1157,11 @@ impl CollectionItemView {
             priceable,
             ..Self::from(entry)
         }
+    }
+
+    fn with_gained(mut self, gained: Option<u32>) -> Self {
+        self.gained = gained;
+        self
     }
 
     fn with_price_ceiling(mut self, ceiling: Option<u32>) -> Self {
@@ -1158,6 +1197,7 @@ impl From<&warframe_domain::InventoryEntry> for CollectionItemView {
             live: false,
             priceable: false,
             monthly_trades: None,
+            gained: None,
         }
     }
 }

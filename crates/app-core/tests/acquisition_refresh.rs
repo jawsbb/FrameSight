@@ -2,6 +2,7 @@ use app_core::{AcquisitionPort, AppCore, HealthState, InventoryRefreshOutcome};
 use local_store::{SnapshotInstant, SnapshotMeta};
 use warframe_acquisition::{
     AcquisitionError, AcquisitionFailure, AcquisitionHealth, AcquisitionResult, CatalogLoadSource,
+    GameProcess,
 };
 use warframe_domain::{CatalogItem, Category, InventoryEntry, InventorySnapshot, ItemId};
 
@@ -221,4 +222,55 @@ fn catalog_without_a_load_keeps_the_prior_fetch_stamp() {
         Some("100"),
         "a refresh with no catalog keeps the last fetched stamp"
     );
+}
+
+/// A game run's gains are what its snapshots hold beyond what the previous run left, so they
+/// survive the run's own later snapshots and give way when the next run starts.
+#[test]
+fn a_game_session_counts_what_it_added_since_the_last_one() {
+    let mut core = AppCore::in_memory().unwrap();
+    let refresh = |core: &mut AppCore, pid: u32, at: i64, forma: u32| {
+        let snapshot = InventorySnapshot::coherent(vec![
+            InventoryEntry::new(
+                CatalogItem::new(ItemId::new("forma").unwrap(), "Forma", Category::Resource)
+                    .unwrap(),
+                forma,
+            ),
+            InventoryEntry::new(
+                CatalogItem::new(ItemId::new("braton").unwrap(), "Braton", Category::Weapon)
+                    .unwrap(),
+                1,
+            ),
+        ])
+        .unwrap();
+        let result = AcquisitionResult::new(snapshot, AcquisitionHealth::successful())
+            .unwrap()
+            .with_process(GameProcess::new(pid));
+        let meta = SnapshotMeta::new(
+            SnapshotInstant::from_unix_seconds(at).unwrap(),
+            "build".into(),
+            "warframe-memory".into(),
+        )
+        .unwrap();
+        core.finish_inventory_refresh(Ok((result, meta)), None)
+            .unwrap()
+    };
+    let gained = |view: &app_core::AppView, id: &str| {
+        view.collection()
+            .items()
+            .iter()
+            .find(|item| item.id() == id)
+            .and_then(|item| item.gained())
+    };
+
+    refresh(&mut core, 41, 1_800_000_000, 2);
+    let view = refresh(&mut core, 42, 1_800_090_000, 4);
+    assert_eq!(gained(&view, "forma"), Some(2));
+    assert_eq!(gained(&view, "braton"), None);
+
+    let view = refresh(&mut core, 42, 1_800_090_600, 5);
+    assert_eq!(gained(&view, "forma"), Some(3));
+
+    let view = refresh(&mut core, 43, 1_800_200_000, 5);
+    assert_eq!(gained(&view, "forma"), None);
 }

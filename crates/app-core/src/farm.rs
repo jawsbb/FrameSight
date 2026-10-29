@@ -381,7 +381,7 @@ impl AppCore {
         // `#rank` for a ranked copy, as `ItemId::catalog_path` reads it.
         let mut rows: HashMap<&str, (&str, u32)> = HashMap::new();
         for item in held.clone() {
-            let path = item.id().split('#').next().unwrap_or_default();
+            let path = warframe_domain::catalog_path(item.id());
             let best = rows.entry(path).or_insert((item.id(), 0));
             if item.quantity() > best.1 {
                 *best = (item.id(), item.quantity());

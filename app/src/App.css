@@ -339,6 +339,7 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .tag.absent { border: 1px dashed var(--line-strong); background: none; color: var(--text-faint); }
 .tag.mastered { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 .tag.rank.maxed, .tag.listed { background: var(--fill-strong); color: var(--text); }
+.tag.gained { background: var(--accent-soft); color: var(--accent-text); }
 
 .card-values { display: flex; flex-wrap: wrap; align-items: center; align-self: end; gap: 2px 12px; min-width: 0; }
 .value { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }

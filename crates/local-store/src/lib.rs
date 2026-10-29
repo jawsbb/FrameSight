@@ -3,14 +3,14 @@
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rusqlite::{Connection, params, types::Value};
+use rusqlite::{Connection, OptionalExtension, params, types::Value};
 use serde::Serialize;
 use thiserror::Error;
 use warframe_domain::{
     CatalogItem, Category, Collection, DomainError, InventoryEntry, InventorySnapshot, ItemId,
 };
 
-const SCHEMA_VERSION: i64 = 4;
+const SCHEMA_VERSION: i64 = 5;
 const SCHEMA_SQL: &str = include_str!("schema.sql");
 
 /// One moment shared by persistence, market ingest, reconciliation, and the frontend adapter.
@@ -179,6 +179,10 @@ pub struct SnapshotMeta {
     observed_at: SnapshotInstant,
     game_build: String,
     source: String,
+    /// The game process the snapshot was read from, which opens a game session; not persisted
+    /// with the audit row.
+    #[serde(skip)]
+    session: Option<String>,
 }
 
 impl SnapshotMeta {
@@ -197,7 +201,15 @@ impl SnapshotMeta {
             observed_at,
             game_build,
             source,
+            session: None,
         })
+    }
+
+    /// Names the game process the snapshot was read from: replacing the collection with it opens
+    /// that process's session when it is not the one already open.
+    pub fn with_session(mut self, process: impl Into<String>) -> Self {
+        self.session = Some(process.into());
+        self
     }
 
     pub fn fake(build: impl Into<String>) -> Result<Self, StoreError> {
@@ -247,12 +259,18 @@ impl SqliteStore {
                 migrate_v1_to_v2(&mut connection)?;
                 migrate_v2_to_v3(&mut connection)?;
                 migrate_v3_to_v4(&mut connection)?;
+                migrate_v4_to_v5(&mut connection)?;
             }
             2 => {
                 migrate_v2_to_v3(&mut connection)?;
                 migrate_v3_to_v4(&mut connection)?;
+                migrate_v4_to_v5(&mut connection)?;
             }
-            3 => migrate_v3_to_v4(&mut connection)?,
+            3 => {
+                migrate_v3_to_v4(&mut connection)?;
+                migrate_v4_to_v5(&mut connection)?;
+            }
+            4 => migrate_v4_to_v5(&mut connection)?,
             SCHEMA_VERSION => validate_schema(&connection)?,
             other => return Err(StoreError::UnsupportedSchemaVersion(other)),
         }
@@ -277,6 +295,9 @@ impl SqliteStore {
         F: FnOnce() -> Result<(), StoreError>,
     {
         let transaction = self.connection.transaction()?;
+        if let Some(process) = &meta.session {
+            open_session(&transaction, process, meta.observed_at)?;
+        }
         transaction.execute("DELETE FROM inventory", [])?;
         after_delete()?;
         {
@@ -457,6 +478,83 @@ impl SqliteStore {
             .execute("DELETE FROM market_credential WHERE id = 1", [])?;
         Ok(())
     }
+
+    /// The open session's start and the copies of each row held then, if a session is open.
+    pub fn session_baseline(&self) -> Result<Option<SessionBaseline>, StoreError> {
+        let started_at: Option<String> = self
+            .connection
+            .query_row(
+                "SELECT started_at FROM game_session WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(started_at) = started_at else {
+            return Ok(None);
+        };
+        let mut statement = self
+            .connection
+            .prepare("SELECT item_id, quantity FROM session_baseline")?;
+        let held = statement
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })?
+            .map(|row| {
+                let (item_id, quantity) = row?;
+                let quantity = u32::try_from(quantity)
+                    .map_err(|_| corrupt_row(&item_id, "quantity", "outside the u32 range"))?;
+                Ok((item_id, quantity))
+            })
+            .collect::<Result<_, StoreError>>()?;
+        Ok(Some(SessionBaseline {
+            started_at: SnapshotInstant::parse_persisted(&started_at)?,
+            held,
+        }))
+    }
+}
+
+/// What the open game session started from.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SessionBaseline {
+    pub started_at: SnapshotInstant,
+    /// Copies per inventory row id when the session opened.
+    pub held: std::collections::HashMap<String, u32>,
+}
+
+/// Opens a session for the game `process` when it is not the one already open: the holding still
+/// stored, which the previous session left, becomes what this one's gains are measured from. Runs
+/// before the snapshot replaces that holding. With nothing stored yet there is nothing to measure
+/// from, so no session opens and the process's next snapshot tries again.
+fn open_session(
+    connection: &Connection,
+    process: &str,
+    started_at: SnapshotInstant,
+) -> Result<(), StoreError> {
+    let current: Option<String> = connection
+        .query_row("SELECT process FROM game_session WHERE id = 1", [], |row| {
+            row.get(0)
+        })
+        .optional()?;
+    if current.as_deref() == Some(process) {
+        return Ok(());
+    }
+    let held: bool = connection.query_row("SELECT EXISTS(SELECT 1 FROM inventory)", [], |row| {
+        row.get(0)
+    })?;
+    if !held {
+        return Ok(());
+    }
+    connection.execute("DELETE FROM session_baseline", [])?;
+    connection.execute(
+        "INSERT INTO session_baseline (item_id, quantity) SELECT item_id, quantity FROM inventory",
+        [],
+    )?;
+    connection.execute(
+        "INSERT INTO game_session (id, process, started_at) VALUES (1, ?1, ?2)
+         ON CONFLICT(id) DO UPDATE SET process = excluded.process, started_at = excluded.started_at",
+        params![process, started_at.unix_seconds().to_string()],
+    )?;
+    Ok(())
 }
 
 fn initialize_schema(connection: &mut Connection) -> Result<(), StoreError> {
@@ -523,6 +621,21 @@ fn migrate_v3_to_v4(connection: &mut Connection) -> Result<(), StoreError> {
             token TEXT NOT NULL CHECK (length(trim(token)) > 0)
         );",
     )?;
+    transaction.pragma_update(None, "user_version", 4)?;
+    transaction.commit()?;
+    Ok(())
+}
+
+/// Adds the game session and the holding it started from, which is what "gained this session"
+/// is measured against.
+///
+/// Empty for every existing database: no session has been seen yet, so nothing reads as gained
+/// until the next game process starts one.
+fn migrate_v4_to_v5(connection: &mut Connection) -> Result<(), StoreError> {
+    let transaction = connection.transaction()?;
+    for table in ["game_session", "session_baseline"] {
+        transaction.execute_batch(canonical_table_definition(table)?)?;
+    }
     transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     validate_schema(&transaction)?;
     transaction.commit()?;
@@ -566,6 +679,8 @@ fn validate_schema(connection: &Connection) -> Result<(), StoreError> {
     validate_canonical_table(connection, "inventory")?;
     validate_canonical_table(connection, "snapshot_audit")?;
     validate_canonical_table(connection, "market_credential")?;
+    validate_canonical_table(connection, "game_session")?;
+    validate_canonical_table(connection, "session_baseline")?;
     validate_constraints(connection)
 }
 

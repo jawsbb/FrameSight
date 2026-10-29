@@ -354,6 +354,7 @@ fn serialized_view_has_stable_wire_values_and_consistent_derived_fields() {
                     "game_build": "fake-build",
                     "source": "test-fixture"
                 },
+                "session_started": null,
                 "pricing": null
             },
             "mastery": {"available": false, "items": [], "totals": []},

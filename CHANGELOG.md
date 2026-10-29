@@ -16,6 +16,12 @@ see the difference.
 
 ### Added
 
+- **Collection shows what a game session added, the duplicates, and what a stack would sell for.**
+  The first inventory sync of each game run keeps the holding the last run left; from then on a
+  card carries "+N this session" for each copy gained since, and the This session tab lists them.
+  Ranking a mod up moves a copy between rows without the account holding one more, so it is not a
+  gain. The Duplicates tab lists every stack of two or more, resources aside, and the Sale value
+  sort ranks stacks by the month of sales the market would take of them, as Farm & sales does.
 - **The Dashboard lists the bounty rotations running now, and the endless missions' rotations.**
   For Cetus, Orb Vallis and the Cambion Drift, each bounty tier (and each Isolation Vault) shows
   its level range and the table it pays from, A, B or C, read off the job in the game's world
