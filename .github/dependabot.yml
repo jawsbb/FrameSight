@@ -1,0 +1,11 @@
+# Workflows pin every action to a commit; this keeps those pins moving with upstream releases.
+# Cargo and pnpm dependencies get security updates only, from the repository settings.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
