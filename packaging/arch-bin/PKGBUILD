@@ -1,6 +1,6 @@
 # Maintainer: jawsbb <https://github.com/jawsbb/FrameSight/issues>
 pkgname=framesight-bin
-pkgver=0.13.1
+pkgver=0.14.0
 pkgrel=1
 pkgdesc='Local-first Linux Warframe collection and relic companion'
 arch=('x86_64')

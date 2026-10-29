@@ -112,7 +112,12 @@ confirm, and lowering the level retires everything it no longer permits.
 
 ## ◈ Deploy
 
-FrameSight has no packaged release of its own yet. Build it from source:
+Download the [latest release](https://github.com/jawsbb/FrameSight/releases/latest): the
+Windows installer, the AppImage, or the `.deb` and `.rpm` packages. The app offers its own
+updates. On Linux the overlays also need `tesseract` with its English data; the Windows
+installer carries its own. Per-system details are in the [install guide](docs/install.md).
+
+To build from source instead:
 
 ```bash
 corepack enable
@@ -120,13 +125,12 @@ cd app && pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
-You need Rust (pinned in [`rust-toolchain.toml`](rust-toolchain.toml)), Node with pnpm, the
-Tauri 2 system libraries, and `tesseract` with English data for the overlays. Per-system
-details are in the [install guide](docs/install.md) and [`packaging/`](packaging/README.md).
+You need Rust (pinned in [`rust-toolchain.toml`](rust-toolchain.toml)), Node with pnpm and the
+Tauri 2 system libraries; see [`packaging/`](packaging/README.md).
 
 - **Windows:** play Warframe in Borderless mode; exclusive fullscreen hides the overlay.
 - **Linux:** Warframe runs through Wine or Proton. Wine virtual-desktop mode also needs `xwininfo`.
-- **Language:** the screen readers match English item names, so a non-English client is not read.
+- **Language:** the screen readers read a game running in English or French; other languages are not read.
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
