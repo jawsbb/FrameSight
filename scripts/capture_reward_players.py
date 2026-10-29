@@ -219,7 +219,7 @@ def main() -> None:
         mapping_slices = focused_mapping_slices(memory, id_hits, reward_hits)
     finally:
         os.close(memory)
-    destination = Path(f"/tmp/tennoscope-players-{int(time.time() * 1000)}.json")
+    destination = Path(f"/tmp/framesight-players-{int(time.time() * 1000)}.json")
     destination.write_text(
         json.dumps(
             {

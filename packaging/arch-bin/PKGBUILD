@@ -1,13 +1,13 @@
-# Maintainer: Deftera186 <https://github.com/Deftera186/tennoscope/issues>
-pkgname=tennoscope-bin
+# Maintainer: jawsbb <https://github.com/jawsbb/FrameSight/issues>
+pkgname=framesight-bin
 pkgver=0.13.1
 pkgrel=1
 pkgdesc='Local-first Linux Warframe collection and relic companion'
 arch=('x86_64')
-url='https://github.com/Deftera186/tennoscope'
+url='https://github.com/jawsbb/FrameSight'
 license=('GPL-3.0-only')
-provides=('tennoscope')
-conflicts=('tennoscope')
+provides=('framesight')
+conflicts=('framesight')
 # gtk3 and webkit2gtk-4.1 drag most of the rest in transitively, but the binary links these
 # directly (namcap flags them as "implicitly satisfied"), so name them rather than rely on
 # another package's dependency list not changing. libpipewire/libxcb/mesa/wayland are the
@@ -23,16 +23,16 @@ optdepends=(
   'xorg-xwininfo: find Warframe inside a Wine virtual desktop'
 )
 # Binary repack of the release .deb: installs in seconds with no toolchain, for users who
-# just want to run it. Mirrors games-util/tennoscope-bin on Gentoo.
-source=("TennoScope_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/TennoScope_${pkgver}_amd64.deb")
+# just want to run it. Mirrors games-util/framesight-bin on Gentoo.
+source=("FrameSight_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/FrameSight_${pkgver}_amd64.deb")
 sha256sums=('fe593642f2ca6e4f0c034a5b8e075183d6ec47f96d3c227df936af5c8d46db3d')
 
 package() {
   # No makedepends: bsdtar ships with pacman (libarchive), so unpacking the deb data
   # archive needs no extra tool.
-  bsdtar -O -xf "${srcdir}/TennoScope_${pkgver}_amd64.deb" 'data.tar.*' | bsdtar -x -C "${pkgdir}"
-  # The deb ships its license under /usr/lib/TennoScope; point the Arch license path at it
+  bsdtar -O -xf "${srcdir}/FrameSight_${pkgver}_amd64.deb" 'data.tar.*' | bsdtar -x -C "${pkgdir}"
+  # The deb ships its license under /usr/lib/FrameSight; point the Arch license path at it
   # rather than installing a second copy.
   install -d "${pkgdir}/usr/share/licenses/${pkgname}"
-  ln -s '/usr/lib/TennoScope/LICENSE' "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+  ln -s '/usr/lib/FrameSight/LICENSE' "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }

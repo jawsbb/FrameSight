@@ -828,9 +828,9 @@ pub const MAX_DUMP_BYTES: usize = 32 * 1024 * 1024;
 /// missed publication, and a bound so a dead host costs six requests rather than an unbounded walk.
 pub const DUMP_LOOKBACK_DAYS: u64 = 5;
 pub(crate) const USER_AGENT: &str = concat!(
-    "TennoScope/",
+    "FrameSight/",
     env!("CARGO_PKG_VERSION"),
-    " (+https://github.com/Deftera186/tennoscope)"
+    " (+https://github.com/jawsbb/FrameSight)"
 );
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

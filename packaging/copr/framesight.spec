@@ -1,4 +1,4 @@
-Name:           tennoscope
+Name:           framesight
 # Tracks the newest stable tag, never a prerelease. Source0 fetches that tag's
 # tarball, so an untagged version has nothing to build, and rpm.vercmp sorts
 # v0.12.1-rc1 above v0.12.0, which would have dnf serving a release candidate
@@ -7,7 +7,7 @@ Version:        0.13.1
 Release:        1%{?dist}
 Summary:        Local-first Warframe collection and relic companion
 License:        GPL-3.0-only
-URL:            https://github.com/Deftera186/tennoscope
+URL:            https://github.com/jawsbb/FrameSight
 # No -debuginfo: the vendored Rust sources trip brp-mangle-shebangs (inner
 # attributes like #![no_std] read as shebangs), and a leaf GUI gains nothing
 # from a debug package worth the size.
@@ -15,8 +15,8 @@ URL:            https://github.com/Deftera186/tennoscope
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
 # Vendored dependencies (COPR chroots have no network): cargo vendor output and
 # the installed node_modules, regenerated per release (see README).
-Source1:        tennoscope-vendor-%{version}.tar.zst
-Source2:        tennoscope-node-modules-%{version}.tar.zst
+Source1:        framesight-vendor-%{version}.tar.zst
+Source2:        framesight-node-modules-%{version}.tar.zst
 BuildRequires:  cargo
 BuildRequires:  clang
 BuildRequires:  gcc
@@ -48,7 +48,7 @@ Recommends:     tesseract
 Recommends:     xwininfo
 
 %description
-TennoScope reads a running Warframe process without modifying it and keeps a
+FrameSight reads a running Warframe process without modifying it and keeps a
 local copy of your collection. When a relic cracks it recognises the rewards
 on screen and prices them in platinum and ducats from warframe.market,
 counting only sellers who are online. No account, no telemetry, no Overwolf.
@@ -76,13 +76,13 @@ export CARGO_NET_OFFLINE=true
 pnpm --dir app build
 # tauri/custom-protocol is mandatory: without it generate_context!() bakes in
 # the dev-server URL and the release binary opens a connection-refused WebView.
-cargo build --release --locked --offline -p tennoscope --features tauri/custom-protocol
+cargo build --release --locked --offline -p framesight --features tauri/custom-protocol
 
 %install
 cd "%{_builddir}/%{name}-%{version}"
-install -Dm755 %{_builddir}/target/release/tennoscope %{buildroot}%{_bindir}/tennoscope
-install -Dm644 packaging/tennoscope.desktop %{buildroot}%{_datadir}/applications/tennoscope.desktop
-install -Dm644 app/src-tauri/icons/128x128.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/tennoscope.png
+install -Dm755 %{_builddir}/target/release/framesight %{buildroot}%{_bindir}/framesight
+install -Dm644 packaging/framesight.desktop %{buildroot}%{_datadir}/applications/framesight.desktop
+install -Dm644 app/src-tauri/icons/128x128.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/framesight.png
 install -Dm644 LICENSE %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 install -Dm644 THIRD_PARTY_NOTICES.md %{buildroot}%{_datadir}/doc/%{name}/THIRD_PARTY_NOTICES.md
 %check
@@ -93,18 +93,18 @@ RUSTFLAGS="${RUSTFLAGS:-} -C debug-assertions=on" \
   cargo test --workspace --locked --offline
 pnpm --dir app check
 %files
-%{_bindir}/tennoscope
-%{_datadir}/applications/tennoscope.desktop
-%{_datadir}/icons/hicolor/128x128/apps/tennoscope.png
+%{_bindir}/framesight
+%{_datadir}/applications/framesight.desktop
+%{_datadir}/icons/hicolor/128x128/apps/framesight.png
 %{_datadir}/licenses/%{name}/LICENSE
 %{_datadir}/doc/%{name}/THIRD_PARTY_NOTICES.md
 
 %changelog
-* Sun Oct 11 2026 Deftera186 <https://github.com/Deftera186/tennoscope/issues> - 0.13.1-1
+* Sun Oct 11 2026 Deftera186 <https://github.com/jawsbb/FrameSight/issues> - 0.13.1-1
 - Track the newest stable tag, v0.13.1
-* Fri Oct 02 2026 Deftera186 <https://github.com/Deftera186/tennoscope/issues> - 0.13.0-1
+* Fri Oct 02 2026 Deftera186 <https://github.com/jawsbb/FrameSight/issues> - 0.13.0-1
 - Track the newest stable tag, v0.13.0
-* Wed Sep 30 2026 Deftera186 <https://github.com/Deftera186/tennoscope/issues> - 0.12.0-1
+* Wed Sep 30 2026 Deftera186 <https://github.com/jawsbb/FrameSight/issues> - 0.12.0-1
 - Track the newest stable tag, v0.12.0
-* Tue Sep 22 2026 Deftera186 <https://github.com/Deftera186/tennoscope/issues> - 0.11.0-1
+* Tue Sep 22 2026 Deftera186 <https://github.com/jawsbb/FrameSight/issues> - 0.11.0-1
 - Initial COPR recipe

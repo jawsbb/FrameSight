@@ -920,7 +920,7 @@ fn trace_rejected_response_record(pid: u32, identity: &str, address: u64, bytes:
     let suffix = identity
         .get(identity.len().saturating_sub(6)..)
         .unwrap_or(identity);
-    let path = std::env::temp_dir().join(format!("tennoscope-rejected-{pid}-{suffix}.bin"));
+    let path = std::env::temp_dir().join(format!("framesight-rejected-{pid}-{suffix}.bin"));
     let Ok(mut output) = OpenOptions::new().create(true).append(true).open(path) else {
         return;
     };

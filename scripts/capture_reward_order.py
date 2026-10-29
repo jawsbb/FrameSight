@@ -392,7 +392,7 @@ def main() -> None:
     finally:
         os.close(memory)
     timestamp = int(time.time() * 1000)
-    destination = Path(f"/tmp/tennoscope-order-{timestamp}.json")
+    destination = Path(f"/tmp/framesight-order-{timestamp}.json")
     destination.write_text(
         json.dumps(
             {

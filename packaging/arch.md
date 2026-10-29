@@ -4,22 +4,22 @@ Two recipes for any Arch-based distribution (Arch, Manjaro, EndeavourOS, CachyOS
 since both only need `pacman` and `makepkg`. No AUR package or binary repository is
 published.
 
-[`arch-bin/PKGBUILD`](arch-bin/PKGBUILD) (`tennoscope-bin`) repacks the release
+[`arch-bin/PKGBUILD`](arch-bin/PKGBUILD) (`framesight-bin`) repacks the release
 `.deb` and installs in seconds with no toolchain. This is the recommended route
 for anyone who just wants to run it:
 
 ```bash
-curl -O https://raw.githubusercontent.com/Deftera186/tennoscope/main/packaging/arch-bin/PKGBUILD
+curl -O https://raw.githubusercontent.com/jawsbb/FrameSight/main/packaging/arch-bin/PKGBUILD
 makepkg -si
 ```
 
-[`arch/PKGBUILD`](arch/PKGBUILD) (`tennoscope`) builds the native package from
+[`arch/PKGBUILD`](arch/PKGBUILD) (`framesight`) builds the native package from
 the release tarball instead. It needs the full toolchain and compiles the whole
 Rust workspace, so it takes a while:
 
 ```bash
 sudo pacman -S --needed base-devel
-curl -O https://raw.githubusercontent.com/Deftera186/tennoscope/main/packaging/arch/PKGBUILD
+curl -O https://raw.githubusercontent.com/jawsbb/FrameSight/main/packaging/arch/PKGBUILD
 makepkg -si
 ```
 
@@ -35,7 +35,7 @@ you already have. The `-bin` recipe has no build-time dependencies at all.
 
 ## AUR helpers
 
-`yay -S tennoscope` and `paru -S tennoscope` cannot work: helpers install *from* the AUR, and
+`yay -S framesight` and `paru -S framesight` cannot work: helpers install *from* the AUR, and
 nothing is published there. Both can drive a local `PKGBUILD` instead, with `-B` pointed at the
 directory holding it:
 
@@ -64,14 +64,14 @@ it, and its `sha256sums` is that tarball's digest. Repackaging a different commi
 pointing `source` at that commit and replacing the digest with a fresh one.
 
 The source recipe builds the locked Rust workspace and frontend, runs both test suites, and installs
-`tennoscope`, its desktop entry, icon, GPLv3 license and third-party notices. Dependency resolution
+`framesight`, its desktop entry, icon, GPLv3 license and third-party notices. Dependency resolution
 needs network access, so `makepkg` will not work in an offline chroot without vendored sources.
 
-The `-bin` recipe's `source` points at `TennoScope_${pkgver}_amd64.deb` on the GitHub
+The `-bin` recipe's `source` points at `FrameSight_${pkgver}_amd64.deb` on the GitHub
 release instead, and its `sha256sums` is that `.deb`'s digest, re-pinned the same way and
 only once the release has attached it. There is no `build()` or `check()`: `package()`
 unpacks the deb data archive with `bsdtar`, which ships with `pacman`, and links the Arch
-license path at the license the `.deb` already carries under `/usr/lib/TennoScope`.
+license path at the license the `.deb` already carries under `/usr/lib/FrameSight`.
 
 The relic overlay's OCR toolchain is in `optdepends`, not `depends`, because the collection
 browser runs without it. `xorg-xwininfo` sits there for the same reason: only Wine's

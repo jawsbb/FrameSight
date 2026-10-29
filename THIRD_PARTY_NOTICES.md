@@ -1,6 +1,6 @@
 # Third-party notices and attribution
 
-TennoScope is licensed under GPL-3.0-only. This file identifies external data and prior art; it does not change the project's license.
+FrameSight is licensed under GPL-3.0-only. This file identifies external data and prior art; it does not change the project's license.
 
 ## WFCD Warframe Items
 
@@ -35,7 +35,7 @@ The Linux and Windows acquisition implementations were written for this project 
 
 - [Sikewyrm/FrameForge](https://github.com/Sikewyrm/FrameForge), GPLv3, demonstrated read-only memory scanning, inventory authorization patterns, strict account-snapshot parsing, and a compatible fallback design.
 - [Sainan/warframe-api-helper](https://github.com/Sainan/warframe-api-helper) demonstrated the cross-platform authorization/API technique. Its MIT-plus-Commons-Clause terms are not treated as GPL-compatible; this project did not copy its source.
-- [WFCD/WFInfo](https://github.com/WFCD/WFInfo) and [soramanew/wfinfo-linux](https://github.com/soramanew/wfinfo-linux) informed research into `EE.log` reward-screen triggers and screenshot/OCR architecture. TennoScope's implementation is independent Rust code: screen capture and the preprocessing pipeline are in-process, Tesseract supplies OCR, and the X11 path shells out to `xwininfo` only to find a game nested inside a Wine virtual desktop.
+- [WFCD/WFInfo](https://github.com/WFCD/WFInfo) and [soramanew/wfinfo-linux](https://github.com/soramanew/wfinfo-linux) informed research into `EE.log` reward-screen triggers and screenshot/OCR architecture. FrameSight's implementation is independent Rust code: screen capture and the preprocessing pipeline are in-process, Tesseract supplies OCR, and the X11 path shells out to `xwininfo` only to find a game nested inside a Wine virtual desktop.
 - AlecaFrame's readable distribution and public documentation informed behavioral comparison only. AlecaFrame is not open-source software, and its code is not included here.
 
 The detailed source review and pinned references are recorded in [`docs/research/warframe-acquisition-existing-implementations.md`](docs/research/warframe-acquisition-existing-implementations.md).

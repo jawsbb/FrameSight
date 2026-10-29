@@ -97,7 +97,7 @@ pub fn pick_stream(streams: &[PortalStream], rect: WindowRect) -> Option<&Portal
 fn token_path() -> Option<PathBuf> {
     Some(
         dirs_next_config()?
-            .join("tennoscope")
+            .join("framesight")
             .join("screencast.token"),
     )
 }
@@ -203,7 +203,7 @@ impl Drop for PortalSession {
         // `Builder::spawn` rather than `thread::spawn`, because the latter panics when a thread
         // cannot be created and a panic here would abort.
         if let Err(error) = std::thread::Builder::new()
-            .name("tennoscope-cast-close".to_owned())
+            .name("framesight-cast-close".to_owned())
             .spawn(move || close_blocking(session))
         {
             log::warn!(
@@ -255,7 +255,7 @@ fn portal_runtime() -> Result<&'static tokio::runtime::Runtime, &'static str> {
     static RUNTIME: LazyLock<Result<tokio::runtime::Runtime, &'static str>> = LazyLock::new(|| {
         tokio::runtime::Builder::new_multi_thread()
             .worker_threads(1)
-            .thread_name("tennoscope-portal")
+            .thread_name("framesight-portal")
             .enable_all()
             .build()
             .map_err(|_| "could not start the portal runtime")
@@ -613,7 +613,7 @@ fn worker_sender() -> Result<&'static mpsc::Sender<WorkerRequest>, &'static str>
         LazyLock::new(|| {
             let (sender, receiver) = mpsc::channel();
             std::thread::Builder::new()
-                .name("tennoscope-capture-portal".to_owned())
+                .name("framesight-capture-portal".to_owned())
                 .spawn(move || run_worker(receiver))
                 .map(|_| sender)
                 .map_err(|_| "could not start the screen capture worker")

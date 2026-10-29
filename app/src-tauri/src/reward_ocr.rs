@@ -137,7 +137,7 @@ static SCRATCH: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new
 fn scratch_file(kind: &str, extension: &str) -> PathBuf {
     let ticket = SCRATCH.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     std::env::temp_dir().join(format!(
-        "tennoscope-{kind}-{}-{ticket}.{extension}",
+        "framesight-{kind}-{}-{ticket}.{extension}",
         std::process::id()
     ))
 }
@@ -1114,9 +1114,9 @@ mod tests {
     fn verbatim_tessdata_dir_is_unprefixed_for_tesseract() {
         assert_eq!(
             super::tessdata_dir_arg(std::path::Path::new(
-                r"\\?\C:\Users\alice\AppData\Local\TennoScope\tesseract"
+                r"\\?\C:\Users\alice\AppData\Local\FrameSight\tesseract"
             )),
-            std::path::PathBuf::from(r"C:\Users\alice\AppData\Local\TennoScope\tesseract"),
+            std::path::PathBuf::from(r"C:\Users\alice\AppData\Local\FrameSight\tesseract"),
         );
         assert_eq!(
             super::tessdata_dir_arg(std::path::Path::new(r"\\?\UNC\server\share\tesseract")),

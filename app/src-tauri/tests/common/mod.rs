@@ -15,9 +15,9 @@ use std::sync::Mutex;
 pub fn isolate_debug_log() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
-        let path = std::env::var_os("TENNOSCOPE_DEBUG_LOG")
+        let path = std::env::var_os("FRAMESIGHT_DEBUG_LOG")
             .map(PathBuf::from)
-            .unwrap_or_else(|| std::env::temp_dir().join("tennoscope-test.log"));
+            .unwrap_or_else(|| std::env::temp_dir().join("framesight-test.log"));
         let file = Mutex::new(
             OpenOptions::new()
                 .create(true)

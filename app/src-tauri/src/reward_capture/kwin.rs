@@ -50,7 +50,7 @@ const BYTES_PER_PIXEL: usize = 4;
 
 pub const ERR_UNAVAILABLE: &str = "KWin's screenshot service is not available on this desktop";
 const ERR_TOO_OLD: &str =
-    "KWin's screenshot service does not report the image information TennoScope needs";
+    "KWin's screenshot service does not report the image information FrameSight needs";
 const ERR_TIMEOUT: &str = "KWin took too long to capture the screen";
 pub const ERR_RESULT_TYPE: &str = "KWin returned an unsupported screenshot result type";
 pub const ERR_REPLY_FIELDS: &str = "KWin returned incomplete screenshot metadata";
@@ -373,7 +373,7 @@ const MAX_FRAME_BYTES: u64 = 512 * 1024 * 1024;
 
 pub const ERR_NO_OUTPUTS: &str = "KWin reported no usable monitors";
 pub const ERR_NOT_AUTHORIZED: &str =
-    "KWin screen capture was not authorized; run the installed TennoScope build";
+    "KWin screen capture was not authorized; run the installed FrameSight build";
 pub const ERR_CAPTURE_FAILED: &str = "KWin could not capture the screen";
 pub const ERR_READER_LOST: &str = "the KWin screenshot reader stopped unexpectedly";
 
@@ -952,7 +952,7 @@ mod tests {
     fn old_service_error_names_missing_image_information() {
         assert_eq!(
             ERR_TOO_OLD,
-            "KWin's screenshot service does not report the image information TennoScope needs"
+            "KWin's screenshot service does not report the image information FrameSight needs"
         );
     }
 
@@ -1387,7 +1387,7 @@ mod tests {
         );
         assert_eq!(
             map_dbus_error(&refusal),
-            "KWin screen capture was not authorized; run the installed TennoScope build"
+            "KWin screen capture was not authorized; run the installed FrameSight build"
         );
 
         let other = zbus::Error::MethodError(

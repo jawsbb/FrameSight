@@ -1,9 +1,9 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "TennoScope",
-  "mainBinaryName": "tennoscope",
+  "productName": "FrameSight",
+  "mainBinaryName": "framesight",
   "version": "0.13.1",
-  "identifier": "io.github.deftera186.tennoscope",
+  "identifier": "io.github.jawsbb.framesight",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "TennoScope: Local-first Warframe Companion",
+        "title": "FrameSight: Local-first Warframe Companion",
         "width": 1180,
         "height": 760,
         "minWidth": 360,
@@ -24,7 +24,7 @@
       },
       {
         "label": "reward-overlay",
-        "title": "TennoScope: Reward Advisor",
+        "title": "FrameSight: Reward Advisor",
         "url": "/overlay",
         "width": 1100,
         "height": 190,
@@ -40,7 +40,7 @@
       },
       {
         "label": "kiosk-overlay",
-        "title": "TennoScope: Ducat Kiosk",
+        "title": "FrameSight: Ducat Kiosk",
         "url": "/kiosk",
         "width": 1920,
         "height": 1080,
@@ -70,17 +70,17 @@
     "category": "Utility",
     "license": "GPL-3.0-only",
     "licenseFile": "../../LICENSE",
-    "homepage": "https://github.com/Deftera186/tennoscope",
-    "publisher": "Deftera186",
+    "homepage": "https://github.com/jawsbb/FrameSight",
+    "publisher": "jawsbb",
     "shortDescription": "Local-first Warframe collection and relic companion",
-    "longDescription": "TennoScope reads a running Warframe process without modifying it and keeps a local copy of your collection. When a relic cracks it recognises the rewards on screen and prices them in platinum and ducats from warframe.market, counting only sellers who are online. No account, no telemetry, no Overwolf.",
+    "longDescription": "FrameSight reads a running Warframe process without modifying it and keeps a local copy of your collection. When a relic cracks it recognises the rewards on screen and prices them in platinum and ducats from warframe.market, counting only sellers who are online. No account, no telemetry, no Overwolf.",
     "resources": {
       "../../LICENSE": "LICENSE",
       "../../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md"
     },
     "linux": {
       "deb": {
-        "desktopTemplate": "tennoscope.desktop.hbs",
+        "desktopTemplate": "framesight.desktop.hbs",
         "depends": [
           "libpipewire-0.3-0 | libpipewire-0.3-0t64"
         ],
@@ -91,7 +91,7 @@
         ]
       },
       "rpm": {
-        "desktopTemplate": "tennoscope.desktop.hbs",
+        "desktopTemplate": "framesight.desktop.hbs",
         "depends": [
           "pipewire-libs"
         ],
@@ -114,9 +114,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM3Nzc4RDY5MTAwNkNCMEMKUldRTXl3WVFhWTEzTi9nc0NlNTFwemc4Rm5xdGJRZE9CY2JkdWt2WHc5b3BzODR0N2Y5UDZlS1AK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ4NDE0RUJBRjI0NTg4ClJXU0lSZks2VGtIWUFHZ21PQXBEMHVnMklCL2RuYk1SNllTVE1UNG45RHVVOURTV2ZGS2F1ZnlmCg==",
       "endpoints": [
-        "https://github.com/Deftera186/tennoscope/releases/latest/download/latest.json"
+        "https://github.com/jawsbb/FrameSight/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

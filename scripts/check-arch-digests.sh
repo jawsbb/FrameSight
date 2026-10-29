@@ -33,7 +33,7 @@ if [ "$arch_ver" != "$bin_ver" ]; then
 fi
 pkgver=$arch_ver
 
-tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/tennoscope-arch-digests.XXXXXX")
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/framesight-arch-digests.XXXXXX")
 trap 'rm -rf "$tmp_dir"' EXIT HUP INT TERM
 
 # Same flags ci.yml uses for its downloads. A pre-release tag (`v0.12.1-rc1`) carries a
@@ -46,7 +46,7 @@ tarball_status=0
 tarball_http_code=000
 tarball_http_code=$(curl --fail --location --retry 3 --output "$tmp_dir/source.tar.gz" \
   -w '%{http_code}' \
-  "https://github.com/Deftera186/tennoscope/archive/refs/tags/v${pkgver}.tar.gz") || tarball_status=$?
+  "https://github.com/jawsbb/FrameSight/archive/refs/tags/v${pkgver}.tar.gz") || tarball_status=$?
 tarball_name="v${pkgver}.tar.gz"
 if [ "$tarball_status" -ne 0 ] && [ "$tarball_http_code" != "404" ]; then
   echo "could not download $tarball_name (curl exit $tarball_status, HTTP $tarball_http_code)" >&2
@@ -71,8 +71,8 @@ deb_http_code=000
 deb_skipped=0
 deb_http_code=$(curl --fail --location --retry 3 --output "$tmp_dir/binary.deb" \
   -w '%{http_code}' \
-  "https://github.com/Deftera186/tennoscope/releases/download/v${pkgver}/TennoScope_${pkgver}_amd64.deb") || deb_status=$?
-deb_name="TennoScope_${pkgver}_amd64.deb"
+  "https://github.com/jawsbb/FrameSight/releases/download/v${pkgver}/FrameSight_${pkgver}_amd64.deb") || deb_status=$?
+deb_name="FrameSight_${pkgver}_amd64.deb"
 if [ "$deb_status" -eq 0 ]; then
   :
 elif [ "$deb_http_code" = "404" ]; then

@@ -1,11 +1,12 @@
 name: APT repository
 
 # Publishes downloaded .debs into a signed APT repo on the gh-pages branch.
-# Fires when the maintainer publishes a finalized release. Serves the stable
-# suite only: prereleases never reach it.
+# Serves the stable suite only: prereleases never reach it. Manual until
+# FrameSight has its own APT key (packaging/apt/README.md); then add back
+#   release:
+#     types: [published]
+# so it fires when the maintainer publishes a finalized release.
 on:
-  release:
-    types: [published]
   # Key rotation is documented as publish-a-successor plus a re-run; give
   # that re-run a button instead of waiting for the next release.
   workflow_dispatch:
@@ -39,7 +40,7 @@ jobs:
         run: |
           mkdir -p debs
           gh release download "${{ github.ref_name }}" \
-            --pattern 'TennoScope_*_amd64.deb' --dir debs --repo "${{ github.repository }}"
+            --pattern 'FrameSight_*_amd64.deb' --dir debs --repo "${{ github.repository }}"
           ls debs/*.deb
 
       # The repository serves one package name. A renamed bundle must fail here,
@@ -48,9 +49,9 @@ jobs:
         run: |
           for deb in debs/*.deb; do
             name=$(dpkg-deb -f "$deb" Package)
-            [ "$name" = "tenno-scope" ] || { echo "$deb names package '$name', expected 'tenno-scope'" >&2; exit 1; }
+            [ "$name" = "frame-sight" ] || { echo "$deb names package '$name', expected 'frame-sight'" >&2; exit 1; }
           done
-          echo "all debs name tenno-scope"
+          echo "all debs name frame-sight"
 
       - name: Import repository signing key
         env:
@@ -81,7 +82,7 @@ jobs:
             git -C site remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             tags=$(gh release list --repo "${{ github.repository }}" --exclude-drafts --exclude-pre-releases --limit 1000 --json tagName --jq '.[].tagName')
             for tag in $tags; do
-              gh release download "$tag" --pattern 'TennoScope_*_amd64.deb' --dir debs-backfill --repo "${{ github.repository }}" \
+              gh release download "$tag" --pattern 'FrameSight_*_amd64.deb' --dir debs-backfill --repo "${{ github.repository }}" \
                 || echo "no APT debs for $tag -- skipping"
             done
             cp -n debs-backfill/*.deb debs/ 2>/dev/null || true
@@ -99,7 +100,7 @@ jobs:
           git add -A
           # No quiet-path: Date and fresh signatures make every publish unique.
           # One commit per published release is the normal shape here.
-          git -c user.name="tennoscope-ci" -c user.email="tennoscope-ci@users.noreply.github.com" \
+          git -c user.name="framesight-ci" -c user.email="framesight-ci@users.noreply.github.com" \
             commit -qm "apt: publish ${{ github.ref_name }}"
           git push --force-with-lease origin gh-pages
         env:

@@ -19,7 +19,7 @@ function writeClangDriver(file, resourceDir) {
 }
 
 test('Linux finds a versioned LLVM slot that actually contains libclang', (t) => {
-  const fixture = mkdtempSync(path.join(tmpdir(), 'tennoscope-tauri-env-'))
+  const fixture = mkdtempSync(path.join(tmpdir(), 'framesight-tauri-env-'))
   t.after(() => rmSync(fixture, { recursive: true, force: true }))
 
   const selectedBin = path.join(fixture, 'bin')
@@ -62,7 +62,7 @@ test('an explicit caller environment always wins', () => {
 })
 
 test('Linux derives the bindgen resource dir from the same LLVM slot', (t) => {
-  const fixture = mkdtempSync(path.join(tmpdir(), 'tennoscope-tauri-env-'))
+  const fixture = mkdtempSync(path.join(tmpdir(), 'framesight-tauri-env-'))
   t.after(() => rmSync(fixture, { recursive: true, force: true }))
 
   const llvmRoot = path.join(fixture, 'llvm')
@@ -99,7 +99,7 @@ test('an explicit bindgen flag always wins', () => {
 })
 
 test('a slot without a clang driver leaves bindgen flags alone', () => {
-  const fixture = mkdtempSync(path.join(tmpdir(), 'tennoscope-tauri-env-'))
+  const fixture = mkdtempSync(path.join(tmpdir(), 'framesight-tauri-env-'))
   const llvm98Lib = path.join(fixture, 'llvm', '98', 'lib64')
 
   const env = configureTauriEnvironment(
@@ -112,7 +112,7 @@ test('a slot without a clang driver leaves bindgen flags alone', () => {
 })
 
 test('slot-local resources cover driver-less installs', (t) => {
-  const fixture = mkdtempSync(path.join(tmpdir(), 'tennoscope-tauri-env-'))
+  const fixture = mkdtempSync(path.join(tmpdir(), 'framesight-tauri-env-'))
   t.after(() => rmSync(fixture, { recursive: true, force: true }))
 
   const llvmRoot = path.join(fixture, 'llvm')

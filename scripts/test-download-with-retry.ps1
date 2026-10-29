@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'download-with-retry.ps1')
 
-$temporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) "tennoscope-download-retry-$([guid]::NewGuid())"
+$temporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) "framesight-download-retry-$([guid]::NewGuid())"
 $output = Join-Path $temporaryDirectory 'artifact.bin'
 New-Item -ItemType Directory -Path $temporaryDirectory | Out-Null
 

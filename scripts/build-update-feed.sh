@@ -60,7 +60,7 @@ fi
 
 # One updater entry per artifact kind present. deb/rpm are installable system
 # packages and deliberately never appear here.
-entries_tmp=$(mktemp "${TMPDIR:-/tmp}/tennoscope-feed.XXXXXX")
+entries_tmp=$(mktemp "${TMPDIR:-/tmp}/framesight-feed.XXXXXX")
 trap 'rm -f "$entries_tmp"' 0
 trap 'exit 1' HUP INT TERM
 add_entry() {
@@ -112,7 +112,7 @@ if [ -n "$notes_file" ]; then
 fi
 
 pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-repo="https://github.com/Deftera186/tennoscope"
+repo="https://github.com/jawsbb/FrameSight"
 
 export FEED_VERSION="$version" FEED_TAG="$tag" FEED_DATE="$pub_date" FEED_NOTES="$notes"
 export FEED_ENTRIES="$entries_tmp" FEED_OUT="$out" FEED_PRERELEASE="$is_prerelease" FEED_REPO="$repo"

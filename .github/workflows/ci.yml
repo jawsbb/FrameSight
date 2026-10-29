@@ -35,7 +35,7 @@ jobs:
       - run: ./scripts/check-arch-digests.sh
 
       # Exercises the bundle post-processing against fixtures. In particular, the AppImage must
-      # launch its bundled binary rather than an installed /usr/bin/tennoscope that can mask a
+      # launch its bundled binary rather than an installed /usr/bin/framesight that can mask a
       # broken artifact on a maintainer workstation.
       - run: ./scripts/test-build-linux-bundles.sh
 
@@ -84,9 +84,9 @@ jobs:
           curl --fail --location --retry 3 --output /tmp/tesseract-data-eng.pkg.tar.zst \
             https://archive.archlinux.org/packages/t/tesseract-data-eng/tesseract-data-eng-2%3A4.1.0-5-any.pkg.tar.zst
           echo "f6dfc8fd7f70295ce74901b1d1e1a80aaead6430680901ad212074c5bbb68323  /tmp/tesseract-data-eng.pkg.tar.zst" | sha256sum --check
-          mkdir -p /tmp/tennoscope-arch-tessdata
+          mkdir -p /tmp/framesight-arch-tessdata
           tar --extract --file /tmp/tesseract-data-eng.pkg.tar.zst \
-            --directory /tmp/tennoscope-arch-tessdata \
+            --directory /tmp/framesight-arch-tessdata \
             usr/share/tessdata/eng.traineddata
 
       # No toolchain action: rust-toolchain.toml pins the channel and components, and rustup on
@@ -101,9 +101,9 @@ jobs:
 
       - name: Test Arch OCR quantity model
         env:
-          TESSDATA_PREFIX: /tmp/tennoscope-arch-tessdata/usr/share/tessdata
+          TESSDATA_PREFIX: /tmp/framesight-arch-tessdata/usr/share/tessdata
         run: >-
-          cargo test -p tennoscope --lib
+          cargo test -p framesight --lib
           kiosk_ocr::tests::reads_stacked_quantity_through_production_basket_geometry
           --locked -- --exact
 
@@ -269,6 +269,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tennoscope-debug-kiosk
+          name: framesight-debug-kiosk
           retention-days: 7
           path: target/release/bundle/appimage/*.AppImage

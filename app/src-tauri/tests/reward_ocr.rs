@@ -563,7 +563,7 @@ fn concurrent_reads_do_not_corrupt_each_other() {
 /// Exercises the real chain against a running game: window discovery, screen capture, cropping and
 /// tesseract. Ignored by default because it needs Warframe on screen.
 ///
-/// Run with `cargo test -p tennoscope --test reward_ocr -- --ignored --nocapture`. Outside a
+/// Run with `cargo test -p framesight --test reward_ocr -- --ignored --nocapture`. Outside a
 /// reward screen the cards will not match, which is the correct answer; what is being checked is
 /// that the failure is a match failure and not a broken capture.
 #[test]

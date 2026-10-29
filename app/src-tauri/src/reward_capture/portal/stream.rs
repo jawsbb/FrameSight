@@ -108,7 +108,7 @@ impl NodeStream {
             .map_err(|_| "could not connect to pipewire")?;
         let stream = pw::stream::StreamRc::new(
             core,
-            "tennoscope-reward-capture",
+            "framesight-reward-capture",
             properties! {
                 *pw::keys::MEDIA_TYPE => "Video",
                 *pw::keys::MEDIA_CATEGORY => "Capture",

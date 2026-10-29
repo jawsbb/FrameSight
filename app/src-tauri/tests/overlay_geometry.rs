@@ -73,7 +73,7 @@ xwininfo: Window id: 0x352 (the root window) (has no name)
      0x200004 "wlroots wm": ()  10x10+0+0  +0+0
      0x1400002 "Warframe": ("Warframe" "steam_app_230410")  1x1+0+0  +0+0
      0x1400003 "Warframe": ("Warframe" "steam_app_230410")  1920x1080+1920+0  +1920+0
-     0x1600001 "TennoScope": ("tennoscope" "TennoScope")  1180x760+100+100  +100+100
+     0x1600001 "FrameSight": ("framesight" "FrameSight")  1180x760+100+100  +100+100
 "#;
     let (id, rect) = warframe_window_from_xwininfo_tree(tree).unwrap();
     assert_eq!(id, "0x1400003", "the 1x1 helper must not win");
@@ -91,7 +91,7 @@ xwininfo: Window id: 0x352 (the root window) (has no name)
     assert_eq!((rect.x, rect.y), (-1920, 0));
 
     assert!(
-        warframe_window_from_xwininfo_tree("     0x1600001 \"TennoScope\": ()  1180x760+0+0  +0+0")
+        warframe_window_from_xwininfo_tree("     0x1600001 \"FrameSight\": ()  1180x760+0+0  +0+0")
             .is_none(),
         "no game window means no rectangle, not somebody else's"
     );
@@ -109,7 +109,7 @@ fn the_game_window_is_chosen_by_size_not_by_order() {
         // A Wine helper, and on Windows a minimized window, both report as tiny.
         ("Warframe", 1, 1, 0, 0),
         ("Warframe", 1920, 1080, 1920, 0),
-        ("TennoScope", 1180, 760, 100, 100),
+        ("FrameSight", 1180, 760, 100, 100),
     ];
     let chosen =
         app_lib::largest_warframe_window(candidates.iter().map(|&(title, width, height, x, y)| {
@@ -134,7 +134,7 @@ fn the_game_window_is_chosen_by_size_not_by_order() {
 /// whatever else is open -- the overlay would otherwise land on the user's browser.
 #[test]
 fn a_desktop_without_the_game_yields_no_window() {
-    let candidates = [("TennoScope", 1180, 760), ("Firefox", 1920, 1080)];
+    let candidates = [("FrameSight", 1180, 760), ("Firefox", 1920, 1080)];
     assert!(
         app_lib::largest_warframe_window(candidates.iter().map(|&(title, width, height)| {
             (

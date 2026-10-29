@@ -79,11 +79,11 @@ fn explicit_renderer_setting_and_relaunch_marker_prevent_relaunch() {
 #[test]
 fn relaunch_preserves_arguments_and_sets_both_environment_flags() {
     let command = renderer_relaunch_command(
-        OsStr::new("/opt/tennoscope"),
+        OsStr::new("/opt/framesight"),
         [OsString::from("--one"), OsString::from("two words")],
     );
 
-    assert_eq!(command.get_program(), OsStr::new("/opt/tennoscope"));
+    assert_eq!(command.get_program(), OsStr::new("/opt/framesight"));
     assert_eq!(
         command.get_args().collect::<Vec<_>>(),
         [OsStr::new("--one"), OsStr::new("two words")]
@@ -94,7 +94,7 @@ fn relaunch_preserves_arguments_and_sets_both_environment_flags() {
         Some(OsStr::new("1"))
     )));
     assert!(environment.contains(&(
-        OsStr::new("TENNOSCOPE_DMABUF_RELAUNCHED"),
+        OsStr::new("FRAMESIGHT_DMABUF_RELAUNCHED"),
         Some(OsStr::new("1"))
     )));
 }

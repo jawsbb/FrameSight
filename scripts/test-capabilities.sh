@@ -1,7 +1,7 @@
 #!/bin/sh
 # Guards app/src-tauri/capabilities/default.json: every permission the UI
 # calls must be granted, or the call is denied at runtime with no fallback.
-# tennoscope#updater-round-1 caught a dropped core:window:allow-close here,
+# framesight#updater-round-1 caught a dropped core:window:allow-close here,
 # which silently disabled the window Close button.
 set -eu
 
@@ -65,7 +65,7 @@ with open(sys.argv[1], encoding="utf-8") as handle:
 for entry in capability.get("permissions", []):
     if isinstance(entry, dict) and entry.get("identifier") == "opener:allow-open-url":
         urls = [rule.get("url", "") for rule in entry.get("allow", [])]
-        assert any("github.com/Deftera186/tennoscope" in url for url in urls), urls
+        assert any("github.com/jawsbb/FrameSight" in url for url in urls), urls
         break
 else:
     raise SystemExit("opener:allow-open-url entry missing")

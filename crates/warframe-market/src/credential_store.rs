@@ -10,8 +10,9 @@ use serde::Serialize;
 
 use crate::{MarketError, MarketToken};
 
-/// The keyring service name. Matches the application identifier already used for the local data
-/// directory, so a player looking through their keyring finds it under the name they installed.
+/// The keyring service name. The application identifier from before the rename to FrameSight,
+/// kept because a token already stored under it would otherwise be left behind and the player
+/// asked to link again.
 pub const KEYRING_SERVICE: &str = "io.github.deftera186.tennoscope";
 /// The entry name. Not the player's email: the keyring is a place a credential can be read from,
 /// and putting an address in the key would store an identifier that nothing needs.

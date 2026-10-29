@@ -55,7 +55,7 @@ game or automates input.
 
 ## Brand Commitments
 
-- Name: TennoScope.
+- Name: FrameSight (formerly TennoScope).
 - Platinum and ducats are the two currencies and always read as two distinct values.
 - Ergonomic reference chosen by the owner (2026-10-28): AlecaFrame. Borrow its patterns (side
   navigation, dense item grids, a dark and sober look, decision aids up front, little explanatory

@@ -11,16 +11,16 @@ use tauri::{AppHandle, Emitter};
 use tauri_plugin_updater::UpdaterExt;
 
 /// Channel baked at build time. Release workflow sets
-/// `TENNOSCOPE_CHANNEL=beta` for `-rc` tags; dev/local builds read stable.
-pub const CHANNEL: &str = match option_env!("TENNOSCOPE_CHANNEL") {
+/// `FRAMESIGHT_CHANNEL=beta` for `-rc` tags; dev/local builds read stable.
+pub const CHANNEL: &str = match option_env!("FRAMESIGHT_CHANNEL") {
     Some(c) => c,
     None => "stable",
 };
 
 const STABLE_FEED: &str =
-    "https://github.com/Deftera186/tennoscope/releases/latest/download/latest.json";
+    "https://github.com/jawsbb/FrameSight/releases/latest/download/latest.json";
 const BETA_FEED: &str =
-    "https://github.com/Deftera186/tennoscope/releases/latest/download/latest-beta.json";
+    "https://github.com/jawsbb/FrameSight/releases/latest/download/latest-beta.json";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -173,7 +173,7 @@ fn feed_urls(feed: &str) -> Result<Vec<url::Url>, String> {
     // Scratch-tag verification (`vX.Y.Z-updater.N` prereleases) points a test
     // build at the scratch feed without touching the baked endpoints. Only the
     // local user can set process environment; the frontend cannot reach this.
-    if let Some(url) = std::env::var("TENNOSCOPE_FEED_OVERRIDE_URL")
+    if let Some(url) = std::env::var("FRAMESIGHT_FEED_OVERRIDE_URL")
         .ok()
         .filter(|s| !s.is_empty())
     {
@@ -205,7 +205,7 @@ pub fn manager_for_os_release(os_release: &str) -> Option<(&'static str, &'stati
     match id {
         "gentoo" => Some((
             "Gentoo (deftera overlay)",
-            "sudo emaint sync --repo deftera && sudo emerge --ask --update games-util/tennoscope-bin",
+            "sudo emaint sync --repo deftera && sudo emerge --ask --update games-util/framesight-bin",
         )),
         _ => None,
     }
@@ -382,8 +382,8 @@ mod tests {
         // Under an AppImage current_exe resolves into /tmp/.mount_*, never the
         // .AppImage file: $APPIMAGE alone must not promote a binary.
         let (kind, up) = classify(
-            Path::new("/tmp/.mount_A1b2C3/usr/bin/tennoscope"),
-            Some(Path::new("/home/u/TennoScope.AppImage")),
+            Path::new("/tmp/.mount_A1b2C3/usr/bin/framesight"),
+            Some(Path::new("/home/u/FrameSight.AppImage")),
             true,
             "linux",
             &[],
@@ -397,8 +397,8 @@ mod tests {
         // A deb binary with $APPIMAGE leaked into its environment stays a
         // system install: the exe is nowhere near a mount namespace.
         let (kind, up) = classify(
-            Path::new("/usr/bin/tennoscope"),
-            Some(Path::new("/home/u/TennoScope.AppImage")),
+            Path::new("/usr/bin/framesight"),
+            Some(Path::new("/home/u/FrameSight.AppImage")),
             true,
             "linux",
             &[],
@@ -410,8 +410,8 @@ mod tests {
     #[test]
     fn unwritable_appimage_blocks_self_update() {
         let (kind, up) = classify(
-            Path::new("/tmp/.mount_A1b2C3/usr/bin/tennoscope"),
-            Some(Path::new("/opt/TennoScope.AppImage")),
+            Path::new("/tmp/.mount_A1b2C3/usr/bin/framesight"),
+            Some(Path::new("/opt/FrameSight.AppImage")),
             false,
             "linux",
             &[],
@@ -422,7 +422,7 @@ mod tests {
 
     #[test]
     fn system_linux_prefixes() {
-        for exe in ["/usr/bin/tennoscope", "/opt/tennoscope/tennoscope"] {
+        for exe in ["/usr/bin/framesight", "/opt/framesight/framesight"] {
             let (kind, up) = classify(Path::new(exe), None, false, "linux", &[]);
             assert_eq!(kind, InstallKind::SystemLinux, "{exe}");
             assert!(!up);
@@ -432,7 +432,7 @@ mod tests {
     #[test]
     fn dev_and_unknown_builds_never_self_update() {
         let (kind, up) = classify(
-            Path::new("/home/u/warframe-helper/target/debug/tennoscope"),
+            Path::new("/home/u/warframe-helper/target/debug/framesight"),
             None,
             false,
             "linux",
@@ -445,7 +445,7 @@ mod tests {
     #[test]
     fn windows_current_user_is_portable() {
         let (kind, up) = classify(
-            Path::new(r"C:\Users\u\AppData\Local\TennoScope\tennoscope.exe"),
+            Path::new(r"C:\Users\u\AppData\Local\FrameSight\framesight.exe"),
             None,
             false,
             "windows",
@@ -462,12 +462,12 @@ mod tests {
             "c:\\program files (x86)\\".to_owned(),
         ];
         for exe in [
-            r"C:\Program Files\TennoScope\tennoscope.exe",
-            r"C:\Program Files (x86)\TennoScope\tennoscope.exe",
-            r"c:\program files\tennoscope\tennoscope.exe",
+            r"C:\Program Files\FrameSight\framesight.exe",
+            r"C:\Program Files (x86)\FrameSight\framesight.exe",
+            r"c:\program files\framesight\framesight.exe",
             // 8.3 short names never contain the long-form substring.
-            r"C:\PROGRA~1\TennoScope\tennoscope.exe",
-            r"C:\PROGRA~2\TennoScope\tennoscope.exe",
+            r"C:\PROGRA~1\FrameSight\framesight.exe",
+            r"C:\PROGRA~2\FrameSight\framesight.exe",
         ] {
             let (kind, up) = classify(Path::new(exe), None, false, "windows", &prefixes);
             assert_eq!(kind, InstallKind::SystemWin, "{exe}");
@@ -478,7 +478,7 @@ mod tests {
     #[test]
     fn program_files_backup_folder_stays_portable() {
         let (kind, up) = classify(
-            Path::new(r"C:\Users\u\program files backup\tennoscope.exe"),
+            Path::new(r"C:\Users\u\program files backup\framesight.exe"),
             None,
             false,
             "windows",
@@ -491,8 +491,8 @@ mod tests {
     #[test]
     fn mount_backup_dir_cannot_corroborate() {
         let (kind, _) = classify(
-            Path::new("/home/u/.mount_backup/tennoscope"),
-            Some(Path::new("/home/u/TennoScope.AppImage")),
+            Path::new("/home/u/.mount_backup/framesight"),
+            Some(Path::new("/home/u/FrameSight.AppImage")),
             true,
             "linux",
             &[],
@@ -503,11 +503,11 @@ mod tests {
     #[test]
     fn tmpdir_mount_corroborates_appimage() {
         // Type2 runtime mounts at $TMPDIR/.mount_* when TMPDIR is set
-        // (proven: /home/deftera/.cache/tmp/.mount_TennoS.../usr/bin/tennoscope).
+        // (proven: /home/deftera/.cache/tmp/.mount_TennoS.../usr/bin/framesight).
         // Hardcoding /tmp/ misclassifies those runs as Unknown, hiding Download.
         let (kind, up) = classify(
-            Path::new("/home/u/.cache/tmp/.mount_TennoSAopOHb/usr/bin/tennoscope"),
-            Some(Path::new("/home/u/TennoScope.AppImage")),
+            Path::new("/home/u/.cache/tmp/.mount_TennoSAopOHb/usr/bin/framesight"),
+            Some(Path::new("/home/u/FrameSight.AppImage")),
             true,
             "linux",
             &[],
@@ -526,7 +526,7 @@ mod tests {
         let mut permissions = std::fs::metadata(&locked).expect("meta").permissions();
         permissions.set_readonly(true);
         std::fs::set_permissions(&locked, permissions).expect("chmod");
-        let exe = Path::new("/tmp/.mount_X9y8Z7w/usr/bin/tennoscope");
+        let exe = Path::new("/tmp/.mount_X9y8Z7w/usr/bin/framesight");
         let (kind, up) = classify(
             exe,
             Some(&writable),
@@ -552,7 +552,7 @@ mod tests {
         // indistinguishable from per-user at classify time, and both are
         // user-writable: pinned as portable so the behavior is explicit.
         let (kind, up) = classify(
-            Path::new(r"D:\Apps\TennoScope\tennoscope.exe"),
+            Path::new(r"D:\Apps\FrameSight\framesight.exe"),
             None,
             false,
             "windows",

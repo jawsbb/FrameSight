@@ -1,7 +1,7 @@
 [package]
-name = "tennoscope"
+name = "framesight"
 version.workspace = true
-description = "TennoScope local-first Warframe companion"
+description = "FrameSight local-first Warframe companion"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
@@ -37,6 +37,7 @@ xcap = { version = "0.9.7", features = ["image"] }
 warframe-market = { path = "../../crates/warframe-market" }
 warframe-status = { path = "../../crates/warframe-status" }
 regex = "1"
+dirs = "6"
 tauri-plugin-process = "2"
 semver = "1"
 url = "2"

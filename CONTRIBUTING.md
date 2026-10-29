@@ -32,7 +32,7 @@ execution. `./scripts/check-windows.sh` is the local stand-in: it cross-compiles
 workspace for `x86_64-pc-windows-gnu`, which compiles `cfg(windows)` code on Linux but cannot
 run it, so a platform-gating mistake fails on your machine. It needs Rust's `x86_64-pc-windows-gnu`
 target and a MinGW-w64 toolchain.
-Heavy cross-target artifacts default to `/var/tmp/tennoscope-$UID`; set `TENNOSCOPE_BUILD_ROOT` to
+Heavy cross-target artifacts default to `/var/tmp/framesight-$UID`; set `FRAMESIGHT_BUILD_ROOT` to
 use a different filesystem.
 
 ```bash
@@ -56,7 +56,7 @@ bundle builder, and `winget validate` on a Windows runner. A second `windows-lat
 and the suite as well.
 
 The live tests stay `#[ignore]`d. They need a running Warframe session, a live desktop session, or a
-warframe.market token in `TENNOSCOPE_LIVE_MARKET_TOKEN`, which is why no normal run, yours or CI's,
+warframe.market token in `FRAMESIGHT_LIVE_MARKET_TOKEN`, which is why no normal run, yours or CI's,
 ever touches a game process. Run them with `-- --ignored` when you have the session up.
 
 ## How this codebase is written
