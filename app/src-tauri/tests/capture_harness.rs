@@ -1,8 +1,8 @@
 //! Manual capture check. CI has no live desktop or Warframe window, so this is `#[ignore]`d and run
 //! by hand on a real session:
 //!
-//!     cargo test -p tennoscope --test capture_harness -- --ignored --nocapture
-//!     TENNOSCOPE_REQUIRE_CAPTURE=1 cargo test -p tennoscope --test capture_harness -- --ignored --nocapture
+//!     cargo test -p framesight --test capture_harness -- --ignored --nocapture
+//!     FRAMESIGHT_REQUIRE_CAPTURE=1 cargo test -p framesight --test capture_harness -- --ignored --nocapture
 //!
 //! The default mode permits a named error when Warframe is closed. The strict environment-variable
 //! mode requires at least one captured candidate. Capture is automatic and must not open a desktop
@@ -51,7 +51,7 @@ fn required_capture_mode_rejects_errors_and_accepts_non_empty_success() {
 fn captures_a_frame_from_this_session() {
     let mut capture = app_lib::reward_capture::GameCapture::new();
     let require_capture =
-        std::env::var_os("TENNOSCOPE_REQUIRE_CAPTURE").is_some_and(|value| value == "1");
+        std::env::var_os("FRAMESIGHT_REQUIRE_CAPTURE").is_some_and(|value| value == "1");
     let outcome = capture.capture_candidates();
     match &outcome {
         Ok(candidates) => {

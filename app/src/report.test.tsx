@@ -60,7 +60,7 @@ const readyHealth = (): AppView['health'] => ({
 async function openDiagnostics() {
   const user = userEvent.setup()
   render(<App />)
-  await screen.findByText('TennoScope')
+  await screen.findByText('FrameSight')
   await user.click(screen.getByRole('button', { name: 'Diagnostics' }))
   return user
 }

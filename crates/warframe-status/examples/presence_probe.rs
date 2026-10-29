@@ -25,7 +25,7 @@ fn default_database() -> PathBuf {
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .expect("a HOME is set");
-    home.join(".local/share/io.github.deftera186.tennoscope/tennoscope.sqlite3")
+    home.join(".local/share/io.github.jawsbb.framesight/tennoscope.sqlite3")
 }
 
 fn set_read_timeout(

@@ -133,8 +133,8 @@ details are in the [install guide](docs/install.md) and [`packaging/`](packaging
 ## ◈ Origins
 
 FrameSight continues [TennoScope](https://github.com/Deftera186/tennoscope), created by
-Deftera186 and its contributors. The app and its packages still carry the TennoScope name
-while the rename lands.
+Deftera186 and its contributors. A TennoScope install's collection, settings and market link
+carry over on FrameSight's first launch.
 
 <div align="center">
 

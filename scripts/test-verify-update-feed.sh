@@ -5,7 +5,7 @@
 set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-test_root=$(mktemp -d "${TMPDIR:-/tmp}/tennoscope-verify-test.XXXXXX")
+test_root=$(mktemp -d "${TMPDIR:-/tmp}/framesight-verify-test.XXXXXX")
 trap 'rm -rf "$test_root"' 0
 trap 'exit 1' HUP INT TERM
 
@@ -44,12 +44,12 @@ conf = {"plugins": {"updater": {"pubkey": outer}}}
 open(f"{root}/tauri.conf.json", "w").write(json.dumps(conf))
 
 payload = b"fake-appimage-bytes"
-open(f"{root}/artifacts/appimage/TennoScope-0.12.0-x86_64.AppImage", "wb").write(payload)
+open(f"{root}/artifacts/appimage/FrameSight-0.12.0-x86_64.AppImage", "wb").write(payload)
 
 sig = sk.sign(payload).signature
 sig_line = base64.b64encode(b"Ed" + keynum + sig).decode()
 import time as _time
-trusted = f"trusted comment: timestamp:{int(_time.time())}\tfile:TennoScope-0.12.0-x86_64.AppImage"
+trusted = f"trusted comment: timestamp:{int(_time.time())}\tfile:FrameSight-0.12.0-x86_64.AppImage"
 global_sig = base64.b64encode(b"\x00" * 64).decode()
 sig_text = f"untrusted comment: fixture signature\n{sig_line}\n{trusted}\n{global_sig}\n"
 blob = base64.b64encode(sig_text.encode()).decode()
@@ -61,7 +61,7 @@ feed = {
     "platforms": {
         "linux-x86_64": {
             "signature": blob,
-            "url": "https://github.com/Deftera186/tennoscope/releases/download/v0.12.0/TennoScope-0.12.0-x86_64.AppImage",
+            "url": "https://github.com/jawsbb/FrameSight/releases/download/v0.12.0/FrameSight-0.12.0-x86_64.AppImage",
         }
     },
 }
@@ -75,9 +75,9 @@ run_gate() {
 }
 
 check "valid feed passes" run_gate
-printf 'x' >>"$test_root/artifacts/appimage/TennoScope-0.12.0-x86_64.AppImage"
+printf 'x' >>"$test_root/artifacts/appimage/FrameSight-0.12.0-x86_64.AppImage"
 check "tampered artifact fails" sh -c "! sh '$script_dir/verify-update-feed.sh' --feeds '$test_root/feeds' --artifacts '$test_root/artifacts' --tauri-conf '$test_root/tauri.conf.json' >/dev/null 2>&1"
-truncate -s -1 "$test_root/artifacts/appimage/TennoScope-0.12.0-x86_64.AppImage"
+truncate -s -1 "$test_root/artifacts/appimage/FrameSight-0.12.0-x86_64.AppImage"
 python3 -c "
 import json
 p = '$test_root/feeds/latest.json'
@@ -90,7 +90,7 @@ python3 -c "
 import json
 p = '$test_root/feeds/latest.json'
 d = json.load(open(p))
-d['platforms']['linux-x86_64']['url'] = 'https://github.com/Deftera186/tennoscope/releases/download/v0.12.0/TennoScope-0.12.0-x86_64.AppImage'
+d['platforms']['linux-x86_64']['url'] = 'https://github.com/jawsbb/FrameSight/releases/download/v0.12.0/FrameSight-0.12.0-x86_64.AppImage'
 d['version'] = 'not-a-version'
 json.dump(d, open(p, 'w'))
 "
@@ -100,7 +100,7 @@ import json
 p = '$test_root/feeds/latest.json'
 d = json.load(open(p))
 d['version'] = '0.12.0'
-d['platforms']['linux-x86_64']['url'] = 'https://github.com/Deftera186/tennoscope/releases/download/v0.12.0/TennoScope-0.12.0-x86_64.AppImage'
+d['platforms']['linux-x86_64']['url'] = 'https://github.com/jawsbb/FrameSight/releases/download/v0.12.0/FrameSight-0.12.0-x86_64.AppImage'
 json.dump(d, open(p, 'w'))
 "
 check "--expect stable mismatch fails" sh -c "! sh '$script_dir/verify-update-feed.sh' --feeds '$test_root/feeds' --artifacts '$test_root/artifacts' --tauri-conf '$test_root/tauri.conf.json' --expect stable >/dev/null 2>&1"

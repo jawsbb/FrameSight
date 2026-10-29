@@ -1,10 +1,10 @@
-"""Locate the running game's EE.log and TennoScope's cached relic catalog.
+"""Locate the running game's EE.log and FrameSight's cached relic catalog.
 
 Mirrors the discovery the app does in `app/src-tauri/src/lib.rs`: the Wine/Proton prefix is read
 out of the live process's own mappings rather than guessed, because prefixes live wherever the
 launcher put them and the two Warframe builds disagree about where inside the prefix EE.log goes.
 
-Both lookups can be overridden -- `TENNOSCOPE_EE_LOG` and `TENNOSCOPE_CATALOG` -- so a script can
+Both lookups can be overridden -- `FRAMESIGHT_EE_LOG` and `FRAMESIGHT_CATALOG` -- so a script can
 be pointed at an archived log or catalog with no game running.
 """
 
@@ -50,8 +50,8 @@ def wine_prefixes(pid: int) -> list[Path]:
 
 
 def ee_log(pid: int | None = None) -> Path:
-    """EE.log for the running game, or `TENNOSCOPE_EE_LOG` when set."""
-    if override := os.environ.get("TENNOSCOPE_EE_LOG"):
+    """EE.log for the running game, or `FRAMESIGHT_EE_LOG` when set."""
+    if override := os.environ.get("FRAMESIGHT_EE_LOG"):
         return Path(override)
     for prefix in wine_prefixes(process_id(pid)):
         users = prefix / "drive_c/users"
@@ -61,15 +61,15 @@ def ee_log(pid: int | None = None) -> Path:
             for relative in LOG_RELATIVE:
                 if (candidate := user / relative).is_file():
                     return candidate
-    raise SystemExit("EE.log not found; set TENNOSCOPE_EE_LOG to point at it")
+    raise SystemExit("EE.log not found; set FRAMESIGHT_EE_LOG to point at it")
 
 
 def catalog() -> Path:
-    """The relic generation TennoScope caches, or `TENNOSCOPE_CATALOG` when set."""
-    if override := os.environ.get("TENNOSCOPE_CATALOG"):
+    """The relic generation FrameSight caches, or `FRAMESIGHT_CATALOG` when set."""
+    if override := os.environ.get("FRAMESIGHT_CATALOG"):
         return Path(override)
     data = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))
     path = data / "org.warframehelper.app/catalog/relic-generation.json"
     if not path.is_file():
-        raise SystemExit(f"no cached catalog at {path}; run TennoScope once first")
+        raise SystemExit(f"no cached catalog at {path}; run FrameSight once first")
     return path

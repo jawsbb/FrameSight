@@ -12,7 +12,7 @@ It collects three things across every readable mapping:
   * squad identities  -- every occurrence of the account ids of the current reward screen
 
 Usage: scan_response_records.py [pid]
-Output: /tmp/tennoscope-sweep-<pid>-<stamp>.json plus a .bin of the raw records.
+Output: /tmp/framesight-sweep-<pid>-<stamp>.json plus a .bin of the raw records.
 """
 
 from __future__ import annotations
@@ -132,7 +132,7 @@ def main() -> int:
     print(f"pid={pid} regions={len(regions)} squad={identities}", file=sys.stderr)
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    record_blob = Path(f"/tmp/tennoscope-sweep-{pid}-{stamp}.bin")
+    record_blob = Path(f"/tmp/framesight-sweep-{pid}-{stamp}.bin")
     records: list[dict] = []
     paths: dict[str, list[int]] = {}
     identity_hits: dict[str, int] = {identity: 0 for identity in identities}
@@ -195,7 +195,7 @@ def main() -> int:
         "pointer_sites": pointer_sites(pid, regions, paths),
         "record_blob": str(record_blob),
     }
-    out = Path(f"/tmp/tennoscope-sweep-{pid}-{stamp}.json")
+    out = Path(f"/tmp/framesight-sweep-{pid}-{stamp}.json")
     out.write_text(json.dumps(summary, indent=1))
     print(
         f"scanned={scanned / 1e9:.2f}GB in {summary['elapsed_s']}s "

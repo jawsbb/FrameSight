@@ -24,7 +24,7 @@ describe('snapshot freshness', () => {
   it('handles a missing snapshot honestly', () => {
     expect(snapshotFreshness(null, now)).toEqual({
       label: 'No successful sync yet',
-      detail: 'TennoScope has not saved a coherent inventory snapshot.',
+      detail: 'FrameSight has not saved a coherent inventory snapshot.',
     })
   })
 })

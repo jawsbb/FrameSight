@@ -1,12 +1,12 @@
 [Desktop Entry]
 Type=Application
-Name=TennoScope
+Name=FrameSight
 Comment=Local-first Warframe collection and relic companion
-Exec=/usr/bin/tennoscope
-Icon=tennoscope
+Exec=/usr/bin/framesight
+Icon=framesight
 # Keep the window class aligned with the deb/rpm desktop template so every package groups under
 # the launcher icon identically.
-StartupWMClass=tennoscope
+StartupWMClass=framesight
 Terminal=false
 Categories=Utility;Game;
 Keywords=Warframe;Relic;Prime;Void;Ducat;Platinum;

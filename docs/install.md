@@ -1,25 +1,8 @@
 # Install guide
 
-How to install, run and build TennoScope. The [README](../README.md) has the short
-version. Every option below gives you a `tennoscope` command and a desktop entry, except
+How to install, run and build FrameSight. The [README](../README.md) has the short
+version. Every option below gives you a `framesight` command and a desktop entry, except
 the AppImage, which is a single file you run directly.
-
-## Gentoo
-
-TennoScope is packaged in the [`deftera`](https://github.com/Deftera186/deftera-overlay)
-overlay, which is listed in the official Gentoo overlays database:
-
-```bash
-sudo emerge --ask app-eselect/eselect-repository
-sudo eselect repository enable deftera
-sudo emaint sync --repo deftera
-sudo emerge --ask games-util/tennoscope-bin
-```
-
-`tennoscope-bin` unpacks the released binary and installs in seconds.
-`games-util/tennoscope` builds from source instead; it needs `sys-apps/pnpm-bin` from
-`::guru` and a one-off `FEATURES="-network-sandbox"` because pnpm and cargo resolve
-their lockfiles during the build.
 
 ## Arch, Manjaro, EndeavourOS, CachyOS
 
@@ -27,7 +10,7 @@ Any Arch-based distribution with `pacman` and `makepkg`. The recommended route
 repacks the release `.deb`, so it needs no toolchain and installs in seconds:
 
 ```bash
-curl -O https://raw.githubusercontent.com/Deftera186/tennoscope/main/packaging/arch-bin/PKGBUILD && makepkg -si
+curl -O https://raw.githubusercontent.com/jawsbb/FrameSight/main/packaging/arch-bin/PKGBUILD && makepkg -si
 ```
 
 The PKGBUILDs on `main` track the release being prepared and may not build until it is
@@ -37,14 +20,14 @@ To build from source instead, it compiles the full Rust workspace, so it takes a
 `base-devel` is all you need beforehand, since `makepkg -s` pulls the build dependencies itself:
 
 ```bash
-curl -O https://raw.githubusercontent.com/Deftera186/tennoscope/main/packaging/arch/PKGBUILD && makepkg -si
+curl -O https://raw.githubusercontent.com/jawsbb/FrameSight/main/packaging/arch/PKGBUILD && makepkg -si
 ```
 
 On a Steam Deck, `makepkg -si` needs SteamOS's read-only root disabled, and a system
 update undoes the install; the [AppImage](#anything-else-appimage) is the
 low-maintenance route there.
 
-TennoScope is not in the AUR, so `yay -S tennoscope` and `paru -S tennoscope` will not
+FrameSight is not in the AUR, so `yay -S framesight` and `paru -S framesight` will not
 find it. If you would rather your helper drive the build, point it at a directory holding
 the `PKGBUILD`:
 
@@ -54,19 +37,14 @@ paru -B .    # or: yay -B .
 
 ## Debian, Ubuntu, Fedora
 
-Debian and Ubuntu install from this project's APT repository, so updates arrive with
-everything else. The repository is built from stable releases, so it can lag the newest
-release:
+FrameSight has no APT repository or COPR yet, so Debian, Ubuntu and Fedora install the
+package attached to the [latest release](https://github.com/jawsbb/FrameSight/releases/latest)
+and update it the same way:
 
 ```bash
-curl -fsSL https://deftera186.github.io/tennoscope/key.asc | sudo gpg --dearmor -o /usr/share/keyrings/tennoscope.gpg
-echo "deb [signed-by=/usr/share/keyrings/tennoscope.gpg] https://deftera186.github.io/tennoscope stable main" | sudo tee /etc/apt/sources.list.d/tennoscope.list > /dev/null
-sudo apt update
-sudo apt install tenno-scope
+sudo apt install ./FrameSight_*_amd64.deb     # Debian, Ubuntu
+sudo dnf install ./FrameSight-*.x86_64.rpm    # Fedora
 ```
-
-Prereleases reach neither the pool nor `releases/latest`, so the manual download below is a
-stable release.
 
 > [!NOTE]
 > **The `.deb` and the `.rpm` are built on Ubuntu 24.04**, so their binaries need glibc 2.39
@@ -75,30 +53,10 @@ stable release.
 > `version GLIBC_2.39 not found`. On those two, use the [AppImage](#anything-else-appimage),
 > which is built on Ubuntu 22.04 and references nothing past glibc 2.35.
 
-Fedora uses the [COPR](../packaging/copr/README.md):
-
-```bash
-sudo dnf copr enable deftera/tennoscope && sudo dnf install tennoscope
-```
-
-The COPR is submitted by hand, so it can lag the latest release. The `.rpm` on the latest
-stable release is the way around that lag:
-
-```bash
-sudo dnf install ./TennoScope-*.x86_64.rpm    # Fedora, without the COPR
-```
-
-Prefer manual downloads? The `.deb` is on the
-[latest release](https://github.com/Deftera186/tennoscope/releases/latest):
-
-```bash
-sudo apt install ./TennoScope_*_amd64.deb     # Debian, Ubuntu
-```
-
 ## Windows
 
 Download the `.exe` from the
-[latest release](https://github.com/Deftera186/tennoscope/releases/latest) and run it.
+[latest release](https://github.com/jawsbb/FrameSight/releases/latest) and run it.
 It installs for your user only, so there is no UAC prompt, and it carries its own copy of
 Tesseract. There is nothing else to install by hand. The installer fetches the Microsoft
 Edge WebView2 runtime itself on a machine that does not already have it, so the first
@@ -118,18 +76,18 @@ info" then "Run anyway" gets past it.
 > [!IMPORTANT]
 > Set **Display Mode** to **Borderless** in Warframe's options. In exclusive fullscreen
 > the game owns the display outright and no application can draw over it. The
-> collection browser still works, but the reward overlay will not appear. TennoScope
+> collection browser still works, but the reward overlay will not appear. FrameSight
 > says so in its diagnostics panel if it hits this.
 
 ## Anything else: AppImage
 
 ```bash
-chmod +x TennoScope_*_amd64.AppImage
-./TennoScope_*_amd64.AppImage
+chmod +x FrameSight_*_amd64.AppImage
+./FrameSight_*_amd64.AppImage
 ```
 
-Self-contained, no `tennoscope` command. If you want one:
-`ln -s "$PWD"/TennoScope_*_amd64.AppImage ~/.local/bin/tennoscope`.
+Self-contained, no `framesight` command. If you want one:
+`ln -s "$PWD"/FrameSight_*_amd64.AppImage ~/.local/bin/framesight`.
 
 ## The overlay's toolchain
 
@@ -144,16 +102,15 @@ recommendation, not a requirement, so install it if your package manager skipped
 sudo apt install tesseract-ocr tesseract-ocr-eng     # Debian, Ubuntu
 sudo dnf install tesseract tesseract-langpack-eng    # Fedora
 sudo pacman -S tesseract tesseract-data-eng          # Arch
-sudo emerge app-text/tesseract                       # Gentoo
 ```
 
-The `.deb` recommends both, but the `.rpm` and the COPR spec leave out the English data,
+The `.deb` recommends both, but the `.rpm` leaves out the English data,
 so Fedora needs the `tesseract-langpack-eng` line of its own.
 
 Wine's virtual-desktop mode nests the game where the normal window search cannot see it, so
 the X11 path falls back to `xwininfo -root -tree`. Install your distribution's `xwininfo`
 package if you run Warframe that way: `x11-utils` on Debian and Ubuntu, `xwininfo` on Fedora,
-`xorg-xwininfo` on Arch, `x11-apps/xwininfo` on Gentoo. Everything else on that path is
+`xorg-xwininfo` on Arch. Everything else on that path is
 in-process; capture, cropping, thresholding and window geometry never leave the app, and
 ImageMagick is no longer a runtime dependency of the application at all. Outside the reward
 path, the Diagnostics report opens its issue link through `xdg-open`.
@@ -208,11 +165,11 @@ installer. The script exits early if that directory already holds a `tesseract.e
 
 ## Process permissions
 
-On Windows this section does not apply: TennoScope opens the game with
+On Windows this section does not apply: FrameSight opens the game with
 `PROCESS_VM_READ` as the same user that launched it, which needs no elevation and no
 configuration.
 
-On Linux, TennoScope reads `/proc/<pid>/maps` and `/proc/<pid>/mem` of your own game
+On Linux, FrameSight reads `/proc/<pid>/maps` and `/proc/<pid>/mem` of your own game
 process, and resets the soft-dirty page bits through `/proc/<pid>/clear_refs` so a poll
 only rescans the pages the game wrote. On most distributions this works out of the box,
 with nothing to configure: the kernel lets a process inspect others running as the same
@@ -226,7 +183,7 @@ cat /proc/sys/kernel/yama/ptrace_scope
 If the file does not exist, your kernel has no Yama restriction and you are done. `0`
 means the same. `1` restricts inspection to a process's own parent, `2` restricts it to
 processes holding `CAP_SYS_PTRACE`, and `3` stops one process inspecting another at all.
-TennoScope is not Warframe's parent and holds no such capability, so anything above `0`
+FrameSight is not Warframe's parent and holds no such capability, so anything above `0`
 refuses the read. You can lift that until reboot:
 
 ```bash
@@ -235,9 +192,9 @@ sudo sysctl kernel.yama.ptrace_scope=0
 
 That weakens ptrace isolation for every process you own, so decide for yourself whether
 to make it permanent in `/etc/sysctl.conf`. Do not work around the policy by running
-TennoScope as root, making the AppImage setuid, or granting it capabilities.
+FrameSight as root, making the AppImage setuid, or granting it capabilities.
 
-Two requirements apply regardless of Yama: Warframe and TennoScope must run as the same
+Two requirements apply regardless of Yama: Warframe and FrameSight must run as the same
 Unix user, and sandboxed launchers impose `/proc` restrictions that no Yama change will
 fix.
 
@@ -249,11 +206,11 @@ fix.
   against Warframe's game rectangle is verified for ordinary X11/XWayland play. A native-Wayland
   game launched with `PROTON_ENABLE_WAYLAND=1` exposes no game rectangle, so placement uses its
   captured output, depends on the compositor, and assumes Borderless or Fullscreen on one screen.
-  TennoScope shows an explicit display-mode notice when it cannot find the game window.
+  FrameSight shows an explicit display-mode notice when it cannot find the game window.
 - **Overlay placement on Windows** uses a topmost, click-through, never-activated
   window. That beats a borderless game and cannot beat an exclusive-fullscreen one,
   which is why Borderless is a requirement rather than a suggestion. If a driver or
-  overlay conflict leaves the strip invisible, `TENNOSCOPE_OPAQUE_OVERLAY=1` draws it
+  overlay conflict leaves the strip invisible, `FRAMESIGHT_OPAQUE_OVERLAY=1` draws it
   with a solid background instead.
 - **Windows polling costs more than Linux.** There is no `soft-dirty` equivalent, so
   every memory poll rescans every region rather than only the pages the game wrote.

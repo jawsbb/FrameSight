@@ -1,10 +1,10 @@
-# Maintainer: Deftera186 <https://github.com/Deftera186/tennoscope/issues>
-pkgname=tennoscope
+# Maintainer: jawsbb <https://github.com/jawsbb/FrameSight/issues>
+pkgname=framesight
 pkgver=0.13.1
 pkgrel=1
 pkgdesc='Local-first Linux Warframe collection and relic companion'
 arch=('x86_64')
-url='https://github.com/Deftera186/tennoscope'
+url='https://github.com/jawsbb/FrameSight'
 license=('GPL-3.0-only')
 # gtk3 and webkit2gtk-4.1 drag most of the rest in transitively, but the binary links these
 # directly (namcap flags them as "implicitly satisfied"), so name them rather than rely on
@@ -48,7 +48,7 @@ build() {
   pnpm --dir app build
   # tauri/custom-protocol is mandatory: without it generate_context!() bakes in the dev-server
   # URL and the release binary opens a connection-refused WebView.
-  cargo build --release --locked -p tennoscope --features tauri/custom-protocol
+  cargo build --release --locked -p framesight --features tauri/custom-protocol
 }
 
 check() {
@@ -61,9 +61,9 @@ check() {
 
 package() {
   cd "${srcdir}/${pkgname}-${pkgver}"
-  install -Dm755 "${srcdir}/target/release/tennoscope" "${pkgdir}/usr/bin/tennoscope"
-  install -Dm644 packaging/tennoscope.desktop "${pkgdir}/usr/share/applications/tennoscope.desktop"
-  install -Dm644 app/src-tauri/icons/128x128.png "${pkgdir}/usr/share/icons/hicolor/128x128/apps/tennoscope.png"
+  install -Dm755 "${srcdir}/target/release/framesight" "${pkgdir}/usr/bin/framesight"
+  install -Dm644 packaging/framesight.desktop "${pkgdir}/usr/share/applications/framesight.desktop"
+  install -Dm644 app/src-tauri/icons/128x128.png "${pkgdir}/usr/share/icons/hicolor/128x128/apps/framesight.png"
   install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
   install -Dm644 THIRD_PARTY_NOTICES.md "${pkgdir}/usr/share/doc/${pkgname}/THIRD_PARTY_NOTICES.md"
 }

@@ -107,8 +107,8 @@ fn collect_writes_folder_with_report_and_log_copy() {
     let log_dir = dir.path().join("logs");
     fs::create_dir_all(&app_data).expect("appdata");
     fs::create_dir_all(&log_dir).expect("logs");
-    fs::write(log_dir.join("tennoscope.log"), "line one\nline two\n").expect("log");
-    fs::write(log_dir.join("tennoscope.log.1"), "rotated\n").expect("rotated");
+    fs::write(log_dir.join("framesight.log"), "line one\nline two\n").expect("log");
+    fs::write(log_dir.join("framesight.log.1"), "rotated\n").expect("rotated");
 
     let request = ReportRequest {
         meta: meta(&app_data, &log_dir),
@@ -120,9 +120,9 @@ fn collect_writes_folder_with_report_and_log_copy() {
     let folder = PathBuf::from(&result.folder_path);
     assert!(folder.starts_with(app_data.join("reports")));
     assert!(folder.join("report.txt").is_file(), "report.txt written");
-    assert!(folder.join("tennoscope.log").is_file(), "log copied");
+    assert!(folder.join("framesight.log").is_file(), "log copied");
     assert!(
-        folder.join("tennoscope.log.1").is_file(),
+        folder.join("framesight.log.1").is_file(),
         "rotated log copied"
     );
     assert!(!result.ee_log_included, "no EE.log when path is None");
@@ -136,7 +136,7 @@ fn collect_writes_folder_with_report_and_log_copy() {
         "report.txt no longer embeds the log body; the raw log sits beside it"
     );
     assert_eq!(
-        fs::read_to_string(folder.join("tennoscope.log")).unwrap(),
+        fs::read_to_string(folder.join("framesight.log")).unwrap(),
         "line one\nline two\n",
         "the raw log is still copied into the folder"
     );
@@ -149,7 +149,7 @@ fn ee_log_copied_only_when_path_resolves() {
     let log_dir = dir.path().join("logs");
     fs::create_dir_all(&app_data).expect("appdata");
     fs::create_dir_all(&log_dir).expect("logs");
-    fs::write(log_dir.join("tennoscope.log"), "x\n").expect("log");
+    fs::write(log_dir.join("framesight.log"), "x\n").expect("log");
     let ee = dir.path().join("EE.log");
     fs::write(&ee, "session secrets\n").expect("ee log");
 
@@ -176,7 +176,7 @@ fn github_text_never_contains_ee_log_lines() {
     let dir = tempfile::tempdir().expect("temp dir");
     let log_dir = dir.path().join("logs");
     fs::create_dir_all(&log_dir).expect("logs");
-    fs::write(log_dir.join("tennoscope.log"), "app line\n").expect("log");
+    fs::write(log_dir.join("framesight.log"), "app line\n").expect("log");
     let meta = meta(dir.path(), &log_dir);
     let text = assemble_report_text(&meta, "{\"stage\":\"failed\"}", EeLogState::Included)
         .expect("text assembles");
@@ -196,10 +196,10 @@ fn report_text_scrubs_home_and_username_when_under_home() {
         return;
     };
     let home = PathBuf::from(home);
-    let log_dir = home.join(format!(".tennoscope-report-test-{}", std::process::id()));
+    let log_dir = home.join(format!(".framesight-report-test-{}", std::process::id()));
     fs::create_dir_all(&log_dir).expect("dir under home");
     fs::write(
-        log_dir.join("tennoscope.log"),
+        log_dir.join("framesight.log"),
         format!("[WARN] app log lives under {}\n", log_dir.display()),
     )
     .expect("log");
@@ -222,11 +222,11 @@ fn report_text_scrubs_home_and_username_when_under_home() {
 }
 
 #[test]
-fn log_files_lists_only_tennoscope_logs() {
+fn log_files_lists_only_framesight_logs() {
     let dir = tempfile::tempdir().expect("temp dir");
     fs::create_dir_all(dir.path()).expect("dir");
-    fs::write(dir.path().join("tennoscope.log"), "a\n").expect("a");
-    fs::write(dir.path().join("tennoscope.log.1"), "b\n").expect("b");
+    fs::write(dir.path().join("framesight.log"), "a\n").expect("a");
+    fs::write(dir.path().join("framesight.log.1"), "b\n").expect("b");
     fs::write(dir.path().join("other.txt"), "c\n").expect("c");
     let files = log_files(dir.path());
     assert_eq!(files.len(), 2);
@@ -240,7 +240,7 @@ fn old_report_folders_are_pruned() {
     let app_data = dir.path().join("appdata");
     let log_dir = dir.path().join("logs");
     fs::create_dir_all(&log_dir).expect("logs");
-    fs::write(log_dir.join("tennoscope.log"), "line\n").expect("log");
+    fs::write(log_dir.join("framesight.log"), "line\n").expect("log");
     let reports = app_data.join("reports");
     fs::create_dir_all(&reports).expect("reports");
     for stamp in [
@@ -291,7 +291,7 @@ fn old_report_folders_are_pruned() {
 
 fn write_log(log_dir: &std::path::Path, lines: &[&str]) {
     std::fs::create_dir_all(log_dir).unwrap();
-    std::fs::write(log_dir.join("tennoscope.log"), lines.join("\n")).unwrap();
+    std::fs::write(log_dir.join("framesight.log"), lines.join("\n")).unwrap();
 }
 
 #[test]
@@ -401,7 +401,7 @@ fn assemble_report_text_puts_the_environment_between_title_and_diagnostics() {
 
     assert_eq!(
         lines.first(),
-        Some(&"TennoScope 0.5.0 (stable), linux/x86_64, 2026-08-05 14:12:33 UTC"),
+        Some(&"FrameSight 0.5.0 (stable), linux/x86_64, 2026-08-05 14:12:33 UTC"),
         "header was:\n{text}"
     );
     assert_eq!(lines.get(1), Some(&""), "header was:\n{text}");

@@ -235,7 +235,7 @@ pub const ITEM_NOT_OWNED: &str = "This device's collection does not hold that it
 /// only), an Ayatan sculpture whose socketed stars no row knows, a set whose market entry names
 /// the built item rather than the parts actually held. The refusal is backend-side because the
 /// request would be refused by warframe.market anyway, after the request.
-pub const ITEM_NOT_LISTABLE: &str = "That item cannot be listed from TennoScope: warframe.market needs details this app does not ask for";
+pub const ITEM_NOT_LISTABLE: &str = "That item cannot be listed from FrameSight: warframe.market needs details this app does not ask for";
 
 /// The listing a sell may publish, or the reason it is refused.
 ///

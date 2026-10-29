@@ -39,7 +39,7 @@ def main() -> int:
         remaining = delay - (time.monotonic() - started)
         if remaining > 0:
             time.sleep(remaining)
-        out = Path(f"/tmp/tennoscope-screen-{stamp}-{index}.png")
+        out = Path(f"/tmp/framesight-screen-{stamp}-{index}.png")
         subprocess.run(["import", "-window", window, str(out)], check=False)
         print(f"SCREEN_SAVED {out} at +{delay}s", flush=True)
     return 0

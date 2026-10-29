@@ -19,7 +19,7 @@ While the major version is `0`, per semver §4 anything may change, but bumps me
 A fix that restores intended behaviour is a patch, even when the user can see the difference.
 
 Tags are `v`-prefixed: `vX.Y.Z`. The version inside the repository is not. GitHub release titles
-are `TennoScope vX.Y.Z`, the product name followed by the exact tag, and `release.yml` builds
+are `FrameSight vX.Y.Z`, the product name followed by the exact tag, and `release.yml` builds
 that string from the tag itself so the two cannot drift. `X.Y.Z` is a placeholder throughout this
 document: substitute the version you are cutting.
 
@@ -50,14 +50,14 @@ document: substitute the version you are cutting.
 
    Two more carry the version and nothing checks them. `packaging/winget/*.yaml` wants
    `PackageVersion` and `InstallerUrl`, and after step 6 the `InstallerSha256` too;
-   `packaging/copr/tennoscope.spec` wants `Version:` and a `%changelog` entry. The script compares
+   `packaging/copr/framesight.spec` wants `Version:` and a `%changelog` entry. The script compares
    only the five above, so a winget manifest left at the old version ships a pull request whose
    installer is the previous release's.
 
    Then `cargo update --workspace --offline`, so `Cargo.lock` names the new version for every local
    package too. The GitHub release build passes no `--locked`, so it will not catch a lockfile left
    at the old version, and the next cargo call silently rewrites it. The Arch and COPR recipes do
-   pass `--locked` (`packaging/arch/PKGBUILD`, `packaging/copr/tennoscope.spec`) and either one
+   pass `--locked` (`packaging/arch/PKGBUILD`, `packaging/copr/framesight.spec`) and either one
    fails outright on a lockfile that was not updated.
 
 3. **Close the changelog section.** Rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`, open a
@@ -84,10 +84,10 @@ document: substitute the version you are cutting.
 
 6. **Publish the draft.**
 
-7. **Bump the Gentoo overlay.** `games-util/tennoscope-bin` and `games-util/tennoscope` live in
-   [deftera-overlay](https://github.com/Deftera186/deftera-overlay), not here. Both need a checksum
-   of a published artifact, so this can only happen after step 6. Copy the ebuilds to the new
-   version, regenerate the Manifests, run `pkgcheck scan`, and push.
+7. **Bump the Gentoo overlay, once there is one.** FrameSight has none yet
+   ([packaging/gentoo.md](packaging/gentoo.md)). When it does, its ebuilds need a checksum of a
+   published artifact, so this can only happen after step 6: copy the ebuilds to the new version,
+   regenerate the Manifests, run `pkgcheck scan`, and push.
 
 8. **Re-pin both Arch digests.** The `pkgver` bumps in step 2 leave the old `sha256sums` behind,
    and neither digest exists until the tag is pushed and the release workflow has attached its
@@ -103,7 +103,7 @@ document: substitute the version you are cutting.
    ```
 
    The source recipe pins the tag's `v${pkgver}.tar.gz` archive; the `-bin`
-   recipe pins `TennoScope_${pkgver}_amd64.deb` from the release. Commit the
+   recipe pins `FrameSight_${pkgver}_amd64.deb` from the release. Commit the
    refreshed `PKGBUILD`s on top of the release.
 
 9. **Update the remaining install channels.** The workflow attaches the bundles and stops there.

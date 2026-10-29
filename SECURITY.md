@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Report privately through GitHub's [private vulnerability
-reporting](https://github.com/Deftera186/tennoscope/security/advisories/new). Please do not open a
+reporting](https://github.com/jawsbb/FrameSight/security/advisories/new). Please do not open a
 public issue for anything in the categories below.
 
 This is a single-maintainer hobby project. Expect an acknowledgement within a week and a fix when
@@ -11,7 +11,7 @@ one is possible; there is no paid support and no bounty.
 
 ## What counts as a vulnerability here
 
-TennoScope has no server, no account, and no network service, so the usual web threat model does
+FrameSight has no server, no account, and no network service, so the usual web threat model does
 not apply. What matters instead:
 
 - **Leaking session credentials.** The account identifier and nonce read from game memory are live

@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-test_root=$(mktemp -d "${TMPDIR:-/tmp}/tennoscope-windows-check-test.XXXXXX")
+test_root=$(mktemp -d "${TMPDIR:-/tmp}/framesight-windows-check-test.XXXXXX")
 trap 'rm -rf "$test_root"' 0
 trap 'exit 1' HUP INT TERM
 
@@ -46,7 +46,7 @@ chmod +x "$bin_dir/cargo" "$bin_dir/rustup" "$bin_dir/x86_64-w64-mingw32-gcc" "$
 
 env -u CARGO_TARGET_DIR -u LIBCLANG_PATH -u TMPDIR \
   CHECK_WINDOWS_LOG="$log" CHECK_WINDOWS_RUSTUP_LOG="$test_root/rustup.log" \
-  TENNOSCOPE_BUILD_ROOT="$build_root" PATH="$bin_dir:$PATH" \
+  FRAMESIGHT_BUILD_ROOT="$build_root" PATH="$bin_dir:$PATH" \
   "$repo_root/scripts/check-windows.sh"
 
 [ -d "$build_root/windows-target" ] || {
@@ -83,7 +83,7 @@ override_libclang="$test_root/caller-libclang"
 override_log="$test_root/caller.log"
 CHECK_WINDOWS_LOG="$override_log" CHECK_WINDOWS_RUSTUP_LOG="$test_root/rustup.log" \
   CARGO_TARGET_DIR="$override_target" LIBCLANG_PATH="$override_libclang" TMPDIR="$override_tmp" \
-  TENNOSCOPE_BUILD_ROOT="$build_root" PATH="$bin_dir:$PATH" \
+  FRAMESIGHT_BUILD_ROOT="$build_root" PATH="$bin_dir:$PATH" \
   "$repo_root/scripts/check-windows.sh"
 override_actual=$(cat "$override_log")
 case "$override_actual" in
@@ -104,7 +104,7 @@ chmod +x "$bin_dir/node"
 unset_log="$test_root/unset-libclang.log"
 env -u CARGO_TARGET_DIR -u LIBCLANG_PATH -u TMPDIR \
   CHECK_WINDOWS_LOG="$unset_log" CHECK_WINDOWS_RUSTUP_LOG="$test_root/rustup.log" \
-  TENNOSCOPE_BUILD_ROOT="$build_root" PATH="$bin_dir:$PATH" \
+  FRAMESIGHT_BUILD_ROOT="$build_root" PATH="$bin_dir:$PATH" \
   "$repo_root/scripts/check-windows.sh"
 case "$(cat "$unset_log")" in
   *'LIBCLANG_SET=x'*)
@@ -118,7 +118,7 @@ cat >"$bin_dir/rustup" <<'EOF'
 printf '%s\n' x86_64-unknown-linux-gnu
 EOF
 missing_target_error="$test_root/missing-target.err"
-if TENNOSCOPE_BUILD_ROOT="$build_root" PATH="$bin_dir:$PATH" \
+if FRAMESIGHT_BUILD_ROOT="$build_root" PATH="$bin_dir:$PATH" \
   "$repo_root/scripts/check-windows.sh" 2>"$missing_target_error"; then
   echo "Windows preflight accepted a missing Rust target" >&2
   exit 1

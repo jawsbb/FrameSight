@@ -161,7 +161,7 @@ jobs:
           # its key prefix already agreed.
           CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: ${{ contains(github.ref_name, '-') }}
           # Bakes the updater channel into the binary (beta comparator for `-rc` tags).
-          TENNOSCOPE_CHANNEL: ${{ contains(github.ref_name, '-') && 'beta' || 'stable' }}
+          FRAMESIGHT_CHANNEL: ${{ contains(github.ref_name, '-') && 'beta' || 'stable' }}
           # Signs the updater artifacts (`.sig` next to every bundle). The key has no
           # password today, so this is empty -- and it must stay in lockstep with the
           # re-sign step below: the day the key gains a password, both variables change
@@ -337,7 +337,7 @@ jobs:
         env:
           # See the Windows job.
           CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: ${{ contains(github.ref_name, '-') }}
-          TENNOSCOPE_CHANNEL: ${{ contains(github.ref_name, '-') && 'beta' || 'stable' }}
+          FRAMESIGHT_CHANNEL: ${{ contains(github.ref_name, '-') && 'beta' || 'stable' }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
 
@@ -446,7 +446,7 @@ jobs:
         env:
           # See the Windows job.
           CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: ${{ contains(github.ref_name, '-') }}
-          TENNOSCOPE_CHANNEL: ${{ contains(github.ref_name, '-') && 'beta' || 'stable' }}
+          FRAMESIGHT_CHANNEL: ${{ contains(github.ref_name, '-') && 'beta' || 'stable' }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
 
@@ -495,7 +495,7 @@ jobs:
         with:
           # Keep the user-facing title identifiable outside GitHub while spelling the version
           # exactly like the tag documented in RELEASING.md.
-          name: TennoScope ${{ github.ref_name }}
+          name: FrameSight ${{ github.ref_name }}
           draft: true
           # Marked pre-release from the tag itself, so an `-rc`/`-beta` build cannot be presented
           # as stable by accident -- and those are exactly the builds with assertions left on.

@@ -18,7 +18,7 @@ fn main() {
         };
         let error =
             app_lib::linux_renderer::renderer_relaunch_command(&executable, arguments).exec();
-        eprintln!("TennoScope could not apply the NVIDIA WebKit workaround: {error}");
+        eprintln!("FrameSight could not apply the NVIDIA WebKit workaround: {error}");
     }
 
     app_lib::run();

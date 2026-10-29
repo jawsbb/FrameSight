@@ -213,7 +213,7 @@ fn configure_reward_overlay(
     // under `WS_EX_LAYERED` with no layer attributes is the likeliest way `transparent: true` comes
     // out invisible or black on a real Windows machine. Setting a colour makes the strip opaque,
     // uglier but readable, and costs nothing when unset.
-    if std::env::var_os("TENNOSCOPE_OPAQUE_OVERLAY").is_some() {
+    if std::env::var_os("FRAMESIGHT_OPAQUE_OVERLAY").is_some() {
         window.set_background_color(Some(tauri::window::Color(14, 16, 22, 255)))?;
     }
     Ok(())
@@ -253,7 +253,7 @@ pub fn configure_kiosk_overlay(window: &WebviewWindow) -> tauri::Result<()> {
     window.set_focusable(false)?;
     window.set_ignore_cursor_events(true)?;
     window.set_always_on_top(true)?;
-    if std::env::var_os("TENNOSCOPE_OPAQUE_OVERLAY").is_some() {
+    if std::env::var_os("FRAMESIGHT_OPAQUE_OVERLAY").is_some() {
         window.set_background_color(Some(tauri::window::Color(14, 16, 22, 255)))?;
     }
     Ok(())

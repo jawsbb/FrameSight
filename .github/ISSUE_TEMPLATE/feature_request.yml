@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest something TennoScope should do
+description: Suggest something FrameSight should do
 labels: [enhancement]
 body:
   - type: markdown
@@ -18,7 +18,7 @@ body:
     id: problem
     attributes:
       label: The problem
-      description: What are you trying to do that TennoScope makes hard or impossible?
+      description: What are you trying to do that FrameSight makes hard or impossible?
     validations:
       required: true
 

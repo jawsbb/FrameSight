@@ -45,7 +45,7 @@ def main() -> None:
         "captures",
         nargs="*",
         type=Path,
-        default=sorted(Path("/tmp").glob("tennoscope-order-*.json")),
+        default=sorted(Path("/tmp").glob("framesight-order-*.json")),
     )
     args = parser.parse_args()
     summaries = [summary for path in args.captures if (summary := summarize(path))["references"]]

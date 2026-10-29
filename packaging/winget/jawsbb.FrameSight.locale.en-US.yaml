@@ -1,15 +1,15 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
 # Created by https://github.com/microsoft/winget-create
-PackageIdentifier: Deftera186.TennoScope
+PackageIdentifier: jawsbb.FrameSight
 PackageVersion: 0.13.1
 PackageLocale: en-US
-Publisher: Deftera186
-PublisherUrl: https://github.com/Deftera186
-PackageName: TennoScope
-PackageUrl: https://github.com/Deftera186/tennoscope
+Publisher: jawsbb
+PublisherUrl: https://github.com/jawsbb
+PackageName: FrameSight
+PackageUrl: https://github.com/jawsbb/FrameSight
 License: GPL-3.0-only
-LicenseUrl: https://raw.githubusercontent.com/Deftera186/tennoscope/main/LICENSE
+LicenseUrl: https://raw.githubusercontent.com/jawsbb/FrameSight/main/LICENSE
 ShortDescription: Local-first Warframe collection and relic companion
-Moniker: tennoscope
+Moniker: framesight
 ManifestType: defaultLocale
 ManifestVersion: 1.10.0

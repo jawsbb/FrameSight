@@ -32,7 +32,7 @@ function noteText(note: UpdateNote | null, t: Messages): string | null {
 }
 
 function releaseTagUrl(version: string): string {
-  return `https://github.com/Deftera186/tennoscope/releases/tag/v${version}`
+  return `https://github.com/jawsbb/FrameSight/releases/tag/v${version}`
 }
 
 /**

@@ -43,14 +43,14 @@ def window_id() -> str | None:
 
 def reward_screen_visible(window: str) -> bool:
     """True when the reward screen's header is on screen."""
-    subprocess.run(["import", "-window", window, "ppm:/tmp/tennoscope-probe.ppm"], check=False)
+    subprocess.run(["import", "-window", window, "ppm:/tmp/framesight-probe.ppm"], check=False)
     subprocess.run(
-        ["magick", "/tmp/tennoscope-probe.ppm", "-crop", HEADER_CROP, "+repage",
-         "-colorspace", "gray", "-resize", "200%", "/tmp/tennoscope-probe.png"],
+        ["magick", "/tmp/framesight-probe.ppm", "-crop", HEADER_CROP, "+repage",
+         "-colorspace", "gray", "-resize", "200%", "/tmp/framesight-probe.png"],
         check=False,
     )
     text = subprocess.run(
-        ["tesseract", "/tmp/tennoscope-probe.png", "-", "--psm", "7"],
+        ["tesseract", "/tmp/framesight-probe.png", "-", "--psm", "7"],
         capture_output=True, text=True, check=False,
     ).stdout
     return "FISSURE" in text.upper()
@@ -70,7 +70,7 @@ def main() -> None:
         print(f"REWARD_SCREEN_VISIBLE {time.strftime('%H:%M:%S')}", flush=True)
         # Screenshot first so the frame that proved the screen was up is kept alongside the memory.
         subprocess.run(
-            ["import", "-window", window, f"/tmp/tennoscope-visible-{time.strftime('%H%M%S')}.png"],
+            ["import", "-window", window, f"/tmp/framesight-visible-{time.strftime('%H%M%S')}.png"],
             check=False,
         )
         players = subprocess.Popen(["python3", str(CAPTURE)])

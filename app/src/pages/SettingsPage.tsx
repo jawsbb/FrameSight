@@ -222,7 +222,7 @@ function DesktopCaptureSetting({ actionAvailable, prohibited, busy, note, onNote
   </div>
 }
 
-/** What TennoScope is, and what it does to this machine in the current mode. */
+/** What FrameSight is, and what it does to this machine in the current mode. */
 function AboutSection({ effectiveMode }: { effectiveMode: AccessMode }) {
   const t = useMessages()
   const observesGame = effectiveMode !== 'companion'

@@ -19,12 +19,12 @@ if ! command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
   exit 127
 fi
 
-build_root=${TENNOSCOPE_BUILD_ROOT:-/var/tmp/tennoscope-$(id -u)}
+build_root=${FRAMESIGHT_BUILD_ROOT:-/var/tmp/framesight-$(id -u)}
 target_dir=${CARGO_TARGET_DIR:-"$build_root/windows-target"}
 temp_dir=${TMPDIR:-"$build_root/tmp"}
 
 # Direct Cargo invocations do not pass through scripts/tauri.mjs. Reuse its discovery seam so
-# bindgen can reach the Windows-gated TennoScope code on version-slotted LLVM installations.
+# bindgen can reach the Windows-gated FrameSight code on version-slotted LLVM installations.
 if [ "${LIBCLANG_PATH+x}" != x ]; then
   discovered_libclang=$(
     node --input-type=module --eval '

@@ -22,7 +22,7 @@ from pathlib import Path
 import _paths
 
 # (x, y, width, height) of each card's title text, keyed by screenshot size. Calibrated from
-# /tmp/tennoscope-screen-20260726-031440-1.png: four 242px-pitch cards starting at x=478, titles at
+# /tmp/framesight-screen-20260726-031440-1.png: four 242px-pitch cards starting at x=478, titles at
 # y=430. The box is tall enough for a title that wraps to two lines, which means it also catches a
 # few pixels of the divider below; the closed-set match absorbs that trailing noise.
 CARD_BOXES: dict[tuple[int, int], list[tuple[int, int, int, int]]] = {
@@ -74,7 +74,7 @@ def candidate_names() -> list[str]:
 
 def read_card(image: Path, box: tuple[int, int, int, int]) -> str:
     x, y, width, height = box
-    crop = Path("/tmp/tennoscope-ocr-crop.png")
+    crop = Path("/tmp/framesight-ocr-crop.png")
     subprocess.run(
         ["convert", str(image), "-crop", f"{width}x{height}+{x}+{y}", "+repage",
          "-colorspace", "gray", "-resize", "300%", str(crop)],

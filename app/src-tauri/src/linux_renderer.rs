@@ -5,7 +5,7 @@ use std::{
     process::Command,
 };
 
-pub const RELAUNCH_MARKER: &str = "TENNOSCOPE_DMABUF_RELAUNCHED";
+pub const RELAUNCH_MARKER: &str = "FRAMESIGHT_DMABUF_RELAUNCHED";
 const DMABUF_RENDERER: &str = "WEBKIT_DISABLE_DMABUF_RENDERER";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

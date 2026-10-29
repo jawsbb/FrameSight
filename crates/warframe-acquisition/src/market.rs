@@ -23,9 +23,9 @@ const ORDERS_URL: &str = "https://api.warframe.market/v2/orders/item/";
 /// payload does not silently stop every price.
 const MAX_ORDERS_BYTES: usize = 256 * 1024;
 const USER_AGENT: &str = concat!(
-    "TennoScope/",
+    "FrameSight/",
     env!("CARGO_PKG_VERSION"),
-    " (+https://github.com/Deftera186/tennoscope)"
+    " (+https://github.com/jawsbb/FrameSight)"
 );
 
 /// warframe.market's slug for a reward name: lowercase, apostrophes dropped, `&` spelled `and`,

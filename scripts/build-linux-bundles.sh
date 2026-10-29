@@ -223,11 +223,11 @@ assert_authorized_desktop() {
   assert_exact_desktop_field "$desktop_file" "Exec=" "$expected_exec" \
     "the desktop Exec field"
   assert_exact_desktop_field "$desktop_file" "StartupWMClass=" \
-    "StartupWMClass=tennoscope" "the desktop StartupWMClass field"
+    "StartupWMClass=framesight" "the desktop StartupWMClass field"
 }
 
 assert_appimage_runs_on_x11() {
-  appdir="$repo_root/target/release/bundle/appimage/TennoScope.AppDir"
+  appdir="$repo_root/target/release/bundle/appimage/FrameSight.AppDir"
   hook="$appdir/apprun-hooks/linuxdeploy-plugin-gtk.sh"
 
   [ -f "$hook" ] || { echo "generated AppImage GTK hook was not found" >&2; exit 1; }
@@ -252,7 +252,7 @@ assert_appimage_runs_on_x11() {
 # artifact sandboxed as neither owner nor group.
 patch_and_repack_appimage() {
   bundle_dir="$repo_root/target/release/bundle/appimage"
-  appdir="$bundle_dir/TennoScope.AppDir"
+  appdir="$bundle_dir/FrameSight.AppDir"
   cache="${XDG_CACHE_HOME:-$HOME/.cache}/tauri"
   packer="$cache/linuxdeploy-plugin-appimage.AppImage"
   built=$(single_bundle_artifact "$bundle_dir" AppImage)
@@ -267,12 +267,12 @@ patch_and_repack_appimage() {
     exit 1
   }
 
-  appimage_patch_tmp=$(mktemp "${TMPDIR:-/tmp}/tennoscope-desktop.XXXXXX") || {
+  appimage_patch_tmp=$(mktemp "${TMPDIR:-/tmp}/framesight-desktop.XXXXXX") || {
     echo "could not create temporary storage for the AppImage desktop entry" >&2
     exit 1
   }
   awk '
-    /^Exec=/ { print "Exec=tennoscope"; next }
+    /^Exec=/ { print "Exec=framesight"; next }
     !/^X-KDE-DBUS-Restricted-Interfaces=/ { print }
   ' "$desktop" >"$appimage_patch_tmp" || {
     echo "could not apply the AppImage desktop policy" >&2
@@ -289,7 +289,7 @@ patch_and_repack_appimage() {
     echo "the AppImage desktop entry must not claim KWin screenshot permission" >&2
     exit 1
   fi
-  assert_exact_desktop_field "$desktop" "Exec=" "Exec=tennoscope" \
+  assert_exact_desktop_field "$desktop" "Exec=" "Exec=framesight" \
     "the generated AppImage launch command"
   assert_exact_desktop_field "$desktop" "Icon=" "$appimage_icon_line" \
     "the generated AppImage icon"
@@ -315,7 +315,7 @@ patch_and_repack_appimage() {
     echo "the repacked AppImage is not executable: $built" >&2
     exit 1
   }
-  appimage_extract_tmp=$(mktemp -d "${TMPDIR:-/tmp}/tennoscope-appimage.XXXXXX") || {
+  appimage_extract_tmp=$(mktemp -d "${TMPDIR:-/tmp}/framesight-appimage.XXXXXX") || {
     echo "could not create temporary storage to extract the final AppImage" >&2
     exit 1
   }
@@ -328,7 +328,7 @@ patch_and_repack_appimage() {
     echo "the final AppImage desktop entry must not claim KWin screenshot permission" >&2
     exit 1
   fi
-  assert_exact_desktop_field "$extracted_desktop" "Exec=" "Exec=tennoscope" \
+  assert_exact_desktop_field "$extracted_desktop" "Exec=" "Exec=framesight" \
     "the final AppImage launch command"
   assert_exact_desktop_field "$extracted_desktop" "Icon=" "$appimage_icon_line" \
     "the final AppImage icon"
@@ -417,7 +417,7 @@ assert_world_readable_files() {
 assert_deb_artifact() {
   bundle_dir="$repo_root/target/release/bundle/deb"
   built=$(single_bundle_artifact "$bundle_dir" deb)
-  package_listing_tmp=$(mktemp "${TMPDIR:-/tmp}/tennoscope-deb-list.XXXXXX") || {
+  package_listing_tmp=$(mktemp "${TMPDIR:-/tmp}/framesight-deb-list.XXXXXX") || {
     echo "could not create temporary storage for the deb payload listing" >&2
     exit 1
   }
@@ -428,7 +428,7 @@ assert_deb_artifact() {
   assert_single_payload_desktop "$package_listing_tmp"
   rm -f "$package_listing_tmp"
   package_listing_tmp=
-  package_extract_tmp=$(mktemp -d "${TMPDIR:-/tmp}/tennoscope-deb.XXXXXX") || {
+  package_extract_tmp=$(mktemp -d "${TMPDIR:-/tmp}/framesight-deb.XXXXXX") || {
     echo "could not create temporary storage to extract the deb" >&2
     exit 1
   }
@@ -436,7 +436,7 @@ assert_deb_artifact() {
     echo "failed to extract deb artifact $built" >&2
     exit 1
   }
-  assert_single_installed_desktop "$package_extract_tmp" "Exec=/usr/bin/tennoscope"
+  assert_single_installed_desktop "$package_extract_tmp" "Exec=/usr/bin/framesight"
   assert_deb_dependency "$built" "libpipewire-0.3-0"
   rm -rf "$package_extract_tmp"
   package_extract_tmp=
@@ -446,7 +446,7 @@ assert_rpm_artifact() {
   bundle_dir="$repo_root/target/release/bundle/rpm"
   built=$(single_bundle_artifact "$bundle_dir" rpm)
   package_archive_tmp=
-  package_listing_tmp=$(mktemp "${TMPDIR:-/tmp}/tennoscope-rpm-list.XXXXXX") || {
+  package_listing_tmp=$(mktemp "${TMPDIR:-/tmp}/framesight-rpm-list.XXXXXX") || {
     echo "could not create temporary storage for the rpm payload listing" >&2
     exit 1
   }
@@ -457,7 +457,7 @@ assert_rpm_artifact() {
   assert_single_payload_desktop "$package_listing_tmp"
   rm -f "$package_listing_tmp"
   package_listing_tmp=
-  package_extract_tmp=$(mktemp -d "${TMPDIR:-/tmp}/tennoscope-rpm.XXXXXX") || {
+  package_extract_tmp=$(mktemp -d "${TMPDIR:-/tmp}/framesight-rpm.XXXXXX") || {
     echo "could not create temporary storage to extract the rpm" >&2
     exit 1
   }
@@ -465,7 +465,7 @@ assert_rpm_artifact() {
     echo "failed to extract rpm artifact $built" >&2
     exit 1
   }
-  assert_single_installed_desktop "$package_extract_tmp" "Exec=/usr/bin/tennoscope"
+  assert_single_installed_desktop "$package_extract_tmp" "Exec=/usr/bin/framesight"
   assert_rpm_dependency "$built" "pipewire-libs"
   rm -rf "$package_extract_tmp"
   package_extract_tmp=

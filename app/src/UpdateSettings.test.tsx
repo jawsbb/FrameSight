@@ -31,7 +31,7 @@ const system = {
   writable: false,
   updatable: false,
   manager: 'Gentoo (deftera overlay)',
-  manager_command: 'sudo emerge --ask --update games-util/tennoscope-bin',
+  manager_command: 'sudo emerge --ask --update games-util/framesight-bin',
 }
 const update = {
   version: '0.12.0',

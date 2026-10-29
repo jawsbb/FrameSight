@@ -1,5 +1,5 @@
 ---
-name: TennoScope
+name: FrameSight
 description: A quiet, warm-grey desktop companion for Warframe that shows values and states before words.
 colors:
   bg-0: "#1b1a19"
@@ -137,13 +137,13 @@ components:
     padding: "6px 10px"
 ---
 
-# Design System: TennoScope
+# Design System: FrameSight
 
 ## Overview
 
 **Creative North Star: "A Quiet Desktop Tool"**
 
-TennoScope is a companion read between missions and glanced at during them. The main window is drawn like a recent dark desktop app: the title bar and a floating icon rail sit on the window's own ground, and the page is one lighter panel, inset by 8px with a 10px corner, whose ground warms faintly toward its foot. What the page holds comes in raised groups made of rows (what a row is on the left, its value or control on the right) split by hairlines that are barely there, each group named by a small grey title above it. The item grid stays the screen on Collection (and its To master mode, the mastery checklist): dense, but its cards are borderless raised tiles.
+FrameSight is a companion read between missions and glanced at during them. The main window is drawn like a recent dark desktop app: the title bar and a floating icon rail sit on the window's own ground, and the page is one lighter panel, inset by 8px with a 10px corner, whose ground warms faintly toward its foot. What the page holds comes in raised groups made of rows (what a row is on the left, its value or control on the right) split by hairlines that are barely there, each group named by a small grey title above it. The item grid stays the screen on Collection (and its To master mode, the mastery checklist): dense, but its cards are borderless raised tiles.
 
 The world is warm grey and almost colourless. Neutral greys carry the structure; one soft blue marks a switch that is on, keyboard focus, the selected segment of a tab control and the one primary action on a screen. The two currencies, platinum and gold, colour currency values and nothing else; ok, warn and danger say state, always next to a word or a shape. Type is the system sans at a 13px base with 20px semibold page titles; versions and shell commands are set in monospace.
 
@@ -213,7 +213,7 @@ Warm greys with a hint of brown, one soft blue, two currency metals and three st
 
 ## Layout
 
-The main window is a two-by-two grid: a 36px title bar (44px under a coarse pointer) across the top, the icon rail on the left, and the content panel (margin 0 8px 8px 0, padding 22px 28px 48px, page capped at 120rem). The rail is its own panel (`bg-1`, hairline edge, 10px corner, 6px padding, margin 0 8px 8px): the pages at the top (Dashboard, the page the app opens on; Collection; Relics, Foundry, Market, Farm & sales, Rewards, Orders), Diagnostics and Settings at its foot, then under a hairline the reader state, Refresh inventory and the update mark. The title bar carries the TennoScope mark over the rail's centre line, and on its right the warframe.market status before the window controls.
+The main window is a two-by-two grid: a 36px title bar (44px under a coarse pointer) across the top, the icon rail on the left, and the content panel (margin 0 8px 8px 0, padding 22px 28px 48px, page capped at 120rem). The rail is its own panel (`bg-1`, hairline edge, 10px corner, 6px padding, margin 0 8px 8px): the pages at the top (Dashboard, the page the app opens on; Collection; Relics, Foundry, Market, Farm & sales, Rewards, Orders), Diagnostics and Settings at its foot, then under a hairline the reader state, Refresh inventory and the update mark. The title bar carries the FrameSight mark over the rail's centre line, and on its right the warframe.market status before the window controls.
 
 A page is a vertical stack with 12px gaps. The page head puts the title and, on its right, its tabs (the ownership filter) or its actions (Refresh orders, Unlink); under them one line of figures in dim text separated by middle dots; then the page note. Collection follows with one toolbar row (search, sort, ducat switch), one row of category words with the price state and action on its right, and the grid: auto-fill, 14.5rem minimum, 8px gap. Settings, Diagnostics and Orders are made of groups: a 12px grey title, the group, an optional footnote, 16px between sections. The Dashboard reads the game's world: a row of cycle tiles (the place's scene from the wiki behind its words, darkened toward the text, dimmer at night), then two columns of unequal weight, the void fissures on the left (each row led by its era's relic, the enemy's faction mark before the node) and on the right Today (each row led by a 36px well holding the sortie, archon or Baro mark), the bounty rotations (a row per open world, its scene in the well, each tier a tag of its levels in dim tabular figures and its letter in text colour, the vaults on their own line, the time until the cycle turns on the title line) and the endless rotations (a group of mission-left, marks-right rows: each letter in text colour before its counts, the unit faint at the end), one column below 900px. On Collection, a copy gained this game session carries an accent-blue "+N this session" tag, and the This session tab says since when. On Farm & sales, a bounty table running now carries a tag saying until when, and a drop's name opens the item sheet. Every picture is decoration with an empty alt and steps aside when it does not load.
 

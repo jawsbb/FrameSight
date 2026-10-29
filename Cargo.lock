@@ -1632,6 +1632,51 @@ dependencies = [
 ]
 
 [[package]]
+name = "framesight"
+version = "0.13.1"
+dependencies = [
+ "app-core",
+ "ashpd",
+ "atomicwrites",
+ "dirs",
+ "gtk",
+ "image",
+ "libspa",
+ "libwayshot-xcap",
+ "local-store",
+ "log",
+ "pipewire",
+ "regex",
+ "rustix 1.1.4",
+ "semver",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-log",
+ "tauri-plugin-notification",
+ "tauri-plugin-opener",
+ "tauri-plugin-process",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-updater",
+ "tempfile",
+ "time",
+ "tokio",
+ "url",
+ "warframe-acquisition",
+ "warframe-domain",
+ "warframe-market",
+ "warframe-status",
+ "wayland-client",
+ "wayland-protocols",
+ "win-capture",
+ "xcap",
+ "xcb",
+ "zbus",
+]
+
+[[package]]
 name = "futures-channel"
 version = "0.3.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5830,50 +5875,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fed54709c5b3a53d09bb1c113ea4f5ceafd1e772ddcb0030a82e1d56c087b08"
 dependencies = [
  "new_debug_unreachable",
-]
-
-[[package]]
-name = "tennoscope"
-version = "0.13.1"
-dependencies = [
- "app-core",
- "ashpd",
- "atomicwrites",
- "gtk",
- "image",
- "libspa",
- "libwayshot-xcap",
- "local-store",
- "log",
- "pipewire",
- "regex",
- "rustix 1.1.4",
- "semver",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-log",
- "tauri-plugin-notification",
- "tauri-plugin-opener",
- "tauri-plugin-process",
- "tauri-plugin-single-instance",
- "tauri-plugin-updater",
- "tempfile",
- "time",
- "tokio",
- "url",
- "warframe-acquisition",
- "warframe-domain",
- "warframe-market",
- "warframe-status",
- "wayland-client",
- "wayland-protocols",
- "win-capture",
- "xcap",
- "xcb",
- "zbus",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build (or extend) the TennoScope APT repository: pool + Packages index +
+# Build (or extend) the FrameSight APT repository: pool + Packages index +
 # signed Release files. Re-run per release against a checkout of the repo
 # branch (gh-pages); existing pool entries are kept, indexes regenerated.
 set -eu
@@ -86,8 +86,8 @@ for dirpath, _, filenames in os.walk(dist):
                         hashlib.md5(blob).hexdigest(),
                         hashlib.sha256(blob).hexdigest()))
 lines = [
-    "Origin: TennoScope",
-    "Label: TennoScope",
+    "Origin: FrameSight",
+    "Label: FrameSight",
     f"Suite: {suite}",
     f"Codename: {suite}",
     f"Date: {email.utils.formatdate(_time.time(), usegmt=True)}",

@@ -184,7 +184,7 @@ pub fn assemble_report_text(
         .or_else(|| std::env::var_os("USERNAME"))
         .and_then(|user| user.into_string().ok());
     let mut text = format!(
-        "TennoScope {} ({}), {}, {}\n\n",
+        "FrameSight {} ({}), {}, {}\n\n",
         meta.version, meta.profile, meta.os_arch, meta.timestamp
     );
     let (rect_source, frame_backend) = crate::reward_capture::last_capture_sources();
@@ -297,7 +297,7 @@ pub fn log_files(log_dir: &Path) -> Vec<PathBuf> {
                 && path
                     .file_name()
                     .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.starts_with("tennoscope.log"))
+                    .is_some_and(|name| name.starts_with("framesight.log"))
         })
         .collect();
     files.sort();
@@ -420,10 +420,10 @@ fn civil_from_days(days: i64) -> (i64, u32, u32) {
 /// only in its timestamp and level prefix, so collapsing keys on the message,
 /// not the whole line. Reads the last `LOG_TAIL_WINDOW_BYTES` of the log so a
 /// 256 KiB shock absorber keeps the read bounded. `log_dir` is
-/// `ReportMeta::log_dir` and `tennoscope.log` lives there; a missing file
+/// `ReportMeta::log_dir` and `framesight.log` lives there; a missing file
 /// yields an empty list (the report section explains itself when empty).
 pub fn log_error_tail(log_dir: &Path) -> Vec<String> {
-    let path = log_dir.join("tennoscope.log");
+    let path = log_dir.join("framesight.log");
     let Ok(bytes) = fs::read(&path) else {
         return Vec::new();
     };

@@ -207,7 +207,7 @@ fn capture_ambiguous_graph(process: &GameProcess, candidates: &[(usize, Containe
         .unwrap_or_default()
         .as_millis();
     let path = std::env::temp_dir().join(format!(
-        "tennoscope-ui-ambiguity-{}-{timestamp}.json",
+        "framesight-ui-ambiguity-{}-{timestamp}.json",
         process.pid()
     ));
     if let Ok(bytes) = serde_json::to_vec(candidates) {

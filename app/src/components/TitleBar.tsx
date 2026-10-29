@@ -45,7 +45,7 @@ export function TitleBar({ children }: { children?: ReactNode }) {
   return <header className="titlebar" data-tauri-drag-region="deep">
     <span className="brand">
       <svg className="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/><path d="M12 1.75v4.5M12 17.75v4.5M1.75 12h4.5M17.75 12h4.5"/></svg>
-      <span className="wordmark">TennoScope</span>
+      <span className="wordmark">FrameSight</span>
     </span>
     {children}
     <WindowControls/>

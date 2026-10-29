@@ -21,7 +21,7 @@ The sandbox denies exactly what the app is:
 
 Companion is the mode that needs none of it: catalog, saved collection, prices and ducats,
 with nothing read from Warframe. It could ship under the same name, which would confuse
-every installer who came for the overlay, or as a separate `...tennoscope-companion` ID,
+every installer who came for the overlay, or as a separate `...framesight-companion` ID,
 which doubles the maintenance for the least capable edition. Neither earns its place while
 COPR, the APT repository, the Gentoo overlay and the Arch recipes already give every
 supported platform a route. The winget manifest is submitted upstream but not merged, and

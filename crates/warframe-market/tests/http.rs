@@ -5,9 +5,9 @@ use warframe_market::{MarketHttp, USER_AGENT};
 /// author to stop if it misbehaves. An anonymous client is one they can only block.
 #[test]
 fn the_user_agent_names_this_application_and_its_home() {
-    assert!(USER_AGENT.starts_with("TennoScope/"), "{USER_AGENT}");
+    assert!(USER_AGENT.starts_with("FrameSight/"), "{USER_AGENT}");
     assert!(
-        USER_AGENT.contains("github.com/Deftera186/tennoscope"),
+        USER_AGENT.contains("github.com/jawsbb/FrameSight"),
         "{USER_AGENT}"
     );
 }

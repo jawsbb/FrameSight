@@ -4,7 +4,7 @@
 //! account without destroying a listing its owner wanted, so the two writes are covered against a
 //! fake transport instead and are not attempted here.
 //!
-//! Reads its token from `TENNOSCOPE_LIVE_MARKET_TOKEN`, so nothing about an account reaches this
+//! Reads its token from `FRAMESIGHT_LIVE_MARKET_TOKEN`, so nothing about an account reaches this
 //! repository. Output is counts and states only: no order, item, price, or account identifier.
 
 use std::env;
@@ -13,10 +13,10 @@ use warframe_acquisition::RequestPacer;
 use warframe_market::{MarketHttp, MarketItems, MarketToken, list_mine, verify_token};
 
 #[test]
-#[ignore = "requires a warframe.market token in TENNOSCOPE_LIVE_MARKET_TOKEN and network access"]
+#[ignore = "requires a warframe.market token in FRAMESIGHT_LIVE_MARKET_TOKEN and network access"]
 fn live_market_account_reads_without_changing_anything() {
-    let Ok(raw) = env::var("TENNOSCOPE_LIVE_MARKET_TOKEN") else {
-        panic!("set TENNOSCOPE_LIVE_MARKET_TOKEN to run this test");
+    let Ok(raw) = env::var("FRAMESIGHT_LIVE_MARKET_TOKEN") else {
+        panic!("set FRAMESIGHT_LIVE_MARKET_TOKEN to run this test");
     };
     let token = MarketToken::new(raw);
     let transport = MarketHttp::new(RequestPacer::new()).expect("transport builds");

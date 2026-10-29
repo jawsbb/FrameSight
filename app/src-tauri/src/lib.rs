@@ -39,6 +39,7 @@ mod kiosk_log;
 mod kiosk_ocr;
 mod kiosk_scroll;
 mod kiosk_view;
+mod legacy_data;
 #[cfg(target_os = "linux")]
 pub mod linux_renderer;
 pub mod market_account;
@@ -2398,6 +2399,14 @@ pub fn run() {
     if std::env::var_os("DISPLAY").is_some() {
         gtk::gdk::set_allowed_backends("x11");
     }
+    let context = tauri::generate_context!();
+    // Before anything opens a path under the identifier, webviews included: the main window's
+    // local storage lives there too, and Tauri creates the configured windows before `setup`.
+    let bases: Vec<_> = [dirs::data_dir(), dirs::data_local_dir()]
+        .into_iter()
+        .flatten()
+        .collect();
+    let adopted = legacy_data::adopt(&bases, &context.config().identifier);
     let builder = tauri::Builder::default().plugin(tauri_plugin_process::init());
     // The updater serves desktop bundles only (AppImage, NSIS); its dependency
     // is absent on mobile, so registration gates together with the module.
@@ -2428,13 +2437,13 @@ pub fn run() {
                 window.app_handle().exit(0);
             }
         })
-        .setup(|app| {
+        .setup(move |app| {
             // The file target keeps debug traces in dev builds and trims to Info in stable
             // releases: per-OCR-attempt debug lines land every 200 ms, and with only 5 MiB
             // per rotated file a stable session of hours would otherwise keep just the last
             // minutes of history, the very window the report block exists to serve.
             let file = tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
-                file_name: Some("tennoscope.log".to_owned()),
+                file_name: Some("framesight.log".to_owned()),
             });
             let mut targets = vec![if cfg!(debug_assertions) {
                 file
@@ -2453,14 +2462,14 @@ pub fn run() {
                     //
                     // `app_lib` is the one that matters and the one that was missing: the log
                     // target is the *library* name from `[lib]`, not the package name, so naming
-                    // only `tennoscope` filtered out every reward diagnostic there is:
+                    // only `framesight` filtered out every reward diagnostic there is:
                     // `[DEBUG-capture]`, `[DEBUG-card]` and `[DEBUG-poller]` all log from this
                     // crate's lib. The 2026-08-20 report is what that costs: a wall of identical
                     // `poll failed` warnings and no way to see which monitor was captured or what
-                    // the cards actually read. `tennoscope` stays because the binary logs under it.
+                    // the cards actually read. `framesight` stays because the binary logs under it.
                     .level(log::LevelFilter::Info)
                     .level_for("app_lib", log::LevelFilter::Debug)
-                    .level_for("tennoscope", log::LevelFilter::Debug)
+                    .level_for("framesight", log::LevelFilter::Debug)
                     .level_for("app_core", log::LevelFilter::Debug)
                     .level_for("warframe_acquisition", log::LevelFilter::Debug)
                     .level_for("warframe_market", log::LevelFilter::Debug)
@@ -2469,6 +2478,14 @@ pub fn run() {
                     .targets(targets)
                     .build(),
             )?;
+            match &adopted {
+                Ok(directories) => {
+                    for directory in directories {
+                        log::info!("copied TennoScope's data to {}", directory.display());
+                    }
+                }
+                Err(error) => log::error!("TennoScope's data could not be copied: {error}"),
+            }
             // Before anything can read a reward screen: the NSIS bundle ships Tesseract under the
             // resource directory so a Windows player installs one thing, not two.
             if let Ok(resources) = app.path().resource_dir() {
@@ -2567,7 +2584,7 @@ pub fn run() {
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             update::update_download_and_install
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
 

@@ -12,13 +12,13 @@ The artifact is written under `target/release/bundle/appimage/`, and the helper 
 build unless the result is executable. Run it as the same Unix user that runs Warframe:
 
 ```bash
-chmod +x TennoScope_*_amd64.AppImage
-./TennoScope_*_amd64.AppImage
+chmod +x FrameSight_*_amd64.AppImage
+./FrameSight_*_amd64.AppImage
 ```
 
 The helper does three things to this artifact that Tauri does not. The generated
-desktop entry is rewritten to a PATH-resolved `Exec=tennoscope`, because the
-`/usr/bin/tennoscope` the native desktop template needs does not exist on another host, and
+desktop entry is rewritten to a PATH-resolved `Exec=framesight`, because the
+`/usr/bin/framesight` the native desktop template needs does not exist on another host, and
 the KWin permission key is stripped out of it. `usr/lib/libwayland-client.so.0` is then
 deleted from the AppDir: Tauri pins a 2024 linuxdeploy whose excludelist predates that
 library, and the older bundled copy cannot drive the host's Mesa EGL vendor. World
@@ -69,7 +69,7 @@ the distribution's FUSE 2 compatibility package. For a one-off fallback, AppImag
 extraction-and-run mode:
 
 ```bash
-APPIMAGE_EXTRACT_AND_RUN=1 ./TennoScope_*_amd64.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./FrameSight_*_amd64.AppImage
 ```
 
 The AppImage does not bypass `/proc` or Yama restrictions, does not contain Warframe, and

@@ -4,20 +4,20 @@ This directory is for people building or repackaging TennoScope. If you only wan
 the [README's install section](../README.md#install) is shorter.
 
 A release attaches the AppImage, Debian (`.deb`) and RPM (`.rpm`) bundles Tauri generates, and a
-Windows NSIS installer. Beyond those:
+Windows NSIS installer. Those are the only channels FrameSight publishes today. The recipes below
+were TennoScope's channels; they carry FrameSight's names but none is published under them yet,
+each waiting on an account or a key of the project's own:
 
-- **Gentoo**: packaged in the [`deftera`](https://github.com/Deftera186/deftera-overlay) overlay,
-  which is in the official overlays database. See [gentoo.md](gentoo.md).
 - **Arch**: [`arch/PKGBUILD`](arch/PKGBUILD) builds from the release tarball, and
   [`arch-bin/PKGBUILD`](arch-bin/PKGBUILD) repacks the release `.deb` for a fast
-  install with no toolchain. No AUR package is published, so the [AppImage](appimage.md) is
-  the route that always works. [arch.md](arch.md) documents the window and the digest rules
-  that go with it.
-- **Fedora**: a [`COPR`](https://copr.fedorainfracloud.org/coprs/deftera/tennoscope/) project;
-  see [copr/README.md](copr/README.md).
-- **Debian/Ubuntu**: this project's APT repository, published from each release's `.deb`;
-  see [apt/README.md](apt/README.md).
-- **Windows**: [`winget`](winget.md) manifests for submission to `winget-pkgs`.
+  install with no toolchain. Both work from a checkout once the release exists; no AUR package is
+  published. [arch.md](arch.md) documents the window and the digest rules that go with it.
+- **Fedora**: a COPR spec, waiting on a COPR project; see [copr/README.md](copr/README.md).
+- **Debian/Ubuntu**: an APT repository on the `gh-pages` branch, waiting on its GPG key; see
+  [apt/README.md](apt/README.md). Its workflow runs by hand only until that key is set.
+- **Gentoo**: TennoScope's ebuilds live in an overlay outside this repository, and FrameSight has
+  none. See [gentoo.md](gentoo.md).
+- **Windows**: [`winget`](winget.md) manifests, not yet submitted to `winget-pkgs`.
 
 Release artifacts are minisign-signed for the in-app updater. The key is `plugins.updater.pubkey`
 in [`../app/src-tauri/tauri.conf.json`](../app/src-tauri/tauri.conf.json), and the release workflow

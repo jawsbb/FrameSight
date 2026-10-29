@@ -46,7 +46,7 @@ static SCRATCH: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new
 fn scratch_file() -> PathBuf {
     let ticket = SCRATCH.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     std::env::temp_dir().join(format!(
-        "tennoscope-kiosk-crop-{}-{ticket}.png",
+        "framesight-kiosk-crop-{}-{ticket}.png",
         std::process::id()
     ))
 }

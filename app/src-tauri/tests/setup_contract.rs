@@ -117,7 +117,7 @@ fn corrupt_or_unknown_setup_state_fails_closed() {
 }
 
 #[test]
-fn tennoscope_uses_new_names_for_fresh_local_data() {
+fn framesight_uses_new_names_for_fresh_local_data() {
     let directory = tempdir().unwrap();
 
     let paths = resolve_local_paths(directory.path());

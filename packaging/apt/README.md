@@ -1,9 +1,15 @@
 # APT repository (Debian/Ubuntu)
 
+> [!NOTE]
+> Not published yet. `key.asc` is still TennoScope's key, whose private half FrameSight does not
+> hold, so the workflow runs only from its `workflow_dispatch` button until a FrameSight key
+> replaces it (see Keys) and the `APT_SIGNING_KEY` secret is set; then restore its `release`
+> trigger.
+
 Published from the release `.deb`s to the `gh-pages` branch by
-`.github/workflows/apt.yml` on every published stable release, and served at
-`https://deftera186.github.io/tennoscope` (`stable` suite, `main` component). The
-package is `tenno-scope`; the workflow refuses to publish a `.deb` that names anything
+`.github/workflows/apt.yml`, and served at
+`https://jawsbb.github.io/FrameSight` (`stable` suite, `main` component). The
+package is `frame-sight`; the workflow refuses to publish a `.deb` that names anything
 else, because a renamed bundle would otherwise reach users as a `Packages` index they
 cannot install from.
 
@@ -28,7 +34,7 @@ workflow re-signs the whole repository.
 1. The branch has a new commit, so `dists/stable/InRelease` carries a fresh `Date` and
    a fresh signature and the old index cannot survive.
 2. The new version is in `dists/stable/main/binary-amd64/Packages` under
-   `Package: tenno-scope`.
+   `Package: frame-sight`.
 3. From a Debian or Ubuntu client, the install guide's `key.asc` URL resolves and
    `apt update` offers the new version.
 

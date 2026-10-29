@@ -124,6 +124,16 @@ see the difference.
   them, since that is also what screen reading matches, and the Diagnostics health messages
   stay in English, because the backend composes them from live values.
 
+### Changed
+
+- **TennoScope is now FrameSight.** The app, its binary (`framesight`), its packages
+  (`frame-sight` on Debian and Ubuntu) and its identifier (`io.github.jawsbb.framesight`) carry
+  the new name, and updates come from `github.com/jawsbb/FrameSight`. The first launch copies a
+  TennoScope install's data directory, so the collection, access level, settings, local
+  preferences and warframe.market link carry over; the TennoScope directory is left in place.
+  The APT repository, the COPR, Gentoo overlay and winget package were TennoScope's and do not
+  serve FrameSight yet; the release's AppImage, `.deb`, `.rpm` and Windows installer do.
+
 ### Fixed
 
 - **The warframe.market status switch reaches the site again.** The presence socket's handshake

@@ -1,15 +1,18 @@
 # COPR (Fedora) packaging
 
-Project: [`deftera/tennoscope`](https://copr.fedorainfracloud.org/coprs/deftera/tennoscope/),
-built in the `fedora-43-x86_64` and `fedora-44-x86_64` chroots. COPR signs the packages it
+> [!NOTE]
+> FrameSight has no COPR project yet. The commands below name `jawsbb/framesight`, the project to
+> create; until it exists they fail, and `deftera/tennoscope` serves TennoScope, not this fork.
+
+Project: `jawsbb/framesight`, built in the `fedora-43-x86_64` and `fedora-44-x86_64` chroots. COPR signs the packages it
 builds itself, so nothing in this repository holds a packaging key: the spec has no signing
 section and no key file lives under `packaging/copr/`.
 
 ## What the project serves
 
 This COPR builds only what has been submitted to it, and submission is manual, so it can lag
-the newest release. `sudo dnf install tennoscope` installs the newest build the COPR holds; the
-[packages page](https://copr.fedorainfracloud.org/coprs/deftera/tennoscope/packages/) lists
+the newest release. `sudo dnf install framesight` installs the newest build the COPR holds; the
+[packages page](https://copr.fedorainfracloud.org/coprs/jawsbb/framesight/packages/) lists
 that version and its build status. To take a release the COPR has not caught up with, install
 the `.rpm` off that release:
 
@@ -47,7 +50,7 @@ cargo vendor vendor
 tar -I 'zstd -12' -cf ~/rpmbuild/SOURCES/tennoscope-vendor-<ver>.tar.zst vendor
 cp packaging/copr/tennoscope.spec ~/rpmbuild/SPECS/
 rpmbuild -bs ~/rpmbuild/SPECS/tennoscope.spec
-copr-cli build deftera/tennoscope ~/rpmbuild/SRPMS/tennoscope-<ver>-*.src.rpm
+copr-cli build jawsbb/framesight ~/rpmbuild/SRPMS/framesight-<ver>-*.src.rpm
 ```
 
 The spec unpacks both tars in `%prep` and writes the `.cargo/config.toml` and the
@@ -57,7 +60,7 @@ to be staged.
 Users enable it with:
 
 ```bash
-sudo dnf copr enable deftera/tennoscope && sudo dnf install tennoscope
+sudo dnf copr enable jawsbb/framesight && sudo dnf install framesight
 ```
 
 ## Notes

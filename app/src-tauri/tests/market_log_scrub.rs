@@ -47,9 +47,9 @@ fn token_never_reaches_the_log() {
         .expect("token adopts");
     session.forget().expect("forget clears");
 
-    let path = std::env::var_os("TENNOSCOPE_DEBUG_LOG")
+    let path = std::env::var_os("FRAMESIGHT_DEBUG_LOG")
         .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::env::temp_dir().join("tennoscope-test.log"));
+        .unwrap_or_else(|| std::env::temp_dir().join("framesight-test.log"));
     let mut log_text = String::new();
     std::fs::File::open(&path)
         .expect("test log exists")

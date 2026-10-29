@@ -166,7 +166,7 @@ describe('Dashboard', () => {
     await settle()
     expect(notification.requestPermission).toHaveBeenCalledOnce()
     expect(bell).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('alert')).toHaveTextContent('The system refused notifications to TennoScope.')
+    expect(screen.getByRole('alert')).toHaveTextContent('The system refused notifications to FrameSight.')
     expect(localStorage.getItem('tennoscope.fissure-alerts')).toBe('false')
 
     notification.requestPermission.mockResolvedValue('granted')

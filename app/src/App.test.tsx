@@ -192,7 +192,7 @@ describe('MVP desktop interface', () => {
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Choose Warframe access' })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'What may TennoScope observe?' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'What may FrameSight observe?' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('radio', { name: /Full/ }))
     expect(screen.getByRole('radio', { name: /Full/ })).toBeChecked()
     expect(backend.setAccessMode).not.toHaveBeenCalled()
@@ -321,7 +321,7 @@ describe('MVP desktop interface', () => {
 
     expect(screen.getByRole('status', { name: 'Applying Companion' })).toHaveTextContent('Applying Companion…')
     expect(screen.getByText('Nothing changes until you confirm.')).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'What may TennoScope observe?' })).toBeDisabled()
+    expect(screen.getByRole('group', { name: 'What may FrameSight observe?' })).toBeDisabled()
     await act(async () => { transition.resolve({ setup_complete: true, access_mode: 'companion', desktop_capture_action_available: false }) })
   })
 

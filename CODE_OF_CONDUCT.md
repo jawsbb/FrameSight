@@ -58,7 +58,7 @@ an appointed representative at an online or offline event.
 Instances of abusive, harassing, or otherwise unacceptable behavior go to the maintainer through
 the same private channel a vulnerability report uses, and [SECURITY.md](SECURITY.md) is where that
 channel is described: GitHub's [private vulnerability
-reporting](https://github.com/Deftera186/tennoscope/security/advisories/new). A report sent there
+reporting](https://github.com/jawsbb/FrameSight/security/advisories/new). A report sent there
 reaches the maintainer alone. Opening a public issue to report conduct is not a private report,
 and for a harassment report that is the harm itself.
 

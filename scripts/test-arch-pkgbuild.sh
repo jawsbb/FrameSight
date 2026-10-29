@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd)
-test_root=$(mktemp -d "${TMPDIR:-/tmp}/tennoscope-arch-pkgbuild-test.XXXXXX")
+test_root=$(mktemp -d "${TMPDIR:-/tmp}/framesight-arch-pkgbuild-test.XXXXXX")
 trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 
 bin_dir="$test_root/bin"
@@ -40,7 +40,7 @@ check
 
 mapfile -t cargo_commands < <(sed -n 's/^ARGS=//p' "$log")
 if [[ ${#cargo_commands[@]} -ne 2 ||
-      ${cargo_commands[0]} != 'build --release --locked -p tennoscope --features tauri/custom-protocol ' ||
+      ${cargo_commands[0]} != 'build --release --locked -p framesight --features tauri/custom-protocol ' ||
       ${cargo_commands[1]} != 'test --workspace --locked ' ]]; then
   printf 'Arch harness did not exercise build() immediately before check():\n%s\n' "$(cat "$log")" >&2
   exit 1
@@ -73,29 +73,29 @@ esac
 (
   # shellcheck source=/dev/null
   source "$repo_root/packaging/arch-bin/PKGBUILD"
-  [[ $pkgname == tennoscope-bin ]] || {
-    printf 'arch-bin pkgname must be tennoscope-bin; got: %s\n' "$pkgname" >&2
+  [[ $pkgname == framesight-bin ]] || {
+    printf 'arch-bin pkgname must be framesight-bin; got: %s\n' "$pkgname" >&2
     exit 1
   }
-  # Word match: tennoscope-bin itself contains tennoscope, which must not count.
+  # Word match: framesight-bin itself contains framesight, which must not count.
   case " ${provides[*]:-} " in
-    *' tennoscope '*) ;;
+    *' framesight '*) ;;
     *)
-      printf 'arch-bin provides must contain tennoscope; got: %s\n' "${provides[*]:-}" >&2
+      printf 'arch-bin provides must contain framesight; got: %s\n' "${provides[*]:-}" >&2
       exit 1
       ;;
   esac
   case " ${conflicts[*]:-} " in
-    *' tennoscope '*) ;;
+    *' framesight '*) ;;
     *)
-      printf 'arch-bin conflicts must contain tennoscope; got: %s\n' "${conflicts[*]:-}" >&2
+      printf 'arch-bin conflicts must contain framesight; got: %s\n' "${conflicts[*]:-}" >&2
       exit 1
       ;;
   esac
   case "${source[0]}" in
-    *"TennoScope_${pkgver}_amd64.deb") ;;
+    *"FrameSight_${pkgver}_amd64.deb") ;;
     *)
-      printf 'arch-bin source must end TennoScope_%s_amd64.deb; got: %s\n' "$pkgver" "${source[*]}" >&2
+      printf 'arch-bin source must end FrameSight_%s_amd64.deb; got: %s\n' "$pkgver" "${source[*]}" >&2
       exit 1
       ;;
   esac
