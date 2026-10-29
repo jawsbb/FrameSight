@@ -1,30 +1,36 @@
 # FrameSight landing page
 
-Static site, no build step: `index.html` (English), `fr/index.html` (French), `assets/site.css`,
-`assets/site.js`. It reuses the app's tokens (`app/src/index.css`) and its currency icons and
-part silhouettes (see `THIRD_PARTY_NOTICES.md`).
+One template, one strings file per language, built into `public/` by a dependency-free script:
+
+- `src/template.html`: the page, with `{{key}}` placeholders (`{{=key}}` for attributes)
+- `src/en.json`, `src/fr.json`: every string, same keys in both (the build refuses a mismatch)
+- `src/site.css`, `src/site.js`: styles and motion
+- `static/`: copied as is (fonts, currency icons, part silhouettes, favicons, `og.png`,
+  `robots.txt`, `sitemap.xml`)
+- `build.mjs`: writes `public/index.html` (English) and `public/fr/index.html` (French), with the
+  FAQ and its JSON-LD generated from the strings
+
+```bash
+cd site && node build.mjs && python3 -m http.server 4173 -d public
+```
+
+Paths are absolute (`/assets/...`), so preview through a server, not as a file.
 
 ## Deploy on Vercel
 
-New project from this repository, **Root Directory** `site`, framework preset **Other**, no build
-command, no output directory. `vercel.json` sets clean URLs, cache and security headers.
+New project from this repository, **Root Directory** `site`, framework preset **Other**.
+`vercel.json` runs `node build.mjs`, serves `public/`, and sets clean URLs, cache and security
+headers.
 
 ## Before going live
 
-- **Domain.** Every absolute URL uses `https://framesight.vercel.app`: the canonical and
-  `hreflang` links, Open Graph tags and JSON-LD in both pages, `robots.txt` and `sitemap.xml`.
-  Replace it everywhere if the site gets another address.
+- **Domain.** `SITE` in `build.mjs`, `robots.txt` and `sitemap.xml` say
+  `https://framesight.vercel.app`. Change all three if the site gets another address.
 - **Releases.** The download buttons point at `https://github.com/jawsbb/FrameSight/releases/latest`;
-  `assets/site.js` (`REPO`) asks the GitHub API for the latest release and swaps in the direct
+  `src/site.js` (`REPO`) asks the GitHub API for the latest release and swaps in the direct
   `.exe`, `.rpm`, `.deb` and `.AppImage` links and the version. The repository has to be public and
   have a published release, or the buttons lead to a 404.
-- **Shared image.** `og.png` (1200×630) is a capture of the hero's reward slips; recapture it if
-  the hero changes.
+- **Shared image.** `static/og.png` (1200×630) is a capture of the hero's reward screen; recapture
+  it if the hero changes.
 
-## Preview locally
-
-```bash
-cd site && python3 -m http.server 4173
-```
-
-Paths are absolute (`/assets/...`), so open it through a server, not as a file.
+Geist and Geist Mono are self-hosted from Google Fonts (SIL Open Font License).

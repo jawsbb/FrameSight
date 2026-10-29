@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{=meta.title}}</title>
+<meta name="description" content="{{=meta.description}}">
+<link rel="canonical" href="{{url}}">
+<link rel="alternate" hreflang="en" href="{{site}}/">
+<link rel="alternate" hreflang="fr" href="{{site}}/fr/">
+<link rel="alternate" hreflang="x-default" href="{{site}}/">
+<meta name="theme-color" content="#05070a">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FrameSight">
+<meta property="og:title" content="{{=meta.ogTitle}}">
+<meta property="og:description" content="{{=meta.ogDescription}}">
+<meta property="og:url" content="{{url}}">
+<meta property="og:image" content="{{site}}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{=meta.ogAlt}}">
+<meta property="og:locale" content="{{locale}}">
+<meta property="og:locale:alternate" content="{{altLocale}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="/assets/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css">
+<script type="application/ld+json">
+{{jsonLd}}
+</script>
+<script type="module" src="/assets/site.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/><path d="M12 1.75v4.5M12 17.75v4.5M1.75 12h4.5M17.75 12h4.5"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17.2v.1"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+  <symbol id="i-diamond" viewBox="0 0 24 24"><path d="M12 3 21 12 12 21 3 12z"/><path d="M12 8 16 12 12 16 8 12z"/></symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><path d="M3.5 14.5a8.5 8.5 0 0 1 17 0"/><path d="m12 14.5 4-4.5"/><circle cx="12" cy="14.5" r="1.25"/><path d="M7 18.5h10"/></symbol>
+  <symbol id="i-collection" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-relics" viewBox="0 0 24 24"><path d="M12 3 18.5 8v8L12 21l-6.5-5V8z"/><path d="m5.5 8 6.5 4 6.5-4M12 12v9"/></symbol>
+  <symbol id="i-foundry" viewBox="0 0 24 24"><path d="M5.5 6h15v4h-6v3c0 1.4 1.3 2.6 3.5 3.1V19H6v-2.9c2.2-.5 3.5-1.7 3.5-3.1v-3H9C6.4 10 4.3 9 2.5 7.2 3.6 6.4 4.6 6 5.5 6z"/></symbol>
+  <symbol id="i-market" viewBox="0 0 24 24"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.1 6.1a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.5"/></symbol>
+  <symbol id="i-farm" viewBox="0 0 24 24"><path d="M12 20.5V11"/><path d="M12 13.5c0-4.4 2.9-7.5 7.5-7.5 0 4.4-2.9 7.5-7.5 7.5z"/><path d="M12 15.5c0-3.6-2.4-6-6-6 0 3.6 2.4 6 6 6z"/></symbol>
+  <symbol id="i-rewards" viewBox="0 0 24 24"><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H5a2.5 2.5 0 0 0 2.6 3.4M16.5 6H19a2.5 2.5 0 0 1-2.6 3.4M12 13.5V17M8.5 20h7"/></symbol>
+  <symbol id="i-orders" viewBox="0 0 24 24"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12.5h4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z"/></symbol>
+  <symbol id="i-cold" viewBox="0 0 24 24"><path d="M12 3.5v17M4.6 7.75l14.8 8.5M4.6 16.25l14.8-8.5M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5"/></symbol>
+</svg>
+
+<a class="skip" href="#main">{{nav.skip}}</a>
+
+<header class="site-head">
+  <div class="head-inner">
+    <a class="brand" href="{{home}}" aria-label="{{=nav.home}}"><svg class="mark"><use href="#i-mark"/></svg>FrameSight</a>
+    <nav class="site-nav" aria-label="{{=nav.label}}">
+      <a href="#features">{{nav.features}}</a>
+      <a href="#kiosk">{{nav.kiosk}}</a>
+      <a href="#access">{{nav.privacy}}</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="head-end">
+      <a class="lang" href="{{otherHome}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{nav.otherLang}}</a>
+      <a class="icon-link" href="{{repo}}" aria-label="{{=nav.github}}"><svg class="icon"><use href="#i-github"/></svg></a>
+      <a class="btn btn-light btn-sm" href="#download">{{nav.download}}</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <a class="pill" href="{{repo}}/blob/main/CHANGELOG.md" data-intro="0"><span class="pill-dot"></span>{{hero.pill}}<svg class="icon"><use href="#i-arrow"/></svg></a>
+    <h1 id="hero-title" class="display" data-split="intro">{{hero.title}}</h1>
+    <p class="lede" data-intro="2">{{hero.lede}}</p>
+    <div class="ctas" data-intro="3">
+      <a class="btn btn-light btn-lg" href="#download" data-cta="primary"><svg class="icon"><use href="#i-download"/></svg><span>{{nav.download}}</span></a>
+      <a class="btn btn-ghost btn-lg" href="{{repo}}"><svg class="icon"><use href="#i-github"/></svg>{{hero.github}}</a>
+    </div>
+    <p class="hero-meta" data-intro="4"><span data-version>{{hero.release}}</span> · {{hero.meta}}</p>
+  </div>
+
+  <div class="scene" aria-hidden="false">
+    <canvas class="void" aria-hidden="true"></canvas>
+    <div class="corona" aria-hidden="true"></div>
+    <div class="eclipse" aria-hidden="true"></div>
+    <svg class="halo" viewBox="0 0 1000 1000" aria-hidden="true">
+      <circle class="halo-draw" cx="500" cy="500" r="488" pathLength="100"/>
+      <circle class="halo-ticks" cx="500" cy="500" r="470"/>
+      <g class="halo-spin">
+        <circle class="halo-dash" cx="500" cy="500" r="438"/>
+        <path class="halo-gem" d="M500 50l12 12-12 12-12-12zM500 926l12 12-12 12-12-12zM50 500l12-12 12 12-12 12zM926 500l12-12 12 12-12 12z"/>
+      </g>
+    </svg>
+
+    <figure class="screen-wrap">
+      <div class="screen stage" data-demo data-phase="priced" role="img" aria-label="{{=hero.demoAlt}}">
+        <div class="stage-inner">
+          <div class="stage-top" aria-hidden="true">
+            <span class="game-title">Void Fissure · Rewards</span>
+            <span class="game-timer"><svg viewBox="0 0 40 40"><circle class="track" cx="20" cy="20" r="18"/><circle class="run" cx="20" cy="20" r="18"/></svg><b>12</b></span>
+          </div>
+          <div class="game-cards" aria-hidden="true"></div>
+          <div class="slips"></div>
+          <div class="stage-foot" aria-hidden="true"><span class="reader"><i class="reader-dot"></i><span class="reader-text">{{hero.reader}}</span></span><span class="squad"><i></i><i></i><i></i><i></i></span></div>
+          <div class="scan" aria-hidden="true"></div>
+        </div>
+      </div>
+      <figcaption class="note">{{hero.note}}</figcaption>
+    </figure>
+    <div class="mist" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <div class="platforms">
+      <p>{{hero.platformsLabel}}</p>
+      <ul><li>Linux</li><li>Windows</li><li>Steam Deck</li><li>Proton</li><li>Wine</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="manifesto" aria-label="{{=manifesto.label}}">
+  <p class="manifesto-text" data-scrub>{{manifesto.text}}</p>
+</section>
+
+<section class="features" id="features">
+  <article class="feature card" id="kiosk" data-reveal>
+    <div class="feature-visual">
+      <div class="kiosk" aria-label="{{=kiosk.alt}}">
+        <div class="kiosk-screen">
+          <div class="kiosk-grid">
+            <button type="button" class="kiosk-tile" aria-pressed="true" data-name="Euphona Prime Receiver" data-p="25" data-d="100"><span class="plate" style="--i:0"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">25p</span><i class="game-art" style="--art:url(/assets/parts/gun-receiver.png)"></i><span class="game-name">Euphona Prime Receiver</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Kompressa Prime Barrel" data-p="8" data-d="45"><span class="plate" style="--i:1"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">8p</span><span class="plate word" style="--i:1">Unmastered</span><i class="game-art" style="--art:url(/assets/parts/gun-barrel.png)"></i><span class="game-name">Kompressa Prime Barrel</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="true" data-name="Titania Prime Systems Blueprint" data-p="33" data-d="100"><span class="plate" style="--i:2"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">33p</span><i class="game-art" style="--art:url(/assets/parts/warframe-system.png)"></i><span class="game-name">Titania Prime Systems Blueprint</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Nekros Prime Chassis Blueprint" data-p="12" data-d="45"><span class="plate" style="--i:3"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">12p</span><i class="game-art" style="--art:url(/assets/parts/warframe-chassis.png)"></i><span class="game-name">Nekros Prime Chassis Blueprint</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Afentis Prime Blade" data-p="10" data-d="45"><span class="plate" style="--i:4"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">10p</span><span class="plate word" style="--i:4">Unmastered</span><i class="game-art" style="--art:url(/assets/parts/weapon-blade.png)"></i><span class="game-name">Afentis Prime Blade</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="true" data-name="Panthera Prime Barrel" data-p="21" data-d="100"><span class="plate" style="--i:5"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">21p</span><i class="game-art" style="--art:url(/assets/parts/gun-barrel.png)"></i><span class="game-name">Panthera Prime Barrel</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Hystrix Prime Receiver" data-p="19" data-d="45"><span class="plate" style="--i:6"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">19p</span><i class="game-art" style="--art:url(/assets/parts/gun-receiver.png)"></i><span class="game-name">Hystrix Prime Receiver</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Kronen Prime Handle" data-p="7" data-d="45"><span class="plate" style="--i:7"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">7p</span><i class="game-art" style="--art:url(/assets/parts/weapon-hilt.png)"></i><span class="game-name">Kronen Prime Handle</span></button>
+          </div>
+          <div class="kiosk-list" aria-live="polite">
+            <p class="kiosk-head">{{kiosk.list}}</p>
+            <ol></ol>
+            <div class="kiosk-total"><span>Total</span><span class="plate"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20"><b data-total="p">79</b>p</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20"><b data-total="d">300</b></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-text">
+      <span class="sigil"><svg class="icon"><use href="#i-diamond"/></svg></span>
+      <h2 data-split>{{kiosk.title}}</h2>
+      <p>{{kiosk.text}}</p>
+      <ul class="ticks">
+        <li><svg class="icon"><use href="#i-check"/></svg>{{kiosk.point1}}</li>
+        <li><svg class="icon"><use href="#i-check"/></svg>{{kiosk.point2}}</li>
+      </ul>
+      <p class="note">{{kiosk.note}}</p>
+    </div>
+  </article>
+
+  <article class="feature card flip" data-reveal>
+    <div class="feature-text">
+      <span class="sigil"><svg class="icon"><use href="#i-collection"/></svg></span>
+      <h2 data-split>{{tour.title}}</h2>
+      <p>{{tour.text}}</p>
+      <div class="tour-tabs" role="tablist" aria-label="{{=tour.tabsLabel}}">
+        <button type="button" role="tab" data-view="dashboard"><b>{{tour.dashboard}}</b><span>{{tour.dashboardText}}</span><i class="tab-progress"></i></button>
+        <button type="button" role="tab" data-view="collection"><b>{{tour.collection}}</b><span>{{tour.collectionText}}</span><i class="tab-progress"></i></button>
+        <button type="button" role="tab" data-view="orders"><b>{{tour.orders}}</b><span>{{tour.ordersText}}</span><i class="tab-progress"></i></button>
+      </div>
+    </div>
+    <div class="feature-visual">
+      <div class="window" aria-hidden="true">
+        <div class="win-bar">
+          <span class="win-brand"><svg class="mark"><use href="#i-mark"/></svg>FrameSight</span>
+          <span class="win-status"><i></i>Online<span>&nbsp;· auto</span></span>
+          <span class="win-controls"><span><svg viewBox="0 0 10 10"><path d="M1 5h8"/></svg></span><span><svg viewBox="0 0 10 10"><path d="M1.5 1.5h7v7h-7z"/></svg></span><span><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9"/></svg></span></span>
+        </div>
+        <nav class="win-rail">
+          <span data-view="dashboard"><svg class="icon"><use href="#i-dashboard"/></svg></span>
+          <span data-view="collection"><svg class="icon"><use href="#i-collection"/></svg></span>
+          <span><svg class="icon"><use href="#i-relics"/></svg></span>
+          <span><svg class="icon"><use href="#i-foundry"/></svg></span>
+          <span><svg class="icon"><use href="#i-market"/></svg></span>
+          <span><svg class="icon"><use href="#i-farm"/></svg></span>
+          <span><svg class="icon"><use href="#i-rewards"/></svg></span>
+          <span data-view="orders"><svg class="icon"><use href="#i-orders"/></svg></span>
+          <hr>
+          <span><svg class="icon"><use href="#i-settings"/></svg></span>
+        </nav>
+        <div class="win-page">
+          <div class="view" data-view="dashboard">
+            <div class="view-head"><h3>Dashboard</h3></div>
+            <div class="cycles">
+              <div class="cycle" style="--scene:linear-gradient(110deg,#5a4524 0%,transparent 70%)"><b>Cetus</b><span><svg class="icon"><use href="#i-sun"/></svg>Day<span class="num">1h 12m</span></span></div>
+              <div class="cycle" style="--scene:linear-gradient(110deg,#243c55 0%,transparent 70%)"><b>Orb Vallis</b><span><svg class="icon"><use href="#i-cold"/></svg>Cold<span class="num">14m</span></span></div>
+              <div class="cycle" style="--scene:linear-gradient(110deg,#33452a 0%,transparent 70%)"><b>Cambion Drift</b><span><svg class="icon"><use href="#i-moon"/></svg>Vome<span class="num">41m</span></span></div>
+            </div>
+            <div class="dash-cols">
+              <div>
+                <span class="group-title">Void fissures</span>
+                <div class="group">
+                  <div class="row"><span class="era">Li</span><span class="grow">Capture · Hepit<small>Void · Corrupted</small></span><span class="num">31m</span></div>
+                  <div class="row"><span class="era">Me</span><span class="grow">Survival · Ophelia<small>Uranus · Grineer</small></span><span class="num">48m</span></div>
+                  <div class="row"><span class="era">Ne</span><span class="grow">Defense · Hydron<small>Sedna · Grineer</small></span><span class="num">1h 05m</span></div>
+                  <div class="row"><span class="era">Ax</span><span class="grow">Excavation · Apollo<small>Lua · Corrupted</small></span><span class="num">1h 37m</span></div>
+                </div>
+              </div>
+              <div>
+                <span class="group-title">Today</span>
+                <div class="group">
+                  <div class="row"><span class="grow">Sortie<small>Defense, Spy, Assassinate</small></span><span class="num">9h 4m</span></div>
+                  <div class="row"><span class="grow">Archon hunt<small>Archon Nira</small></span><span class="num">3d</span></div>
+                  <div class="row"><span class="grow">Baro Ki'Teer<small>Strata Relay, Earth</small></span><span class="num">2d 6h</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="view" data-view="collection">
+            <div class="view-head"><h3>Collection</h3><span class="seg"><span>All</span><span>Owned</span><span>Mastered</span><span data-on>To master</span></span></div>
+            <div class="figures"><span>344 to master</span><span class="sep">·</span><span>1,046 tracked</span><span class="sep">·</span><span>worth</span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">9,812</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">23,450</span></div>
+            <div class="chips"><span>All <em>344</em></span><span>Warframes <em>12</em></span><span>Primary <em>41</em></span><span>Melee <em>52</em></span><span data-on>Prime parts <em>96</em></span><span>Relics <em>61</em></span></div>
+            <div class="cards">
+              <div class="item" data-absent><span class="well"><i style="--art:url(/assets/parts/warframe-system.png)"></i></span><span><b>Nekros Prime Systems Blueprint</b><small>Prime part</small><span class="tags"><span class="tag absent">Not owned</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">18</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">45</span></span></span></div>
+              <div class="item"><span class="well"><i style="--art:url(/assets/parts/warframe-helmet.png)"></i></span><span><b>Khora Prime Neuroptics Blueprint</b><small>Prime part</small><span class="tags"><span class="tag strong">Owned ×1</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">31</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">45</span></span></span></div>
+              <div class="item" data-absent><span class="well"><i style="--art:url(/assets/parts/gun-barrel.png)"></i></span><span><b>Akstiletto Prime Barrel</b><small>Prime part</small><span class="tags"><span class="tag absent">Not owned</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">9</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">100</span></span></span></div>
+              <div class="item"><span class="well"><i style="--art:url(/assets/parts/weapon-blade.png)"></i></span><span><b>Kronen Prime Blade</b><small>Prime part</small><span class="tags"><span class="tag strong">Owned ×2</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">6</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">100</span></span></span></div>
+              <div class="item"><span class="well"><i style="--art:url(/assets/parts/gun-receiver.png)"></i></span><span><b>Braton Prime Receiver</b><small>Prime part</small><span class="tags"><span class="tag ok">Mastered</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">4</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">15</span></span></span></div>
+              <div class="item"><span class="well"><i style="--art:url(/assets/parts/gun-stock.png)"></i></span><span><b>Lex Prime Receiver</b><small>Prime part</small><span class="tags"><span class="tag strong">Owned ×3</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">3</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">15</span></span></span></div>
+            </div>
+          </div>
+          <div class="view" data-view="orders">
+            <div class="view-head"><h3>Orders</h3><span class="mini-btn" style="margin-left:auto">Refresh orders</span></div>
+            <div class="figures"><span>4 listings</span><span class="sep">·</span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">79</span><span>listed</span><span class="sep">·</span><span>1 needs attention</span></div>
+            <div class="group"><div class="row"><span class="switch"></span><span class="grow">Sync after an inventory read<small>Takes down what you no longer hold, lowers what you oversell.</small></span></div></div>
+            <span class="group-title">Sell orders</span>
+            <div class="group">
+              <div class="row ledger-row"><span class="well"><i style="--art:url(/assets/parts/warframe-helmet.png)"></i></span><span class="grow">Khora Prime Neuroptics Blueprint<small>Sell order · visible</small></span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">31</span><span class="count">×1</span><span class="acts"><span class="mini-btn sold">Sold</span><span class="mini-btn">Edit</span></span></div>
+              <div class="row ledger-row flagged"><span class="well"><i style="--art:url(/assets/parts/gun-barrel.png)"></i></span><span class="grow">Akstiletto Prime Barrel<small><span class="flag-dot"></span>Listed ×3, you hold 1 · <a>Lower to 1</a></small></span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">9</span><span class="count">×3</span><span class="acts"><span class="mini-btn sold">Sold</span><span class="mini-btn">Edit</span></span></div>
+              <div class="row ledger-row"><span class="well"><i style="--art:url(/assets/parts/warframe-system.png)"></i></span><span class="grow">Nekros Prime Systems Blueprint<small>Sell order · visible</small></span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">18</span><span class="count">×1</span><span class="acts"><span class="mini-btn sold">Sold</span><span class="mini-btn">Edit</span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="note">{{tour.note}}</p>
+    </div>
+  </article>
+
+  <div class="bento">
+    <article class="card tile wide" data-reveal>
+      <div class="tile-text"><h3>{{bento.masteryTitle}}</h3><p>{{bento.masteryText}}</p></div>
+      <ul class="mastery" aria-hidden="true">
+        <li style="--i:0"><span class="well"><i style="--art:url(/assets/parts/warframe-system.png)"></i></span>Nekros Prime<span class="tag">Unmastered</span></li>
+        <li style="--i:1"><span class="well"><i style="--art:url(/assets/parts/weapon-blade.png)"></i></span>Kronen Prime<span class="tag ok">Mastered</span></li>
+        <li style="--i:2"><span class="well"><i style="--art:url(/assets/parts/gun-stock.png)"></i></span>Lex Prime<span class="tag">Unmastered</span></li>
+        <li style="--i:3"><span class="well"><i style="--art:url(/assets/parts/gun-barrel.png)"></i></span>Akstiletto Prime<span class="tag ok">Mastered</span></li>
+      </ul>
+    </article>
+    <article class="card tile" data-reveal>
+      <div class="tile-text"><h3>{{bento.relicsTitle}}</h3><p>{{bento.relicsText}}</p></div>
+      <ol class="relics" aria-hidden="true">
+        <li style="--i:0;--w:100%"><span>Axi A16 · Radiant</span><b class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">23</b><i></i></li>
+        <li style="--i:1;--w:62%"><span>Neo N24 · Intact</span><b class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">14</b><i></i></li>
+        <li style="--i:2;--w:48%"><span>Meso O3 · Radiant</span><b class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">11</b><i></i></li>
+      </ol>
+    </article>
+    <article class="card tile" data-reveal>
+      <div class="tile-text"><h3>{{bento.bountyTitle}}</h3><p>{{bento.bountyText}}</p></div>
+      <div class="bounty" aria-hidden="true">
+        <div class="bounty-head"><b>Cetus</b><span>{{bento.bountyEnds}}</span></div>
+        <div class="bounty-tags"><span>5–15 <b>A</b></span><span>10–30 <b>B</b></span><span>20–40 <b>C</b></span><span>30–50 <b>A</b></span><span>40–60 <b>C</b></span><span>Vault <b>B</b></span></div>
+      </div>
+    </article>
+    <article class="card tile wide" data-reveal>
+      <div class="tile-text"><h3>{{bento.linuxTitle}}</h3><p>{{bento.linuxText}}</p></div>
+      <div class="term" aria-hidden="true">
+        <div class="term-bar"><i></i><i></i><i></i></div>
+        <pre><code><span class="term-line" data-type="sudo dnf install ./TennoScope-*.x86_64.rpm"></span>
+<span class="term-out">Complete!</span>
+<span class="term-line" data-type="tennoscope"></span>
+<span class="term-out">{{bento.linuxOpens}}</span></code></pre>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="access" id="access" aria-labelledby="access-title">
+  <div class="section-head">
+    <h2 id="access-title" data-split>{{access.title}}</h2>
+    <p data-reveal>{{access.text}}</p>
+  </div>
+  <div class="access-card card" data-reveal>
+    <div class="levels" role="radiogroup" aria-label="{{=access.label}}">
+      <i class="levels-track"><i class="levels-fill"></i></i>
+      <button type="button" class="level" role="radio" aria-checked="false" tabindex="-1" data-level="companion" data-step="0"><span class="node"></span><b>{{access.companion}}</b><small>{{access.companionShort}}</small></button>
+      <button type="button" class="level" role="radio" aria-checked="true" tabindex="0" data-level="overlay" data-step="1"><span class="node"></span><b>Overlay</b><small>{{access.overlayShort}}</small></button>
+      <button type="button" class="level" role="radio" aria-checked="false" tabindex="-1" data-level="full" data-step="2"><span class="node"></span><b>{{access.full}}</b><small>{{access.fullShort}}</small></button>
+    </div>
+    <div class="access-rows" data-level="companion" hidden>
+      <div class="row"><span>{{access.reads}}</span><span>{{access.companionReads}}</span></div>
+      <div class="row"><span>{{access.gives}}</span><span>{{access.companionGives}}</span></div>
+      <div class="row"><span>{{access.sends}}</span><span>{{access.companionSends}}</span></div>
+    </div>
+    <div class="access-rows" data-level="overlay">
+      <div class="row"><span>{{access.reads}}</span><span>{{access.overlayReads}}</span></div>
+      <div class="row"><span>{{access.gives}}</span><span>{{access.overlayGives}}</span></div>
+      <div class="row"><span>{{access.sends}}</span><span>{{access.overlaySends}}</span></div>
+    </div>
+    <div class="access-rows" data-level="full" hidden>
+      <div class="row"><span>{{access.reads}}</span><span>{{access.fullReads}}</span></div>
+      <div class="row"><span>{{access.gives}}</span><span>{{access.fullGives}}</span></div>
+      <div class="row"><span>{{access.sends}}</span><span>{{access.fullSends}}</span></div>
+    </div>
+    <div class="never"><svg class="icon"><use href="#i-shield"/></svg><span>{{access.never}}</span></div>
+  </div>
+</section>
+
+<div class="marquee" aria-label="{{=marquee.label}}">
+  <div class="marquee-track" aria-hidden="true">
+    <span>{{marquee.items}}</span><span>{{marquee.items}}</span>
+  </div>
+  <p class="sr-only">{{marquee.items}}</p>
+</div>
+
+<section class="download" id="download" aria-labelledby="download-title">
+  <div class="section-head">
+    <h2 id="download-title" data-split>{{download.title}}</h2>
+    <p data-reveal><span data-version>{{download.latest}}</span>{{download.text}}</p>
+  </div>
+  <div class="dl" data-reveal>
+    <div class="dl-tabs" role="tablist" aria-label="{{=download.label}}">
+      <button type="button" role="tab" id="tab-windows" aria-controls="dl-windows" aria-selected="true" data-tab="windows">Windows</button>
+      <button type="button" role="tab" id="tab-fedora" aria-controls="dl-fedora" aria-selected="false" tabindex="-1" data-tab="fedora">Fedora</button>
+      <button type="button" role="tab" id="tab-debian" aria-controls="dl-debian" aria-selected="false" tabindex="-1" data-tab="debian">Ubuntu · Debian</button>
+      <button type="button" role="tab" id="tab-appimage" aria-controls="dl-appimage" aria-selected="false" tabindex="-1" data-tab="appimage">Steam Deck · AppImage</button>
+    </div>
+
+    <div class="dl-panel card" id="dl-windows" role="tabpanel" aria-labelledby="tab-windows">
+      <div>
+        <h3>{{download.winTitle}}</h3>
+        <p>{{download.winText}}</p>
+        <a class="btn btn-light btn-lg" href="{{repo}}/releases/latest" data-asset="windows"><svg class="icon"><use href="#i-download"/></svg>{{download.winButton}}</a>
+        <p class="file" data-file="windows">x64-setup.exe</p>
+      </div>
+      <div>
+        <h4>{{download.winStepsTitle}}</h4>
+        <ol>
+          <li>{{download.winStep1}}</li>
+          <li>{{download.winStep2}}</li>
+          <li>{{download.winStep3}}</li>
+        </ol>
+        <div class="dl-note"><svg class="icon"><use href="#i-warn"/></svg><span>{{download.winNote}}</span></div>
+      </div>
+    </div>
+
+    <div class="dl-panel card" id="dl-fedora" role="tabpanel" aria-labelledby="tab-fedora" hidden>
+      <div>
+        <h3>{{download.fedoraTitle}}</h3>
+        <p>{{download.fedoraText}}</p>
+        <a class="btn btn-light btn-lg" href="{{repo}}/releases/latest" data-asset="fedora"><svg class="icon"><use href="#i-download"/></svg>{{download.fedoraButton}}</a>
+        <p class="file" data-file="fedora">x86_64.rpm</p>
+      </div>
+      <div>
+        <h4>{{download.fedoraStepsTitle}}</h4>
+        <div class="cmd"><code data-filename="fedora">sudo dnf install ./TennoScope-*.x86_64.rpm tesseract tesseract-langpack-eng</code><button type="button" class="copy"><svg class="icon"><use href="#i-copy"/></svg></button></div>
+        <ul>
+          <li>{{download.fedoraPoint1}}</li>
+          <li>{{download.fedoraPoint2}}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="dl-panel card" id="dl-debian" role="tabpanel" aria-labelledby="tab-debian" hidden>
+      <div>
+        <h3>{{download.debianTitle}}</h3>
+        <p>{{download.debianText}}</p>
+        <a class="btn btn-light btn-lg" href="{{repo}}/releases/latest" data-asset="debian"><svg class="icon"><use href="#i-download"/></svg>{{download.debianButton}}</a>
+        <p class="file" data-file="debian">amd64.deb</p>
+      </div>
+      <div>
+        <h4>{{download.debianStepsTitle}}</h4>
+        <div class="cmd"><code data-filename="debian">sudo apt install ./TennoScope_*_amd64.deb</code><button type="button" class="copy"><svg class="icon"><use href="#i-copy"/></svg></button></div>
+        <div class="dl-note"><svg class="icon"><use href="#i-warn"/></svg><span>{{download.debianNote}}</span></div>
+      </div>
+    </div>
+
+    <div class="dl-panel card" id="dl-appimage" role="tabpanel" aria-labelledby="tab-appimage" hidden>
+      <div>
+        <h3>{{download.appimageTitle}}</h3>
+        <p>{{download.appimageText}}</p>
+        <a class="btn btn-light btn-lg" href="{{repo}}/releases/latest" data-asset="appimage"><svg class="icon"><use href="#i-download"/></svg>{{download.appimageButton}}</a>
+        <p class="file" data-file="appimage">amd64.AppImage</p>
+      </div>
+      <div>
+        <h4>{{download.appimageStepsTitle}}</h4>
+        <div class="cmd"><code data-filename="appimage">chmod +x TennoScope_*_amd64.AppImage &amp;&amp; ./TennoScope_*_amd64.AppImage</code><button type="button" class="copy"><svg class="icon"><use href="#i-copy"/></svg></button></div>
+        <ul>
+          <li>{{download.appimagePoint1}}</li>
+          <li>{{download.appimagePoint2}}</li>
+        </ul>
+      </div>
+    </div>
+    <p class="dl-foot">{{download.foot}}</p>
+  </div>
+</section>
+
+<section class="faq" id="faq" aria-labelledby="faq-title">
+  <div class="faq-head">
+    <h2 id="faq-title" data-split>{{faq.title}}</h2>
+    <p data-reveal>{{faq.text}}</p>
+  </div>
+  <div class="faq-list card" data-reveal>{{faqHtml}}
+  </div>
+</section>
+
+<section class="closer" aria-labelledby="closer-title">
+  <svg class="closer-halo" viewBox="0 0 1000 1000" aria-hidden="true">
+    <circle class="halo-ticks" cx="500" cy="500" r="470"/>
+    <g class="halo-spin"><circle class="halo-dash" cx="500" cy="500" r="438"/></g>
+  </svg>
+  <svg class="mark closer-mark" aria-hidden="true"><use href="#i-mark"/></svg>
+  <h2 id="closer-title" data-split>{{closer.title}}</h2>
+  <p data-reveal>{{closer.text}}</p>
+  <div class="ctas" data-reveal>
+    <a class="btn btn-light btn-lg" href="#download" data-cta="primary"><svg class="icon"><use href="#i-download"/></svg><span>{{nav.download}}</span></a>
+    <a class="btn btn-ghost btn-lg" href="{{repo}}"><svg class="icon"><use href="#i-github"/></svg>{{hero.github}}</a>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="foot-inner">
+    <a class="brand" href="{{home}}"><svg class="mark"><use href="#i-mark"/></svg>FrameSight</a>
+    <nav class="foot-links" aria-label="{{=footer.label}}">
+      <a href="{{repo}}">GitHub</a>
+      <a href="{{repo}}/releases">Releases</a>
+      <a href="{{repo}}/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="{{repo}}/blob/main/SECURITY.md">{{footer.security}}</a>
+      <a href="{{repo}}/blob/main/LICENSE">GPL-3.0</a>
+      <a href="{{otherHome}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{footer.otherLang}}</a>
+    </nav>
+    <p>{{footer.legal}}</p>
+  </div>
+</footer>
+</body>
+</html>
