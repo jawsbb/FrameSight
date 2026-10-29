@@ -30,7 +30,10 @@ headers.
   `src/site.js` (`REPO`) asks the GitHub API for the latest release and swaps in the direct
   `.exe`, `.rpm`, `.deb` and `.AppImage` links and the version. The repository has to be public and
   have a published release, or the buttons lead to a 404.
-- **Shared image.** `static/og.png` (1200×630) is a capture of the hero's reward screen; recapture
-  it if the hero changes.
+- **Shared image.** `static/og.png` (1200×630) is a capture of the hero: the reward screen rising
+  out of the canopy. Recapture it if the hero changes.
+
+The hills, the valley and the canopy are painted by `src/site.js` on canvases at load (seeded, so
+they come out the same every time); there are no landscape images to replace.
 
 Geist and Geist Mono are self-hosted from Google Fonts (SIL Open Font License).

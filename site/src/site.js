@@ -1,4 +1,4 @@
-// FrameSight landing page: the intro, the Void behind the hero, the reward screen demo, the app
+// FrameSight landing page: the intro, the hills at dusk behind the hero, the reward screen demo, the app
 // tour, the kiosk, the access rail, the terminal and the download links resolved from the latest
 // GitHub release. Everything here enhances markup that already reads and links without it.
 
@@ -86,7 +86,7 @@ document.querySelectorAll('[data-split]:not([data-split="intro"])').forEach(el =
 })
 document.querySelectorAll('[data-reveal]').forEach(el => onView(el, t => t.setAttribute('data-shown', '')))
 
-// ------------------------------------------------------------------ scroll-linked: the screen lies flat, the manifesto lights up
+// ------------------------------------------------------------------ scroll-linked: the screen leaves the canopy, the manifesto lights up
 
 const scene = document.querySelector('.scene')
 const manifesto = document.querySelector('[data-scrub]')
@@ -104,10 +104,7 @@ function onScroll() {
   requestAnimationFrame(() => {
     ticking = false
     const vh = innerHeight
-    if (scene && !reduced) {
-      const r = scene.getBoundingClientRect()
-      scene.style.setProperty('--p', clamp((vh - r.top) / (vh * 1.15), 0, 1).toFixed(3))
-    }
+    if (scene && !reduced && scrollY < vh * 2) scene.style.setProperty('--s', clamp(scrollY / vh, 0, 1.4).toFixed(3))
     if (manifestoWords.length) {
       const r = manifesto.getBoundingClientRect()
       const progress = reduced ? 1 : clamp((vh * .85 - r.top) / (r.height + vh * .35), 0, 1)
@@ -120,80 +117,248 @@ addEventListener('scroll', onScroll, { passive: true })
 addEventListener('resize', onScroll)
 onScroll()
 
-// ------------------------------------------------------------------ the Void: far stars, near motes
+// ------------------------------------------------------------------ hills at dusk
 
-function voidLayer(canvas, near) {
-  const ctx = canvas.getContext('2d')
-  let w = 0, h = 0, dpr = 1, motes = [], running = false, frame = 0
-  const pointer = { x: 0, y: 0, tx: 0, ty: 0 }
+const TAU = Math.PI * 2
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t)
+const rgb = c => `rgb(${c[0] | 0} ${c[1] | 0} ${c[2] | 0})`
 
-  function seed() {
-    dpr = Math.min(2, devicePixelRatio || 1)
-    w = canvas.clientWidth; h = canvas.clientHeight
-    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr)
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    const count = near ? Math.round(w / 40) : Math.round((w * h) / 5200)
-    motes = Array.from({ length: count }, () => ({
-      x: Math.random() * w,
-      y: near ? h * (.45 + Math.random() * .55) : Math.random() * h,
-      r: near ? 0.8 + Math.random() * 1.8 : Math.random() * 1.1 + .2,
-      z: Math.random(),
-      gold: Math.random() < (near ? .55 : .18),
-      vy: near ? -(0.08 + Math.random() * .22) : -(0.01 + Math.random() * .04),
-      phase: Math.random() * Math.PI * 2,
-    }))
+// Seeded, so the same hills come back on every visit and every resize.
+function seeded(seed) {
+  return () => {
+    seed = seed + 0x6d2b79f5 | 0
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed)
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
   }
+}
 
+// Value noise summed over [wavelength in px, weight] octaves, normalised to 0..1: the line of a hill.
+function contour(rand, octaves) {
+  const tables = octaves.map(() => Array.from({ length: 256 }, rand))
+  const total = octaves.reduce((sum, [, weight]) => sum + weight, 0)
+  return x => octaves.reduce((sum, [length, weight], k) => {
+    const p = x / length + k * 17, i = Math.floor(p), f = p - i, e = f * f * (3 - 2 * f)
+    return sum + weight * (tables[k][i & 255] * (1 - e) + tables[k][(i + 1) & 255] * e)
+  }, 0) / total
+}
+
+// Shade, body and lit edge of each kind of tree. Blossom and rust catch the last light; the leaf
+// green keeps the forest from turning into a flower bed.
+const TREES = [
+  [.3, [[34, 16, 24], [116, 58, 76], [222, 156, 166]]],
+  [.25, [[24, 12, 18], [92, 40, 56], [196, 118, 134]]],
+  [.35, [[12, 16, 11], [42, 52, 34], [128, 134, 90]]],
+  [.1, [[32, 18, 13], [100, 56, 40], [204, 140, 100]]],
+]
+const GROUND = [9, 9, 8]
+const HAZE = [122, 88, 86]
+const pickTree = rand => { let r = rand(); return TREES.find(([w]) => (r -= w) < 0)?.[1] ?? TREES[0][1] }
+
+// One crown: lumps of foliage scattered in an ellipse, lit from above, drawn dark to light so the
+// lit tops sit over the shade.
+function paintCrown(ctx, rand, x, y, R, tree, haze) {
+  const lumps = []
+  for (let i = Math.round(clamp(R * 1.3, 8, 72)); i > 0; i--) {
+    const a = rand() * TAU, d = Math.sqrt(rand())
+    const dx = Math.cos(a) * d, dy = Math.sin(a) * d * .8
+    lumps.push([x + dx * R, y + dy * R, R * (.12 + rand() * .12), clamp(.32 - dy * .75 + dx * .1 + (rand() - .5) * .25, 0, 1)])
+  }
+  lumps.sort((p, q) => p[3] - q[3])
+  for (const [lx, ly, lr, light] of lumps) {
+    const color = light < .5 ? mix(tree[0], tree[1], light * 2) : mix(tree[1], tree[2], (light - .5) * 2)
+    ctx.fillStyle = rgb(mix(color, HAZE, haze))
+    ctx.beginPath()
+    ctx.arc(lx, ly, lr, 0, TAU)
+    for (let k = 0; k < 3; k++) {
+      const a = rand() * TAU, cx = lx + Math.cos(a) * lr * .8, cy = ly + Math.sin(a) * lr * .8
+      ctx.moveTo(cx + lr * .45, cy)
+      ctx.arc(cx, cy, lr * .45, 0, TAU)
+    }
+    ctx.fill()
+  }
+}
+
+// A far ridge: one silhouette with a warm rim where the sky still lights it.
+function paintRidge(ctx, w, h, band, rand) {
+  const line = contour(rand, [[420, 1], [140, .35], [38, .08], [9, .03]])
+  const yAt = x => band.y - (line(x) - .5) * 2 * band.amp
+  const fill = ctx.createLinearGradient(0, band.y - band.amp, 0, band.y + band.amp * 4)
+  fill.addColorStop(0, rgb(band.color))
+  fill.addColorStop(1, rgb(mix(band.color, GROUND, .5)))
+  ctx.fillStyle = fill
+  ctx.beginPath()
+  ctx.moveTo(0, h)
+  for (let x = 0; x <= w + 3; x += 3) ctx.lineTo(x, yAt(x))
+  ctx.lineTo(w, h)
+  ctx.fill()
+  ctx.strokeStyle = 'rgb(255 200 160 / 18%)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  for (let x = 0; x <= w + 3; x += 3) ctx.lineTo(x, yAt(x) + .5)
+  ctx.stroke()
+}
+
+// Rows of crowns from the back of the band to the front, each row bigger and clearer than the one
+// behind it, with ground under every row so no sky shows through.
+function paintTrees(ctx, w, h, band, rand) {
+  const line = contour(rand, [[260, 1], [90, .45], [30, .15]])
+  let y = band.y, R = band.size, row = 0
+  while (y < Math.min(h + R * .3, band.until ?? h)) {
+    const haze = band.haze[0] + (band.haze[1] - band.haze[0]) * clamp(row / 6, 0, 1)
+    const shade = clamp((row - 1) * band.shade, 0, .7)
+    const offset = row * 300
+    // Sides a little higher than the middle, like a valley the screen sits in.
+    const yAt = x => y + (line(x + offset) - .6) * band.amp - band.bowl * ((x - w / 2) / (w / 2)) ** 2
+    ctx.fillStyle = rgb(mix(GROUND, HAZE, haze * .8))
+    ctx.beginPath()
+    ctx.moveTo(0, h)
+    for (let x = 0; x <= w + 8; x += 8) ctx.lineTo(x, yAt(x) + R * .35)
+    ctx.lineTo(w, h)
+    ctx.fill()
+    for (let x = -R * rand(); x < w + R; x += R * (.75 + rand() * .5)) {
+      const r = R * (.75 + rand() * .5)
+      const tree = pickTree(rand).map(c => mix(c, GROUND, shade))
+      paintCrown(ctx, rand, x, yAt(x) - r * .1 + (rand() - .5) * R * .3, r, tree, haze)
+    }
+    row++
+    y += R * .62
+    R *= band.grow ?? 1.06
+  }
+}
+
+// The canvas keeps the size CSS gives it; this only paints it.
+function paintLand(canvas, bands, seed) {
+  const dpr = Math.min(2, devicePixelRatio || 1)
+  const w = canvas.clientWidth, h = canvas.clientHeight
+  canvas.width = Math.round(w * dpr)
+  canvas.height = Math.round(h * dpr)
+  const ctx = canvas.getContext('2d')
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  const rand = seeded(seed)
+  for (const band of bands) (band.ridge ? paintRidge : paintTrees)(ctx, w, h, band, rand)
+}
+
+// Paints at once, then again once the elements have stopped changing size.
+function onResize(targets, paint) {
+  let pending = 0, first = true
+  const observer = new ResizeObserver(() => {
+    if (first) { first = false; paint(); return }
+    clearTimeout(pending)
+    pending = setTimeout(paint, 200)
+  })
+  targets.forEach(t => observer.observe(t))
+}
+
+// The canopy's line crosses the screen low, under the slips; its crowns and its higher sides reach
+// above that line, so its canvas starts that much earlier. CSS places both canvases from --canopy-top.
+function paintHero(wrap) {
+  const w = scene.clientWidth
+  const rise = wrap.offsetTop, tall = wrap.offsetHeight
+  const size = clamp(w * .042, 20, 64)
+  const top = rise + tall * (w < 700 ? .84 : .8)
+  const reach = size * 3.4
+  scene.style.setProperty('--canopy-top', `${top - reach}px`)
+  paintLand(scene.querySelector('.land'), [
+    { ridge: true, y: rise * .5, amp: rise * .2, color: [104, 76, 80] },
+    { ridge: true, y: rise * .72, amp: rise * .16, color: [70, 54, 58] },
+    // The valley floor, filling down to where the canopy takes over.
+    { y: rise * .95, amp: size * .8, size: size * .3, grow: 1.13, bowl: rise * .35, until: top, haze: [.62, .15], shade: .05 },
+  ], 11)
+  paintLand(scene.querySelector('.canopy'), [
+    { y: reach, amp: size * 1.1, size, bowl: size * 1.6, haze: [.25, 0], shade: .14 },
+  ], 23)
+  return top
+}
+
+function paintCloser(canvas) {
+  const h = canvas.clientHeight, size = clamp(canvas.clientWidth * .03, 16, 44)
+  paintLand(canvas, [
+    { ridge: true, y: h * .3, amp: h * .12, color: [92, 66, 70] },
+    { ridge: true, y: h * .42, amp: h * .1, color: [62, 46, 50] },
+    { y: h * .58, amp: size, size, bowl: h * .12, haze: [.4, .05], shade: .14 },
+  ], 37)
+}
+
+// Fireflies over the canopy and a few blossom petals carried across on the wind. Returns the
+// function that lays them out again, given where the canopy starts.
+function motes(canvas) {
+  const ctx = canvas.getContext('2d')
+  let w = 0, h = 0, from = 0, flies = [], petals = [], running = false, frame = 0
+  const glow = document.createElement('canvas')
+  glow.width = glow.height = 32
+  const g = glow.getContext('2d'), light = g.createRadialGradient(16, 16, 0, 16, 16, 16)
+  light.addColorStop(0, 'rgb(255 220 160)')
+  light.addColorStop(1, 'rgb(255 220 160 / 0)')
+  g.fillStyle = light
+  g.fillRect(0, 0, 32, 32)
+  const petal = anywhere => ({
+    x: Math.random() * w * 1.2 - w * .2, y: anywhere ? Math.random() * h : -12,
+    size: 2.4 + Math.random() * 3, vx: .25 + Math.random() * .35, vy: .3 + Math.random() * .4,
+    turn: Math.random() * TAU, spin: (Math.random() - .5) * .04, sway: Math.random() * TAU,
+  })
+  function seed() {
+    w = canvas.clientWidth; h = canvas.clientHeight
+    canvas.width = w; canvas.height = h
+    flies = Array.from({ length: Math.round(w / 36) }, () => ({
+      x: Math.random() * w, y: from + Math.random() * (h - from), r: 1 + Math.random() * 1.5,
+      heading: Math.random() * TAU, speed: .12 + Math.random() * .25, phase: Math.random() * TAU,
+    }))
+    petals = Array.from({ length: Math.round(w / 110) }, () => petal(true))
+  }
   function draw(t) {
     ctx.clearRect(0, 0, w, h)
-    pointer.x += (pointer.tx - pointer.x) * .04
-    pointer.y += (pointer.ty - pointer.y) * .04
-    for (const m of motes) {
+    for (const f of flies) {
       if (running) {
-        m.y += m.vy
-        if (m.y < -10) { m.y = h + 10; m.x = Math.random() * w }
+        f.heading += (Math.random() - .5) * .3
+        f.x = (f.x + Math.cos(f.heading) * f.speed + w + 20) % (w + 20)
+        f.y = clamp(f.y + Math.sin(f.heading) * f.speed * .6, from - 40, h)
       }
-      const twinkle = .55 + .45 * Math.sin(t / (near ? 900 : 1400) + m.phase)
-      const depth = near ? 18 : 6 * m.z
-      const x = m.x + pointer.x * depth
-      const y = m.y + pointer.y * depth
-      const alpha = (near ? .5 : .28 + m.z * .5) * twinkle * (near ? clamp((h - m.y) / (h * .5), 0, 1) : 1)
-      const color = m.gold ? `rgba(236, 217, 166, ${alpha})` : `rgba(190, 215, 255, ${alpha})`
-      if (near || m.r > .9) {
-        const g = ctx.createRadialGradient(x, y, 0, x, y, m.r * 4)
-        g.addColorStop(0, color)
-        g.addColorStop(1, 'rgba(0,0,0,0)')
-        ctx.fillStyle = g
-        ctx.beginPath(); ctx.arc(x, y, m.r * 4, 0, Math.PI * 2); ctx.fill()
-      } else {
-        ctx.fillStyle = color
-        ctx.fillRect(x, y, m.r, m.r)
-      }
+      ctx.globalAlpha = .25 + .75 * Math.max(0, Math.sin(t / 1100 + f.phase))
+      ctx.drawImage(glow, f.x - f.r * 5, f.y - f.r * 5, f.r * 10, f.r * 10)
     }
+    ctx.globalAlpha = 1
+    ctx.fillStyle = 'rgb(242 182 196 / 78%)'
+    for (const p of petals) {
+      if (running) {
+        p.sway += .02; p.turn += p.spin
+        p.x += p.vx + Math.sin(p.sway) * .4; p.y += p.vy
+        if (p.y > h + 12 || p.x > w + 12) Object.assign(p, petal(false))
+      }
+      ctx.setTransform(1, 0, 0, 1, p.x, p.y)
+      ctx.rotate(p.turn)
+      ctx.scale(1, .5 + .5 * Math.sin(p.sway * 1.3))
+      ctx.beginPath(); ctx.ellipse(0, 0, p.size, p.size * .6, 0, 0, TAU); ctx.fill()
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
     if (running) frame = requestAnimationFrame(draw)
   }
-
-  seed()
-  draw(0)
-  if (reduced) return
-  new IntersectionObserver(([entry]) => {
-    if (entry.isIntersecting && !running) { running = true; frame = requestAnimationFrame(draw) }
-    else if (!entry.isIntersecting) { running = false; cancelAnimationFrame(frame) }
-  }).observe(canvas)
-  addEventListener('resize', () => { seed(); if (!running) draw(0) })
-  addEventListener('pointermove', e => {
-    pointer.tx = (e.clientX / innerWidth - .5) * 2
-    pointer.ty = (e.clientY / innerHeight - .5) * 2
-  }, { passive: true })
+  if (!reduced) {
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !running) { running = true; frame = requestAnimationFrame(draw) }
+      else if (!entry.isIntersecting) { running = false; cancelAnimationFrame(frame) }
+    }).observe(canvas)
+  }
+  return top => { from = top; seed(); if (!running) draw(0) }
 }
 
 if (scene) {
-  const far = scene.querySelector('canvas.void')
-  const near = far.cloneNode()
-  near.classList.add('near')
-  scene.querySelector('.mist').after(near)
-  voidLayer(far, false)
-  voidLayer(near, true)
+  const wrap = scene.querySelector('.screen-wrap')
+  const lay = motes(scene.querySelector('.motes'))
+  // The first call comes once this module has run, after the reward screen below has filled its
+  // slips; a font swap or a new width paints again.
+  onResize([scene, wrap], () => lay(paintHero(wrap)))
+  const closer = document.querySelector('.closer .land')
+  if (closer) onView(closer, c => onResize([c], () => paintCloser(c)), { rootMargin: '800px 0px' })
+  if (!reduced && matchMedia('(hover: hover)').matches) {
+    let queued = false, mx = 0
+    addEventListener('pointermove', e => {
+      mx = (e.clientX / innerWidth - .5) * 2
+      if (queued) return
+      queued = true
+      requestAnimationFrame(() => { queued = false; scene.style.setProperty('--mx', mx.toFixed(3)) })
+    }, { passive: true })
+  }
 }
 
 // ------------------------------------------------------------------ the reward screen
