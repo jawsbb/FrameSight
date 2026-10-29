@@ -98,40 +98,40 @@ impl RelicRewardIndex {
 }
 
 /// WFCD's Relics.json in the shape [`RelicRewardIndex::from_wfcd_json`] reads, put together from
-/// the two files WFCD keeps current. Its Relics.json stopped carrying rewards, and the last copy
-/// that did predates the Citrine Prime relics, so a squad opening one was matched against no pool.
-/// The relics give each projection path its name ("Axi C12 Intact"); the drop tables give the
-/// rewards under that same name. A relic no drop location lists any more is vaulted.
+/// the two files WFCD keeps current: its Relics.json, which names each projection path ("Axi C12
+/// Intact") but no longer lists rewards, and its drop tables, which list them under that name. A
+/// relic no drop location lists any more is vaulted.
 pub fn join_wfcd_drop_tables(relics: &[u8], drop_tables: &[u8]) -> Result<Vec<u8>, CatalogError> {
-    let relics: Vec<CurrentRelicRecord> =
+    let relics: Vec<RelicRecord> =
         serde_json::from_slice(relics).map_err(|_| CatalogError::InvalidJson)?;
     let tables: DropTables =
         serde_json::from_slice(drop_tables).map_err(|_| CatalogError::InvalidJson)?;
-    let mut rewards = BTreeMap::new();
-    for table in tables.relics {
-        rewards.insert(
-            format!("{} {} {}", table.tier, table.relic_name, table.state),
-            table.rewards,
-        );
-    }
+    let rewards = tables
+        .relics
+        .into_iter()
+        .map(|table| {
+            (
+                format!("{} {} {}", table.tier, table.relic_name, table.state),
+                table.rewards,
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
     let joined = relics
         .into_iter()
-        .filter_map(|relic| {
-            let drops = rewards.get(relic.name.trim())?;
-            Some(JoinedRelic {
-                vaulted: relic.drops.is_empty(),
-                rewards: drops
-                    .iter()
-                    .map(|drop| JoinedReward {
-                        item: JoinedItem {
-                            name: &drop.item_name,
-                        },
-                        chance: drop.chance,
-                    })
-                    .collect(),
-                unique_name: relic.unique_name,
-                name: relic.name,
-            })
+        .filter_map(|mut relic| {
+            // Looked up, not taken: two projection paths can share a name (Lith G12).
+            relic.rewards = rewards
+                .get(relic.name.trim())?
+                .iter()
+                .map(|drop| RelicReward {
+                    item: RelicRewardItem {
+                        name: drop.item_name.clone(),
+                    },
+                    chance: drop.chance,
+                })
+                .collect();
+            relic.vaulted = Some(relic.drops.is_empty());
+            Some(relic)
         })
         .collect::<Vec<_>>();
     if joined.is_empty() {
@@ -175,7 +175,7 @@ fn reward_catalog_paths(name: &str, catalog: &CatalogIndex) -> Vec<String> {
     Vec::new()
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RelicRecord {
     unique_name: String,
@@ -185,28 +185,21 @@ struct RelicRecord {
     vaulted: Option<bool>,
     #[serde(default)]
     rewards: Vec<RelicReward>,
+    /// The missions that drop the relic now, read only to tell whether it is vaulted.
+    #[serde(default, skip_serializing)]
+    drops: Vec<serde::de::IgnoredAny>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct RelicReward {
     item: RelicRewardItem,
     #[serde(default)]
     chance: Option<f64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct RelicRewardItem {
     name: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CurrentRelicRecord {
-    unique_name: String,
-    #[serde(default)]
-    name: String,
-    #[serde(default)]
-    drops: Vec<serde::de::IgnoredAny>,
 }
 
 #[derive(Deserialize)]
@@ -230,24 +223,4 @@ struct DropTableReward {
     item_name: String,
     #[serde(default)]
     chance: Option<f64>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct JoinedRelic<'a> {
-    unique_name: String,
-    name: String,
-    vaulted: bool,
-    rewards: Vec<JoinedReward<'a>>,
-}
-
-#[derive(Serialize)]
-struct JoinedReward<'a> {
-    item: JoinedItem<'a>,
-    chance: Option<f64>,
-}
-
-#[derive(Serialize)]
-struct JoinedItem<'a> {
-    name: &'a str,
 }
