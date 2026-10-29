@@ -80,7 +80,9 @@ document: substitute the version you are cutting.
 5. **Wait for the release workflow**, then edit the draft it created. The draft arrives
    pre-filled with GitHub's generated commit list, and that is not the release notes. Replace them
    with **the changelog section and nothing else**. Add the install commands for this version, and
-   a line on anything untested only if the changelog does not already say it.
+   a line on anything untested only if the changelog does not already say it, and end with a link to the
+   [code signing policy](CODE_SIGNING_POLICY.md), which SignPath Foundation requires on every
+   download page.
 
 6. **Publish the draft.**
 

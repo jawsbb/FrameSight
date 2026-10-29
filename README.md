@@ -133,6 +133,15 @@ Tauri 2 system libraries; see [`packaging/`](packaging/README.md).
 
 <img src="docs/readme/divider.svg" alt="" width="100%">
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
+[SignPath Foundation](https://signpath.org/). What is signed, who approves it and what FrameSight
+sends over the network are in the [code signing policy](CODE_SIGNING_POLICY.md). The project has
+applied to the program; until the first signed release, the Windows installer is unsigned.
+
+<img src="docs/readme/divider.svg" alt="" width="100%">
+
 ## Origins
 
 FrameSight continues [TennoScope](https://github.com/Deftera186/tennoscope), created by
@@ -143,7 +152,7 @@ carry over on FrameSight's first launch.
 
 <br>
 
-[Install guide](docs/install.md) · [Docs](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+[Install guide](docs/install.md) · [Docs](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [Code signing policy](CODE_SIGNING_POLICY.md)
 
 <br>
 
