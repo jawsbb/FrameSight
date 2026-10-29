@@ -1,0 +1,37 @@
+{{>page-hero}}
+
+<div class="doc">
+  <section>
+    <h2 data-split>{{setup.title}}</h2>
+    <ol class="steps">
+      <li>{{setup.step1}}</li>
+      <li>{{setup.step2}}</li>
+      <li>{{setup.step3}}
+        <div class="cmd"><code data-filename="appimage">chmod +x FrameSight_*_amd64.AppImage &amp;&amp; ./FrameSight_*_amd64.AppImage</code></div>
+      </li>
+      <li>{{setup.step4}}</li>
+      <li>{{setup.step5}}</li>
+    </ol>
+    <a class="btn btn-light btn-lg deck-download" href="{{repo}}/releases/latest" data-asset="appimage"><svg class="icon"><use href="#i-download"/></svg>{{setup.button}}</a>
+  </section>
+
+  <section>
+    <h2 data-split>{{ocr.title}}</h2>
+    <p>{{ocr.text}}</p>
+    <div class="cmd"><code>tesseract --version</code></div>
+    <p>{{ocr.missing}}</p>
+    <div class="cmd"><code>sudo steamos-readonly disable &amp;&amp; sudo pacman-key --init &amp;&amp; sudo pacman-key --populate archlinux holo &amp;&amp; sudo pacman -S tesseract tesseract-data-eng</code></div>
+    <div class="dl-note"><svg class="icon"><use href="#i-warn"/></svg><span>{{ocr.warn}}</span></div>
+  </section>
+
+  <section>
+    <h2 data-split>{{works.title}}</h2>
+    <div class="facts">
+      <div class="fact card"><b>{{works.screenTitle}}</b><span>{{works.screenText}}</span></div>
+      <div class="fact card"><b>{{works.modeTitle}}</b><span>{{works.modeText}}</span></div>
+      <div class="fact card"><b>{{works.appTitle}}</b><span>{{works.appText}}</span></div>
+    </div>
+  </section>
+</div>
+
+{{>page-end}}

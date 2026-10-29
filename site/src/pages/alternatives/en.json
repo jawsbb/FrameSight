@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "FrameSight vs AlecaFrame vs WFInfo: Warframe Overlays",
+    "description": "How Warframe reward overlays compare: where they run, Overwolf, Linux and Steam Deck support, and features. A sourced comparison."
+  },
+  "crumb": "Alternatives",
+  "card": "AlecaFrame, WFInfo and FrameSight side by side: platforms, Overwolf, what each does.",
+  "see": [
+    "alecaframe",
+    "linux",
+    "relic-reward-overlay"
+  ],
+  "hero": {
+    "title": "Warframe reward overlays, compared honestly.",
+    "lede": "Several tools put prices on the reward screen. They differ in where they run, what they need and what else they do. Here is where FrameSight sits among them, with every claim about the others taken from their own documentation."
+  },
+  "table": {
+    "title": "At a glance",
+    "text": "We make FrameSight, so read this with that in mind. Where another tool's documentation does not say, the table says so rather than guess.",
+    "runs": "Runs on",
+    "runsUs": "Linux, Windows 10 and 11",
+    "runsAleca": "Windows, inside Overwolf",
+    "runsWfinfo": "Windows",
+    "overwolfAleca": "Required",
+    "linuxUs": "Native packages",
+    "linuxAleca": "Unofficial workaround through Proton, at your own risk",
+    "deckUs": "AppImage in Desktop Mode",
+    "reward": "Reward screen prices",
+    "kiosk": "Ducat Kiosk prices",
+    "rivens": "Riven tools",
+    "price": "Price",
+    "priceUs": "Free and open source (GPL-3.0), no premium tier",
+    "priceAleca": "Free; some features premium",
+    "priceWfinfo": "Free and open source (Apache-2.0)",
+    "yes": "Yes",
+    "no": "No",
+    "undocumented": "Not documented",
+    "notListed": "Not listed in its docs",
+    "checked": "Checked against each project's documentation in October 2026. Tools change: follow the sources below for their current state."
+  },
+  "pick": {
+    "title": "Which one fits you",
+    "usTitle": "FrameSight, if you play on Linux or the Steam Deck, or want no Overwolf",
+    "usText": "It runs natively on Linux and the Steam Deck as well as Windows, prices both the reward screen and Baro's Ducat Kiosk, and asks before it reads anything. It has no riven tools.",
+    "alecaTitle": "AlecaFrame, if you are on Windows and want the widest toolbox",
+    "alecaText": "Its documentation lists riven tools, a relic planner and recommendations, foundry and mastery helpers and trading analytics, the last as a premium feature. It runs inside Overwolf, so Linux means the unofficial Proton workaround. <a class=\"link\" href=\"{{link.alecaframe}}\">FrameSight and AlecaFrame in detail</a>.",
+    "wfinfoTitle": "WFInfo, if you are on Windows and want a light, open-source reward reader",
+    "wfinfoText": "It reads the reward screen from a screenshot with Tesseract, can wait for <code>EE.log</code> in its auto mode, and is actively maintained by the WFCD community. Its setup is Windows-only."
+  },
+  "sources": {
+    "title": "Sources",
+    "alecaLinux": "AlecaFrame documentation: Linux support",
+    "alecaAbout": "AlecaFrame documentation: about and feature list",
+    "wfinfo": "WFInfo on GitHub (WFCD)"
+  },
+  "faq": {
+    "title": "Comparison questions",
+    "items": [
+      {
+        "q": "Is FrameSight affiliated with AlecaFrame or WFInfo?",
+        "a": "No. FrameSight is an independent open-source project. AlecaFrame and WFInfo belong to their own authors; they are named here only to compare."
+      },
+      {
+        "q": "Can these tools run on Linux?",
+        "a": "FrameSight is built for it. AlecaFrame documents an unofficial workaround that runs Overwolf inside Warframe's Proton prefix. WFInfo's setup is written for Windows."
+      },
+      {
+        "q": "Which one is the safest?",
+        "a": "None of them is endorsed by Digital Extremes. What you can compare is what each reads and whether it writes: FrameSight lists what every access level reads, never writes to the game and sends no input."
+      }
+    ]
+  }
+}

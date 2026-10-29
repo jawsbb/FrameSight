@@ -1,0 +1,54 @@
+{
+  "nav": {
+    "skip": "Skip to content",
+    "home": "FrameSight home",
+    "label": "Sections",
+    "kiosk": "Ducat Kiosk",
+    "privacy": "Privacy",
+    "github": "Source code on GitHub",
+    "download": "Download",
+    "otherLang": "FR",
+    "overlay": "Reward overlay",
+    "compare": "Alternatives"
+  },
+  "footer": {
+    "label": "Footer",
+    "security": "Security",
+    "otherLang": "Français",
+    "legal": "FrameSight is an unofficial fan project, not affiliated with or endorsed by Digital Extremes. Warframe, its names, icons and artwork belong to Digital Extremes.",
+    "tagline": "A free, open-source Warframe companion for Linux, Windows and the Steam Deck.",
+    "product": "Product",
+    "platforms": "Platforms",
+    "compare": "Compare",
+    "project": "Project",
+    "allAlternatives": "Warframe companion apps compared",
+    "vsAlecaframe": "FrameSight and AlecaFrame"
+  },
+  "closer": {
+    "title": "Your next relic is already cracking.",
+    "text": "Install FrameSight now, and the next reward screen will tell you which card to take."
+  },
+  "cta": {
+    "github": "View on GitHub"
+  },
+  "stage": {
+    "demoAlt": "Warframe's Void Fissure reward screen with FrameSight's overlay: under each of the four reward cards, a slip shows its platinum and ducat value, and the best of each metal is crowned.",
+    "reader": "Priced from players in game now"
+  },
+  "kiosk": {
+    "alt": "A Ducat Kiosk mock: pick tiles to add them to the sell list.",
+    "list": "Sell list"
+  },
+  "crumbs": {
+    "home": "Home",
+    "label": "Breadcrumb"
+  },
+  "related": {
+    "title": "Keep reading",
+    "more": "Read more"
+  },
+  "app": {
+    "description": "A free, open-source Warframe companion: platinum and ducat values on the Void Fissure reward screen and Baro's Ducat Kiosk, a priced collection, a mastery checklist and warframe.market order management.",
+    "ogAlt": "Four Warframe reward slips with platinum and ducat values, the best of each crowned."
+  }
+}

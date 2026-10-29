@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "title": "Warframe Overlay on Steam Deck: Reward Prices · FrameSight",
+    "description": "One AppImage in Desktop Mode puts platinum and ducat values on Warframe's reward screen at the Deck's 1280×800. Free, open source, no Overwolf."
+  },
+  "crumb": "Steam Deck",
+  "card": "One AppImage in Desktop Mode, and the reward screen read at the Deck's 1280×800.",
+  "see": [
+    "linux",
+    "relic-reward-overlay",
+    "ducat-kiosk"
+  ],
+  "hero": {
+    "title": "Relic reward prices on the Steam Deck.",
+    "lede": "Warframe runs on the Steam Deck through Proton. FrameSight runs beside it as a single AppImage in Desktop Mode, and reads the reward screen at the Deck's own 1280×800."
+  },
+  "setup": {
+    "title": "Set it up",
+    "step1": "Switch to Desktop Mode: press the Steam button, open Power, then choose Switch to Desktop.",
+    "step2": "Download the AppImage from the latest release with the browser (the button below).",
+    "step3": "Make it runnable, from Dolphin (right-click, Properties, Permissions, Is executable) or from Konsole in your Downloads folder, then start it:",
+    "step4": "Choose an access level when FrameSight opens, then start Warframe from Steam.",
+    "step5": "In Warframe's options, set Display Mode to Borderless, so the overlay can draw over the game.",
+    "button": "Download the AppImage"
+  },
+  "ocr": {
+    "title": "The text reader the overlays use",
+    "text": "The reward and kiosk overlays read the screen with <code>tesseract</code>, which the AppImage takes from the system. The Dashboard, the collection and the market work without it. Check whether yours has it, in Konsole:",
+    "missing": "If the command is not found, SteamOS's system is read-only, so installing it with <code>pacman</code> takes the usual unlock first. You need a sudo password (set one with <code>passwd</code>):",
+    "warn": "A SteamOS update can reset the system and remove what <code>pacman</code> installed: run the line again if the overlay stops reading after an update. Unlocking the system is SteamOS's own procedure, at your discretion."
+  },
+  "works": {
+    "title": "What to expect on the Deck",
+    "screenTitle": "1280×800, measured",
+    "screenText": "Warframe scales its HUD with the screen's height. The Deck's 16:10 has its own capture reference, so the cards are read where the game draws them.",
+    "modeTitle": "Desktop Mode",
+    "modeText": "FrameSight is installed and run in Desktop Mode, where Warframe and the overlay share the KDE desktop.",
+    "appTitle": "The whole app",
+    "appText": "Dashboard timers, the priced collection, mastery and warframe.market orders, on the same screen you play on."
+  },
+  "faq": {
+    "title": "Steam Deck questions",
+    "items": [
+      {
+        "q": "Does it work in Game Mode?",
+        "a": "This guide covers Desktop Mode, where FrameSight is installed and run. Game Mode runs games inside Gamescope, Valve's own compositor, and the overlay is not documented there yet."
+      },
+      {
+        "q": "Why the AppImage and not the Arch package?",
+        "a": "Installing the package with <code>makepkg</code> needs SteamOS's read-only system unlocked, and a system update undoes it. The AppImage is a single file in your home folder that updates survive."
+      },
+      {
+        "q": "Does it slow the game down?",
+        "a": "The overlay waits for the reward screen's line in <code>EE.log</code> before it reads the screen, instead of capturing all mission long."
+      },
+      {
+        "q": "Is the Deck's screen too small for the slips?",
+        "a": "The slips are measured on the game's own layout and scale with it, so they line up under the cards at 1280×800."
+      }
+    ]
+  }
+}

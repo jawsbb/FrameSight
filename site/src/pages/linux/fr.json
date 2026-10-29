@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "title": "Overlay Warframe sur Linux (Proton, Wine) · FrameSight",
+    "description": "Un overlay de récompenses Warframe natif sur Linux, avec Proton ou Wine. Paquets Fedora, Ubuntu, Debian, Arch et une AppImage. Sans Overwolf."
+  },
+  "crumb": "Linux",
+  "card": "Paquets natifs, Proton ou Wine, X11 ou Wayland : l’installation, distribution par distribution.",
+  "see": [
+    "steam-deck",
+    "relic-reward-overlay",
+    "alecaframe"
+  ],
+  "hero": {
+    "title": "Un compagnon Warframe né sur Linux.",
+    "lede": "La plupart des outils Warframe sont d’abord des applications Windows, et beaucoup passent par Overwolf, qui n’existe pas sur Linux. FrameSight est développé et testé sur Linux, et lit Warframe lancé via Proton ou Wine."
+  },
+  "why": {
+    "title": "Fait pour votre façon de jouer",
+    "text": "Pas besoin d’Overwolf, d’un second préfixe Wine ni d’une astuce de lancement. FrameSight est un programme Linux ordinaire qui observe le jeu de l’extérieur. <a class=\"link\" href=\"{{link.alternatives}}\">Comment il se compare aux apps Overwolf</a>.",
+    "nativeTitle": "Paquets natifs",
+    "nativeText": "Un .rpm, un .deb, un PKGBUILD pour Arch et une AppImage pour le reste. L’app propose ses propres mises à jour.",
+    "protonTitle": "Proton ou Wine",
+    "protonText": "Continuez à lancer Warframe comme d’habitude. FrameSight trouve sa fenêtre et lit son journal depuis l’extérieur du préfixe.",
+    "readTitle": "Il lit, n’écrit jamais",
+    "readText": "Les overlays lisent l’écran et <code>EE.log</code>. Rien n’est injecté dans le jeu et aucune saisie n’est envoyée."
+  },
+  "install": {
+    "title": "L’installer",
+    "text": "Téléchargez le paquet de votre système depuis la <a class=\"link\" href=\"https://github.com/jawsbb/FrameSight/releases/latest\">dernière version</a>, puis lancez la commande correspondante dans le dossier où vous l’avez enregistré. Chaque ligne installe aussi Tesseract avec ses données anglaises, qui servent aux overlays pour lire l’écran.",
+    "fedora": "Fedora 40 et plus récent. Le <code>.rpm</code> n’inclut pas les données anglaises de Tesseract, d’où le paquet en plus.",
+    "debian": "Ubuntu 24.04, Debian 13 et plus récent.",
+    "arch": "FrameSight n’est pas encore dans l’AUR. Le PKGBUILD recommandé reconditionne le <code>.deb</code> de la release : aucune chaîne de compilation, l’installation prend quelques secondes. Installez ensuite Tesseract :",
+    "otherTitle": "Toute autre distribution : AppImage",
+    "other": "Un seul fichier autonome, rien à installer, compatible jusqu’à Ubuntu 22.04 et Debian 12. Pour les overlays, installez <code>tesseract</code> et ses données anglaises depuis votre distribution.",
+    "glibc": "Le <code>.deb</code> et le <code>.rpm</code> demandent glibc 2.39. Sur Ubuntu 22.04 ou Debian 12, ils s’installent mais ne démarrent pas : prenez plutôt l’AppImage."
+  },
+  "session": {
+    "title": "Proton, Wine, X11 et Wayland",
+    "proton": "<b>Proton ou Wine.</b> Warframe tourne via le Proton de Steam ou via Wine ; FrameSight le lit dans les deux cas.",
+    "x11": "<b>X11 et XWayland.</b> Le cas courant, sur un bureau X11 ou un bureau Wayland qui fait tourner le jeu via XWayland. L’overlay se cale exactement sur la fenêtre du jeu.",
+    "wayland": "<b>Wayland natif.</b> Quand Warframe tourne avec <code>PROTON_ENABLE_WAYLAND=1</code>, la capture passe par wlroots screencopy, le ScreenShot2 de KWin ou une session de portail déjà autorisée, sans aucune demande en cours de partie. Le placement suppose alors le mode Sans bordure ou Plein écran sur un seul écran.",
+    "virtual": "<b>Le bureau virtuel de Wine.</b> Il cache le jeu à la recherche de fenêtres habituelle : installez <code>xwininfo</code>, soit <code>x11-utils</code> sur Debian et Ubuntu, <code>xwininfo</code> sur Fedora, <code>xorg-xwininfo</code> sur Arch."
+  },
+  "full": {
+    "title": "Accès Complet et droits sur les processus",
+    "text": "Compagnon et Overlay n’ont besoin de rien d’autre. L’accès Complet lit un identifiant de compte et un nonce dans le processus Warframe pour synchroniser votre inventaire, via <code>/proc</code> de votre propre processus de jeu. La plupart des distributions l’autorisent d’emblée ; Ubuntu le restreint avec Yama. Pour vérifier :",
+    "after": "<code>0</code>, ou un fichier absent, et tout est bon. Au-dessus, la lecture est refusée ; <code>sudo sysctl kernel.yama.ptrace_scope=0</code> lève la restriction jusqu’au prochain redémarrage, et affaiblit cette isolation pour tous vos processus : à vous de décider. Warframe et FrameSight doivent tourner sous le même utilisateur, les lanceurs en bac à sable restreignent <code>/proc</code> d’une façon qu’aucun réglage ne corrige, et FrameSight ne doit jamais tourner en root."
+  },
+  "faq": {
+    "title": "Questions sur Linux",
+    "items": [
+      {
+        "q": "Quelles distributions sont prises en charge ?",
+        "a": "Fedora 40+, Ubuntu 24.04+ et Debian 13+ via les paquets, Arch et ses dérivées via un PKGBUILD, et toute autre distribution 64 bits via l’AppImage, jusqu’à Ubuntu 22.04 et Debian 12."
+      },
+      {
+        "q": "Est-ce que ça marche sous Wayland ?",
+        "a": "Oui. Un jeu qui passe par XWayland est traité comme sous X11. Un jeu en Wayland natif est capturé via wlroots screencopy, le ScreenShot2 de KWin ou une session de portail, selon votre compositeur."
+      },
+      {
+        "q": "Est-il dans l’AUR ou sur Flathub ?",
+        "a": "Pas encore. Sur Arch, on construit le PKGBUILD depuis le dépôt ; ailleurs, on utilise les paquets ou l’AppImage."
+      },
+      {
+        "q": "Pourquoi l’overlay n’apparaît-il pas ?",
+        "a": "Vérifiez que Warframe est en mode Sans bordure, que le jeu tourne en anglais ou en français, que le niveau d’accès est Overlay ou Complet et que <code>tesseract</code> est installé avec ses données anglaises. Avec le bureau virtuel de Wine, installez aussi <code>xwininfo</code>."
+      }
+    ]
+  }
+}

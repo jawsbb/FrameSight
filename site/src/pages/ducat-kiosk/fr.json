@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "title": "Overlay du kiosque à ducats de Baro Ki’Teer · FrameSight",
+    "description": "Avant d’échanger vos pièces Prime contre des ducats, voyez leur prix en platine. Chaque case du kiosque de Baro chiffrée, votre liste additionnée."
+  },
+  "crumb": "Kiosque à ducats",
+  "card": "Le platine sur chaque case du kiosque de Baro, et une liste de vente qui s’additionne.",
+  "see": [
+    "relic-reward-overlay",
+    "steam-deck",
+    "alternatives"
+  ],
+  "hero": {
+    "title": "Ducats ou platine ? Décidez au kiosque.",
+    "lede": "Quand vous changez vos pièces Prime en ducats pour Baro Ki’Teer, FrameSight montre ce que chacune vaudrait sur warframe.market, directement sur les cases du kiosque, et additionne ce que vous vous apprêtez à échanger."
+  },
+  "demo": {
+    "note": "Essayez : cliquez sur les cases. Prix d’illustration."
+  },
+  "how": {
+    "title": "Comment fonctionne l’overlay du kiosque",
+    "step1": "Ouvrez le kiosque à ducats dans un relais. FrameSight lit les noms des pièces sur les cases avec Tesseract, sur votre machine, et suit la grille quand elle défile.",
+    "step2": "Chaque case reçoit un prix en platine : la médiane des échanges conclus sur warframe.market, pour qu’une annonce isolée ne le fasse pas dérailler.",
+    "step3": "Les pièces que vous cochez vont dans une liste de vente, quantités comprises, qui totalise son platine et ses ducats à mesure qu’elle se remplit.",
+    "step4": "Avec l’accès Complet, une pièce d’un équipement que vous n’avez ni maîtrisé ni construit porte la mention <b>Non maîtrisé</b> : vous ne cédez pas ce dont vous avez encore besoin."
+  },
+  "ratio": {
+    "title": "Une règle simple : les ducats par platine",
+    "text": "Divisez la valeur en ducats d’une pièce par son prix en platine. Plus le résultat est élevé, moins vous perdez en la donnant à Baro.",
+    "lowTitle": "100 ducats, se vend 4p",
+    "lowText": "25 ducats par platine. La vendre à un joueur rapporte peu : le kiosque est la meilleure affaire.",
+    "highTitle": "45 ducats, se vend 20p",
+    "highText": "Environ 2 ducats par platine. Cette pièce vaut plus sur warframe.market qu’au kiosque.",
+    "after": "Le seuil vous appartient. L’overlay met les deux nombres côte à côte, sur chaque case, au moment où vous décidez. Ces chiffres sont des exemples, pas des prix du marché."
+  },
+  "baro": {
+    "title": "Quand Baro revient",
+    "text": "Baro Ki’Teer, le Marchand du Néant, fait escale dans un relais pour une courte visite toutes les deux semaines et vend ses marchandises contre des ducats et des crédits. Le tableau de bord de FrameSight compte les heures jusqu’à sa prochaine visite et nomme le relais : votre liste est prête avant son arrivée."
+  },
+  "needs": {
+    "title": "Ce qu’il lui faut",
+    "borderless": "<b>Le mode d’affichage Sans bordure</b>, pour que l’overlay puisse dessiner par-dessus le jeu.",
+    "language": "<b>Le jeu en anglais ou en français</b>, les deux langues que reconnaît le lecteur.",
+    "access": "<b>Le niveau d’accès Overlay ou Complet.</b> La mention Non maîtrisé demande l’accès Complet.",
+    "tesseract": "<b>Sur Linux, Tesseract avec ses données anglaises</b> (<a class=\"link\" href=\"{{link.linux}}\">commandes d’installation</a>). L’installeur Windows embarque le sien."
+  },
+  "faq": {
+    "title": "Questions sur le kiosque",
+    "items": [
+      {
+        "q": "FrameSight vend-il ou échange-t-il quelque chose à ma place ?",
+        "a": "Non. Il n’affiche que des prix. L’échange au kiosque reste entre vos mains : FrameSight n’envoie jamais de saisie au jeu."
+      },
+      {
+        "q": "Pourquoi la médiane des ventes et pas l’offre la plus basse ?",
+        "a": "L’offre en cours la plus basse peut être une annonce isolée. La médiane des échanges conclus reste stable et dit ce que la pièce se vend vraiment."
+      },
+      {
+        "q": "Que se passe-t-il quand l’écran ne peut pas être lu ?",
+        "a": "Les prix s’estompent au lieu de se poser sur la mauvaise case. La reconnaissance échoue en sécurité : un prix ne s’affiche que si la pièce a été lue."
+      },
+      {
+        "q": "Est-ce que ça marche sur Linux et le Steam Deck ?",
+        "a": "Oui, via Proton ou Wine. Voir les guides <a class=\"link\" href=\"{{link.linux}}\">Linux</a> et <a class=\"link\" href=\"{{link.steam-deck}}\">Steam Deck</a>."
+      }
+    ]
+  }
+}

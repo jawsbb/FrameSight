@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "title": "Warframe Relic Reward Overlay: Plat and Ducats · FrameSight",
+    "description": "See the platinum and ducat value of every Void Fissure reward as the screen opens. Free, open source, no Overwolf. Linux, Windows and Steam Deck."
+  },
+  "crumb": "Reward overlay",
+  "card": "Platinum and ducats under every card on the Void Fissure reward screen.",
+  "see": [
+    "ducat-kiosk",
+    "linux",
+    "alternatives"
+  ],
+  "hero": {
+    "title": "Every relic reward, priced before the timer runs out.",
+    "lede": "FrameSight's reward overlay puts the platinum and ducat value under each card of the Void Fissure reward screen, and crowns the best of each. No Overwolf, no account, nothing written to the game."
+  },
+  "demo": {
+    "note": "Illustrative values. In game, prices come from the warframe.market sellers who are online."
+  },
+  "how": {
+    "title": "How the overlay reads the reward screen",
+    "step1": "Warframe writes a line to its log file, <code>EE.log</code>, when the reward screen opens. FrameSight waits for that line instead of watching the screen all mission long.",
+    "step2": "It captures the game window and reads the card titles with Tesseract, an open-source text reader, on your own machine. No image leaves it.",
+    "step3": "Each title is matched against the item catalogue, and the squad's whole relic pool is priced from the warframe.market sellers who are in game right now.",
+    "step4": "A slip appears under every card with its platinum and ducat value. The best platinum and the best ducats each get a crown, because they are rarely the same card."
+  },
+  "slip": {
+    "title": "What each slip tells you",
+    "text": "The slips sit in a click-through window over the game: they never take focus, and your clicks go straight to Warframe.",
+    "platTitle": "Platinum",
+    "platText": "What the part sells for now, from players who are online.",
+    "ducatTitle": "Ducats",
+    "ducatText": "What Baro Ki'Teer gives for it, if you would rather trade it at his kiosk.",
+    "crownTitle": "Top plat, Top ducats",
+    "crownText": "The best card for each metal is crowned, so the choice takes a glance.",
+    "marksTitle": "Owned, missing, unmastered",
+    "marksText": "With Full access, each slip also says what you own, what you are missing and what you still need for mastery."
+  },
+  "needs": {
+    "title": "What it needs",
+    "borderless": "<b>Borderless display mode.</b> In exclusive fullscreen no program can draw over the game, so set Warframe's Display Mode to Borderless.",
+    "language": "<b>The game in English or French.</b> The reader matches English item names, and French ones when <code>EE.log</code> says the game runs in French. Other languages are not read.",
+    "access": "<b>The Overlay or Full access level.</b> Companion reads nothing from the game, so it has no overlay.",
+    "tesseract": "<b>On Linux, Tesseract with its English data.</b> The Windows installer carries its own; on Linux it comes from your distribution (<a class=\"link\" href=\"{{link.linux}}\">install commands</a>).",
+    "screen": "<b>A 16:9 or 16:10 screen.</b> Card positions are measured on 1920×1080 and scale with the window's height, and the Steam Deck's 1280×800 has its own reference. Wider screens are untested."
+  },
+  "safe": {
+    "title": "It reads. It never writes.",
+    "text": "At the Overlay level, FrameSight reads two things: the screen and the game's log file. It does not read the game's memory, injects nothing, sends no input and has no telemetry. The code is on GitHub under GPL-3.0, so every one of those lines can be checked."
+  },
+  "faq": {
+    "title": "Reward overlay questions",
+    "items": [
+      {
+        "q": "Why doesn't the overlay show up?",
+        "a": "Check three things: Warframe in Borderless mode, the game in English or French, and the access level on Overlay or Full. On Linux, also check that <code>tesseract</code> is installed with its English data. The Diagnostics panel says so when the game is in exclusive fullscreen."
+      },
+      {
+        "q": "Where do the prices come from?",
+        "a": "From warframe.market. On the reward screen, FrameSight prices the squad's relic pool from the sellers who are in game at that moment. Ducat values are Baro Ki'Teer's."
+      },
+      {
+        "q": "Does it work on Linux and the Steam Deck?",
+        "a": "Yes. FrameSight is developed on Linux and reads Warframe running through Proton or Wine. See the <a class=\"link\" href=\"{{link.linux}}\">Linux</a> and <a class=\"link\" href=\"{{link.steam-deck}}\">Steam Deck</a> guides."
+      },
+      {
+        "q": "Is it free?",
+        "a": "Yes: free and open source under GPL-3.0, with no account and no premium tier."
+      }
+    ]
+  }
+}

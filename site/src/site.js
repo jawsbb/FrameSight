@@ -271,13 +271,13 @@ function paintHero(wrap) {
   return top
 }
 
-function paintCloser(canvas) {
+function paintHills(canvas, seed) {
   const h = canvas.clientHeight, size = clamp(canvas.clientWidth * .03, 16, 44)
   paintLand(canvas, [
     { ridge: true, y: h * .3, amp: h * .12, color: [92, 66, 70] },
     { ridge: true, y: h * .42, amp: h * .1, color: [62, 46, 50] },
     { y: h * .58, amp: size, size, bowl: h * .12, haze: [.4, .05], shade: .14 },
-  ], 37)
+  ], seed)
 }
 
 // Fireflies over the canopy and a few blossom petals carried across on the wind. Returns the
@@ -348,8 +348,6 @@ if (scene) {
   // The first call comes once this module has run, after the reward screen below has filled its
   // slips; a font swap or a new width paints again.
   onResize([scene, wrap], () => lay(paintHero(wrap)))
-  const closer = document.querySelector('.closer .land')
-  if (closer) onView(closer, c => onResize([c], () => paintCloser(c)), { rootMargin: '800px 0px' })
   if (!reduced && matchMedia('(hover: hover)').matches) {
     let queued = false, mx = 0
     addEventListener('pointermove', e => {
@@ -360,6 +358,11 @@ if (scene) {
     }, { passive: true })
   }
 }
+
+// The closer, and the head of every other page: hills painted once they come near.
+document.querySelectorAll('.hills .land').forEach((canvas, i) => {
+  onView(canvas, c => onResize([c], () => paintHills(c, 37 + i * 12)), { rootMargin: '800px 0px' })
+})
 
 // ------------------------------------------------------------------ the reward screen
 
@@ -683,7 +686,7 @@ latestRelease().then(release => {
   const assets = Object.fromEntries(Object.entries(patterns).map(([kind, re]) => [kind, release.assets.find(a => re.test(a.name))]))
   document.querySelectorAll('[data-asset]').forEach(a => { const asset = assets[a.dataset.asset]; if (asset) a.href = asset.url })
   document.querySelectorAll('[data-file]').forEach(el => { const asset = assets[el.dataset.file]; if (asset) el.textContent = `${asset.name} · ${(asset.size / 1048576).toFixed(0)} MB` })
-  document.querySelectorAll('[data-filename]').forEach(el => { const asset = assets[el.dataset.filename]; if (asset) el.textContent = el.textContent.replace(/\S+\.(rpm|deb|AppImage)\b/, asset.name) })
+  document.querySelectorAll('[data-filename]').forEach(el => { const asset = assets[el.dataset.filename]; if (asset) el.textContent = el.textContent.replace(/[^\s/]+\.(rpm|deb|AppImage)\b/g, asset.name) })
   document.querySelectorAll('[data-version]').forEach(el => { el.textContent = words.latest(release.tag) })
   labelPrimary(assets)
 }).catch(() => {
@@ -692,6 +695,10 @@ latestRelease().then(release => {
 
 // ------------------------------------------------------------------ copy
 
+// Every command gets its copy button here: without the script there is nothing to copy with.
+document.querySelectorAll('.cmd').forEach(cmd => {
+  cmd.insertAdjacentHTML('beforeend', '<button type="button" class="copy"><svg class="icon"><use href="#i-copy"/></svg></button>')
+})
 document.querySelectorAll('.copy').forEach(button => {
   button.setAttribute('aria-label', words.copy)
   button.addEventListener('click', async () => {

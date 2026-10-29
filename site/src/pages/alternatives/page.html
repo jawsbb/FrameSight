@@ -1,0 +1,45 @@
+{{>page-hero}}
+
+<div class="doc">
+  <section>
+    <h2 data-split>{{table.title}}</h2>
+    <p>{{table.text}}</p>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th scope="col"></th><th scope="col" class="us">FrameSight</th><th scope="col">AlecaFrame</th><th scope="col">WFInfo</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">{{table.runs}}</th><td class="us">{{table.runsUs}}</td><td>{{table.runsAleca}}</td><td>{{table.runsWfinfo}}</td></tr>
+          <tr><th scope="row">Overwolf</th><td class="us">{{table.no}}</td><td>{{table.overwolfAleca}}</td><td>{{table.no}}</td></tr>
+          <tr><th scope="row">Linux</th><td class="us">{{table.linuxUs}}</td><td>{{table.linuxAleca}}</td><td>{{table.undocumented}}</td></tr>
+          <tr><th scope="row">Steam Deck</th><td class="us">{{table.deckUs}}</td><td>{{table.undocumented}}</td><td>{{table.undocumented}}</td></tr>
+          <tr><th scope="row">{{table.reward}}</th><td class="us">{{table.yes}}</td><td>{{table.yes}}</td><td>{{table.yes}}</td></tr>
+          <tr><th scope="row">{{table.kiosk}}</th><td class="us">{{table.yes}}</td><td>{{table.notListed}}</td><td>{{table.notListed}}</td></tr>
+          <tr><th scope="row">{{table.rivens}}</th><td class="us">{{table.no}}</td><td>{{table.yes}}</td><td>{{table.notListed}}</td></tr>
+          <tr><th scope="row">{{table.price}}</th><td class="us">{{table.priceUs}}</td><td>{{table.priceAleca}}</td><td>{{table.priceWfinfo}}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">{{table.checked}}</p>
+  </section>
+
+  <section>
+    <h2 data-split>{{pick.title}}</h2>
+    <h3>{{pick.usTitle}}</h3>
+    <p>{{pick.usText}}</p>
+    <h3>{{pick.alecaTitle}}</h3>
+    <p>{{pick.alecaText}}</p>
+    <h3>{{pick.wfinfoTitle}}</h3>
+    <p>{{pick.wfinfoText}}</p>
+  </section>
+
+  <section>
+    <h2 data-split>{{sources.title}}</h2>
+    <ul>
+      <li><a class="link" href="https://docs.alecaframe.com/linux-support">{{sources.alecaLinux}}</a></li>
+      <li><a class="link" href="https://docs.alecaframe.com/about">{{sources.alecaAbout}}</a></li>
+      <li><a class="link" href="https://github.com/WFCD/WFInfo">{{sources.wfinfo}}</a></li>
+    </ul>
+  </section>
+</div>
+
+{{>page-end}}

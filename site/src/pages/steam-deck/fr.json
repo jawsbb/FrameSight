@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "title": "Overlay Warframe sur Steam Deck : prix des reliques · FrameSight",
+    "description": "Une AppImage en mode Bureau affiche platine et ducats sur l’écran de récompenses de Warframe, au 1280×800 du Deck. Gratuit, open source."
+  },
+  "crumb": "Steam Deck",
+  "card": "Une AppImage en mode Bureau, et l’écran de récompenses lu au 1280×800 du Deck.",
+  "see": [
+    "linux",
+    "relic-reward-overlay",
+    "ducat-kiosk"
+  ],
+  "hero": {
+    "title": "Le prix des récompenses de reliques sur Steam Deck.",
+    "lede": "Warframe tourne sur le Steam Deck grâce à Proton. FrameSight tourne à côté, sous la forme d’une seule AppImage en mode Bureau, et lit l’écran de récompenses au 1280×800 du Deck."
+  },
+  "setup": {
+    "title": "L’installer",
+    "step1": "Passez en mode Bureau : bouton Steam, Alimentation, puis Passer au bureau.",
+    "step2": "Téléchargez l’AppImage de la dernière version avec le navigateur (bouton ci-dessous).",
+    "step3": "Rendez-la exécutable, depuis Dolphin (clic droit, Propriétés, Droits, Est exécutable) ou depuis Konsole dans votre dossier Téléchargements, puis lancez-la :",
+    "step4": "Choisissez un niveau d’accès à l’ouverture de FrameSight, puis lancez Warframe depuis Steam.",
+    "step5": "Dans les options de Warframe, réglez le mode d’affichage sur Sans bordure, pour que l’overlay puisse dessiner par-dessus le jeu.",
+    "button": "Télécharger l’AppImage"
+  },
+  "ocr": {
+    "title": "Le lecteur de texte des overlays",
+    "text": "Les overlays des récompenses et du kiosque lisent l’écran avec <code>tesseract</code>, que l’AppImage prend sur le système. Le tableau de bord, la collection et le marché s’en passent. Vérifiez s’il est présent, dans Konsole :",
+    "missing": "Si la commande est introuvable : le système de SteamOS est en lecture seule, son installation avec <code>pacman</code> passe donc d’abord par le déverrouillage habituel. Il vous faut un mot de passe sudo (à définir avec <code>passwd</code>) :",
+    "warn": "Une mise à jour de SteamOS peut réinitialiser le système et retirer ce que <code>pacman</code> a installé : relancez la ligne si l’overlay ne lit plus rien après une mise à jour. Déverrouiller le système est une procédure propre à SteamOS, à votre discrétion."
+  },
+  "works": {
+    "title": "Ce qui vous attend sur le Deck",
+    "screenTitle": "1280×800, mesuré",
+    "screenText": "Warframe met son interface à l’échelle de la hauteur de l’écran. Le 16:10 du Deck a sa propre référence de capture : les cartes sont lues là où le jeu les dessine.",
+    "modeTitle": "Mode Bureau",
+    "modeText": "FrameSight s’installe et se lance en mode Bureau, où Warframe et l’overlay partagent le bureau KDE.",
+    "appTitle": "Toute l’app",
+    "appText": "Les minuteurs du tableau de bord, la collection chiffrée, la maîtrise et les ordres warframe.market, sur l’écran où vous jouez."
+  },
+  "faq": {
+    "title": "Questions sur le Steam Deck",
+    "items": [
+      {
+        "q": "Est-ce que ça marche en mode Jeu ?",
+        "a": "Ce guide couvre le mode Bureau, où FrameSight s’installe et se lance. Le mode Jeu fait tourner les jeux dans Gamescope, le compositeur de Valve, et l’overlay n’y est pas encore documenté."
+      },
+      {
+        "q": "Pourquoi l’AppImage et pas le paquet Arch ?",
+        "a": "Installer le paquet avec <code>makepkg</code> demande de déverrouiller le système de SteamOS, et une mise à jour l’annule. L’AppImage est un seul fichier dans votre dossier personnel, que les mises à jour ne touchent pas."
+      },
+      {
+        "q": "Est-ce que ça ralentit le jeu ?",
+        "a": "L’overlay attend la ligne de l’écran de récompenses dans <code>EE.log</code> avant de lire l’écran, au lieu de capturer pendant toute la mission."
+      },
+      {
+        "q": "L’écran du Deck est-il trop petit pour les fiches ?",
+        "a": "Les fiches sont calées sur la mise en page du jeu et suivent son échelle : elles s’alignent sous les cartes en 1280×800."
+      }
+    ]
+  }
+}

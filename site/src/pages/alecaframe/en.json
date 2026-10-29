@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "title": "AlecaFrame Alternative for Linux, No Overwolf · FrameSight",
+    "description": "AlecaFrame needs Overwolf, which has no Linux version. FrameSight is a free, open-source Warframe companion that runs natively on Linux and Steam Deck."
+  },
+  "crumb": "AlecaFrame",
+  "card": "AlecaFrame on Linux means Overwolf inside Proton. FrameSight runs natively.",
+  "see": [
+    "alternatives",
+    "linux",
+    "steam-deck"
+  ],
+  "hero": {
+    "title": "An AlecaFrame alternative that runs on Linux.",
+    "lede": "AlecaFrame is a capable Warframe companion, but it lives inside Overwolf, which has no Linux version. If you play on Linux or the Steam Deck, or would rather not install Overwolf, FrameSight covers the reward screen natively."
+  },
+  "today": {
+    "title": "AlecaFrame on Linux, today",
+    "text": "AlecaFrame's own documentation describes a way to run it on Linux, and is upfront that it is a workaround:",
+    "point1": "Overwolf is installed inside Warframe's Proton prefix with ProtonTricks, then AlecaFrame inside Overwolf, and both are launched through <code>protonhax</code>.",
+    "point2": "It opens with a warning: Overwolf does not officially support Linux, so you do this at your own risk.",
+    "point3": "Depending on the Proton version, moving or maximising the window can crash it, and after a crash the Overwolf service has to be ended inside the prefix before it starts again.",
+    "point4": "Its developers say they cannot help with this setup and ask that issues about it not be reported.",
+    "source": "Source: <a class=\"link\" href=\"https://docs.alecaframe.com/linux-support\">AlecaFrame documentation, Linux support</a>, checked October 2026."
+  },
+  "instead": {
+    "title": "What FrameSight does instead",
+    "text": "FrameSight is a regular Linux program, packaged for Fedora, Ubuntu, Debian and Arch, with an AppImage for the rest and the Steam Deck. It watches Warframe from outside its prefix, so there is no second runtime to keep alive.",
+    "rewardTitle": "Reward screen",
+    "rewardText": "Platinum and ducats under every card, the best of each crowned. <a class=\"link\" href=\"{{link.relic-reward-overlay}}\">How it works</a>.",
+    "kioskTitle": "Ducat Kiosk",
+    "kioskText": "A platinum figure on every tile at Baro's kiosk, and a sell list that totals itself. <a class=\"link\" href=\"{{link.ducat-kiosk}}\">See it</a>.",
+    "collectionTitle": "Collection and mastery",
+    "collectionText": "Every item priced in platinum and ducats, filtered to what is left to master.",
+    "marketTitle": "warframe.market",
+    "marketText": "Sell orders checked against what you actually hold, if you choose to link your account."
+  },
+  "honest": {
+    "title": "What AlecaFrame has that FrameSight does not",
+    "text": "AlecaFrame's documentation lists riven tools (an explorer and reroll and chat overlays), relic recommendations and a planner, stats and trading analytics, the last as a premium feature. FrameSight has no riven tools. If those matter most to you and you play on Windows, AlecaFrame is the better fit; on Linux and the Steam Deck, FrameSight is the one that runs natively."
+  },
+  "switch": {
+    "title": "Trying FrameSight next to what you use",
+    "step1": "Install the package for your system from the <a class=\"link\" href=\"{{link.linux}}\">Linux guide</a>, or the AppImage on the <a class=\"link\" href=\"{{link.steam-deck}}\">Steam Deck</a>.",
+    "step2": "Pick an access level. Companion reads nothing from the game; Overlay adds the reward and kiosk overlays; Full also syncs your inventory.",
+    "step3": "Set Warframe to Borderless and open a relic. The slips appear under the cards when the reward screen opens."
+  },
+  "faq": {
+    "title": "AlecaFrame and FrameSight questions",
+    "items": [
+      {
+        "q": "Does AlecaFrame work on Linux?",
+        "a": "Not officially. Its documentation describes running Overwolf inside Warframe's Proton prefix as an unofficial workaround, at your own risk, which its developers do not support."
+      },
+      {
+        "q": "Is FrameSight affiliated with AlecaFrame?",
+        "a": "No. FrameSight is an independent open-source project. AlecaFrame belongs to its own authors and is named here only to compare."
+      },
+      {
+        "q": "Does FrameSight need Overwolf or an account?",
+        "a": "No. It is a standalone desktop app with no account and no telemetry. Linking warframe.market is optional."
+      },
+      {
+        "q": "Does FrameSight do rivens?",
+        "a": "No. It focuses on the reward screen, the Ducat Kiosk, the collection and mastery, and warframe.market orders."
+      }
+    ]
+  }
+}

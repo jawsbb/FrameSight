@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "title": "FrameSight, AlecaFrame, WFInfo : overlays Warframe comparés",
+    "description": "Les overlays de récompenses Warframe comparés : plateformes, Overwolf, Linux et Steam Deck, fonctions. Un comparatif sourcé."
+  },
+  "crumb": "Alternatives",
+  "card": "AlecaFrame, WFInfo et FrameSight côte à côte : plateformes, Overwolf, fonctions.",
+  "see": [
+    "alecaframe",
+    "linux",
+    "relic-reward-overlay"
+  ],
+  "hero": {
+    "title": "Les overlays de récompenses Warframe, comparés honnêtement.",
+    "lede": "Plusieurs outils affichent des prix sur l’écran de récompenses. Ils diffèrent par l’endroit où ils tournent, ce qu’ils demandent et ce qu’ils font d’autre. Voici la place de FrameSight parmi eux, chaque affirmation sur les autres étant tirée de leur propre documentation."
+  },
+  "table": {
+    "title": "En un coup d’œil",
+    "text": "C’est nous qui faisons FrameSight : lisez ceci en le gardant en tête. Quand la documentation d’un autre outil ne dit rien, le tableau le dit plutôt que de deviner.",
+    "runs": "Tourne sur",
+    "runsUs": "Linux, Windows 10 et 11",
+    "runsAleca": "Windows, dans Overwolf",
+    "runsWfinfo": "Windows",
+    "overwolfAleca": "Requis",
+    "linuxUs": "Paquets natifs",
+    "linuxAleca": "Contournement non officiel via Proton, à vos risques",
+    "deckUs": "AppImage en mode Bureau",
+    "reward": "Prix sur l’écran de récompenses",
+    "kiosk": "Prix au kiosque à ducats",
+    "rivens": "Outils pour rivens",
+    "price": "Prix",
+    "priceUs": "Gratuit et open source (GPL-3.0), sans offre payante",
+    "priceAleca": "Gratuit ; certaines fonctions payantes",
+    "priceWfinfo": "Gratuit et open source (Apache-2.0)",
+    "yes": "Oui",
+    "no": "Non",
+    "undocumented": "Non documenté",
+    "notListed": "Absent de sa documentation",
+    "checked": "Vérifié dans la documentation de chaque projet en octobre 2026. Les outils évoluent : suivez les sources ci-dessous pour leur état actuel."
+  },
+  "pick": {
+    "title": "Lequel vous convient",
+    "usTitle": "FrameSight, si vous jouez sur Linux ou Steam Deck, ou ne voulez pas d’Overwolf",
+    "usText": "Il tourne nativement sur Linux et le Steam Deck comme sur Windows, chiffre l’écran de récompenses et le kiosque à ducats de Baro, et demande avant de lire quoi que ce soit. Il n’a pas d’outils pour les rivens.",
+    "alecaTitle": "AlecaFrame, si vous êtes sur Windows et voulez la boîte à outils la plus large",
+    "alecaText": "Sa documentation liste des outils pour rivens, un planificateur de reliques et des recommandations, des aides pour la fonderie et la maîtrise, et des analyses d’échanges, ces dernières en option payante. Il tourne dans Overwolf : sur Linux, il faut le contournement non officiel via Proton. <a class=\"link\" href=\"{{link.alecaframe}}\">FrameSight et AlecaFrame en détail</a>.",
+    "wfinfoTitle": "WFInfo, si vous êtes sur Windows et voulez un lecteur de récompenses léger et open source",
+    "wfinfoText": "Il lit l’écran de récompenses depuis une capture avec Tesseract, peut attendre <code>EE.log</code> dans son mode automatique, et la communauté WFCD le maintient activement. Son installation est réservée à Windows."
+  },
+  "sources": {
+    "title": "Sources",
+    "alecaLinux": "Documentation d’AlecaFrame : prise en charge de Linux",
+    "alecaAbout": "Documentation d’AlecaFrame : présentation et fonctions",
+    "wfinfo": "WFInfo sur GitHub (WFCD)"
+  },
+  "faq": {
+    "title": "Questions sur le comparatif",
+    "items": [
+      {
+        "q": "FrameSight est-il lié à AlecaFrame ou WFInfo ?",
+        "a": "Non. FrameSight est un projet open source indépendant. AlecaFrame et WFInfo appartiennent à leurs auteurs ; ils ne sont nommés ici que pour comparer."
+      },
+      {
+        "q": "Ces outils tournent-ils sur Linux ?",
+        "a": "FrameSight est fait pour. AlecaFrame documente un contournement non officiel qui fait tourner Overwolf dans le préfixe Proton de Warframe. L’installation de WFInfo est écrite pour Windows."
+      },
+      {
+        "q": "Lequel est le plus sûr ?",
+        "a": "Aucun n’est approuvé par Digital Extremes. Ce qu’on peut comparer, c’est ce que chacun lit et s’il écrit : FrameSight détaille ce que lit chaque niveau d’accès, n’écrit jamais dans le jeu et n’envoie aucune saisie."
+      }
+    ]
+  }
+}

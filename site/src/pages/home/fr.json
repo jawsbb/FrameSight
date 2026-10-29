@@ -1,47 +1,29 @@
 {
   "meta": {
-    "title": "FrameSight · Overlay des récompenses et compagnon Warframe pour Linux, Windows et Steam Deck",
-    "description": "Compagnon Warframe gratuit et open source. La valeur en platine et en ducats sur l'écran de récompenses des fissures du Néant et au kiosque à ducats de Baro, une collection chiffrée, une liste de maîtrise et vos ordres warframe.market. Natif sur Linux, Windows et Steam Deck. Sans Overwolf, sans compte, sans télémétrie.",
-    "ogTitle": "FrameSight · Le Néant cache ce que vaut chaque récompense",
-    "ogDescription": "La valeur en platine et en ducats sur l'écran de récompenses et au kiosque de Baro. Gratuit et open source, natif sur Linux, Windows et Steam Deck. Sans Overwolf, sans compte, sans télémétrie.",
-    "ogAlt": "Quatre fiches de récompense Warframe avec leur valeur en platine et en ducats, la meilleure de chaque métal couronnée.",
-    "ldDescription": "Un compagnon Warframe gratuit et open source : la valeur en platine et en ducats sur l'écran de récompenses des fissures du Néant et au kiosque à ducats de Baro, une collection chiffrée, une liste de maîtrise et la gestion des ordres warframe.market."
-  },
-  "nav": {
-    "skip": "Aller au contenu",
-    "home": "Accueil FrameSight",
-    "label": "Sections",
-    "features": "Fonctions",
-    "kiosk": "Kiosque à ducats",
-    "privacy": "Confidentialité",
-    "github": "Code source sur GitHub",
-    "download": "Télécharger",
-    "otherLang": "EN"
+    "title": "FrameSight : overlay de récompenses Warframe, Linux et Windows",
+    "description": "Compagnon Warframe gratuit et open source : platine et ducats sur l’écran de récompenses et au kiosque de Baro. Natif Linux, Windows, Steam Deck. Sans Overwolf."
   },
   "hero": {
     "pill": "Nouveau : rotations des primes et des missions sans fin",
     "title": "Le Néant cache ce que vaut chaque récompense.",
     "lede": "FrameSight la lit pour vous. Platine et ducats sous chaque carte de l’écran de récompenses et au kiosque de Baro, une collection chiffrée entre deux missions, et pas un octet écrit dans le jeu.",
-    "github": "Voir sur GitHub",
     "release": "Gratuit et open source",
     "meta": "Sans Overwolf · Sans compte · Sans télémétrie",
-    "demoAlt": "L'écran de récompenses des fissures du Néant avec l'overlay de FrameSight : sous chacune des quatre cartes, une fiche donne sa valeur en platine et en ducats, et la meilleure de chaque métal est couronnée.",
-    "reader": "Prix des joueurs en jeu en ce moment",
     "note": "Valeurs d’illustration. En jeu, les prix viennent des vendeurs warframe.market connectés.",
     "platformsLabel": "Fait pour les Tenno qui jouent sur"
   },
   "manifesto": {
     "label": "Pourquoi FrameSight",
-    "text": "Quelques secondes sur l’écran de récompenses. Quatre cartes, et l’une d’elles rembourse la mission. FrameSight vous dit laquelle avant le compte à rebours, puis s’efface."
+    "text": "Quelques secondes sur l’écran de récompenses. Quatre cartes, et l’une d’elles rembourse la mission. FrameSight vous dit laquelle avant le compte à rebours, puis s’efface.",
+    "more": "Comment fonctionne l’overlay de récompenses"
   },
   "kiosk": {
-    "alt": "Maquette du kiosque à ducats : choisissez des cases pour les ajouter à la liste de vente.",
-    "list": "À vendre",
     "title": "Le kiosque à ducats de Baro, chiffré en platine.",
     "text": "Avant d’échanger une pièce Prime contre des ducats, voyez combien elle se vendrait. Chaque case reçoit son prix en platine, chaque choix rejoint une liste de vente, et la liste fait son total au fil des ajouts.",
     "point1": "Les pièces d’équipement non maîtrisé sont marquées Unmastered, en accès Complet",
     "point2": "Dessiné sur le kiosque lui-même ; le jeu ne perd jamais le focus",
-    "note": "Essayez : choisissez des cases. Prix d’illustration."
+    "note": "Essayez : choisissez des cases. Prix d’illustration.",
+    "more": "En savoir plus sur l’overlay du kiosque"
   },
   "tour": {
     "title": "Entre deux missions, une seule fenêtre sobre.",
@@ -65,7 +47,8 @@
     "bountyEnds": "Fin du cycle dans 1 h 12",
     "linuxTitle": "Natif sur Linux. Chez lui sur Windows.",
     "linuxText": "Proton, Wine, le Steam Deck en mode Bureau, ou un seul installeur Windows sans rien d’autre à régler.",
-    "linuxOpens": "# la fenêtre de FrameSight s’ouvre"
+    "linuxOpens": "# la fenêtre de FrameSight s’ouvre",
+    "linuxMore": "FrameSight sur Linux"
   },
   "access": {
     "title": "Vous décidez de ce qu’il lit. Avant qu’il ne lise quoi que ce soit.",
@@ -124,28 +107,36 @@
     "appimageStepsTitle": "Rendez-la exécutable, puis lancez-la",
     "appimagePoint1": "Fonctionne jusqu’à Ubuntu 22.04 et Debian 12.",
     "appimagePoint2": "L’overlay des récompenses demande <code>tesseract</code> et ses données anglaises, depuis votre distribution.",
-    "foot": "Toutes les versions et notes de version sont sur la <a class=\"link\" href=\"https://github.com/jawsbb/FrameSight/releases\">page des releases GitHub</a>. Le lecteur de récompenses reconnaît les noms d’objets anglais : le jeu doit être en anglais."
+    "foot": "Toutes les versions et leurs notes sont sur la <a class=\"link\" href=\"https://github.com/jawsbb/FrameSight/releases\">page des releases GitHub</a>. Le lecteur de récompenses reconnaît les noms d’objets anglais et français : le jeu doit tourner dans l’une des deux langues. Guides pas à pas : <a class=\"link\" href=\"{{link.linux}}\">Linux</a>, <a class=\"link\" href=\"{{link.steam-deck}}\">Steam Deck</a>."
   },
   "faq": {
     "title": "Questions, réponses franches.",
     "text": "Le reste se trouve dans le <a class=\"link\" href=\"https://github.com/jawsbb/FrameSight\">dépôt</a>.",
     "items": [
-      { "q": "FrameSight modifie-t-il Warframe ou automatise-t-il quelque chose ?", "a": "Non. Il ne fait que lire : l’écran et <code>EE.log</code> pour les overlays et, en accès Complet seulement, un identifiant de compte et un nonce dans le processus du jeu. Aucun niveau d’accès n’écrit dans le jeu ni n’automatise d’entrée." },
-      { "q": "Faut-il Overwolf ou un compte ?", "a": "Non. FrameSight est une application de bureau autonome, sans compte et sans télémétrie. Lier warframe.market est facultatif et ne sert qu’à gérer vos ordres." },
-      { "q": "Est-ce que ça marche sur Linux et le Steam Deck ?", "a": "Oui, il est développé sous Linux. Il lit Warframe lancé via Proton ou Wine, et le Steam Deck lance l’AppImage en mode Bureau." },
-      { "q": "D’où viennent les prix ?", "a": "De warframe.market. La collection utilise un résumé quotidien servi par relics.run ; l’écran de récompenses chiffre les reliques de toute l’escouade à partir des vendeurs en jeu à cet instant. Les valeurs en ducats sont celles de Baro Ki’Teer." },
-      { "q": "Pourquoi l’overlay n’apparaît-il pas ?", "a": "Réglez le mode d’affichage de Warframe sur Sans bordure : en plein écran exclusif, rien ne peut dessiner par-dessus le jeu. Le lecteur de récompenses demande aussi le jeu en anglais, et un niveau d’accès Overlay ou Complet." },
-      { "q": "Est-ce gratuit ?", "a": "Oui, gratuit et open source sous licence GPL-3.0. FrameSight prolonge TennoScope, créé par Deftera186 et ses contributeurs." }
+      {
+        "q": "FrameSight modifie-t-il Warframe ou automatise-t-il quelque chose ?",
+        "a": "Non. Il ne fait que lire : l’écran et <code>EE.log</code> pour les overlays et, en accès Complet seulement, un identifiant de compte et un nonce dans le processus du jeu. Aucun niveau d’accès n’écrit dans le jeu ni n’automatise d’entrée."
+      },
+      {
+        "q": "Faut-il Overwolf ou un compte ?",
+        "a": "Non. FrameSight est une application de bureau autonome, sans compte et sans télémétrie. Lier warframe.market est facultatif et ne sert qu’à gérer vos ordres. <a class=\"link\" href=\"{{link.alternatives}}\">Comment il se compare aux apps Overwolf</a>."
+      },
+      {
+        "q": "Est-ce que ça marche sur Linux et le Steam Deck ?",
+        "a": "Oui, il est développé sur Linux. Il lit Warframe lancé via Proton ou Wine, et le Steam Deck lance l’AppImage en mode Bureau. Voir <a class=\"link\" href=\"{{link.linux}}\">FrameSight sur Linux</a> et <a class=\"link\" href=\"{{link.steam-deck}}\">sur le Steam Deck</a>."
+      },
+      {
+        "q": "D’où viennent les prix ?",
+        "a": "De warframe.market. La collection utilise un résumé quotidien servi par relics.run ; l’écran de récompenses chiffre les reliques de toute l’escouade à partir des vendeurs en jeu à cet instant. Les valeurs en ducats sont celles de Baro Ki’Teer."
+      },
+      {
+        "q": "Pourquoi l’overlay n’apparaît-il pas ?",
+        "a": "Réglez le mode d’affichage de Warframe sur Sans bordure : en plein écran exclusif, rien ne peut dessiner par-dessus le jeu. Le lecteur de récompenses demande aussi le jeu en anglais ou en français, et un niveau d’accès Overlay ou Complet."
+      },
+      {
+        "q": "Est-ce gratuit ?",
+        "a": "Oui, gratuit et open source sous licence GPL-3.0. FrameSight prolonge TennoScope, créé par Deftera186 et ses contributeurs."
+      }
     ]
-  },
-  "closer": {
-    "title": "Votre prochaine relique s’ouvre déjà.",
-    "text": "Installez FrameSight maintenant, et le prochain écran de récompenses vous dira quelle carte prendre."
-  },
-  "footer": {
-    "label": "Pied de page",
-    "security": "Sécurité",
-    "otherLang": "English",
-    "legal": "FrameSight est un projet de fan non officiel, ni affilié à Digital Extremes ni approuvé par ce studio. Warframe, ses noms, icônes et illustrations appartiennent à Digital Extremes."
   }
 }
