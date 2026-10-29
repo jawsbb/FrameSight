@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{CatalogError, CatalogIndex, RewardNeedle};
 
@@ -97,6 +97,49 @@ impl RelicRewardIndex {
     }
 }
 
+/// WFCD's Relics.json in the shape [`RelicRewardIndex::from_wfcd_json`] reads, put together from
+/// the two files WFCD keeps current. Its Relics.json stopped carrying rewards, and the last copy
+/// that did predates the Citrine Prime relics, so a squad opening one was matched against no pool.
+/// The relics give each projection path its name ("Axi C12 Intact"); the drop tables give the
+/// rewards under that same name. A relic no drop location lists any more is vaulted.
+pub fn join_wfcd_drop_tables(relics: &[u8], drop_tables: &[u8]) -> Result<Vec<u8>, CatalogError> {
+    let relics: Vec<CurrentRelicRecord> =
+        serde_json::from_slice(relics).map_err(|_| CatalogError::InvalidJson)?;
+    let tables: DropTables =
+        serde_json::from_slice(drop_tables).map_err(|_| CatalogError::InvalidJson)?;
+    let mut rewards = BTreeMap::new();
+    for table in tables.relics {
+        rewards.insert(
+            format!("{} {} {}", table.tier, table.relic_name, table.state),
+            table.rewards,
+        );
+    }
+    let joined = relics
+        .into_iter()
+        .filter_map(|relic| {
+            let drops = rewards.get(relic.name.trim())?;
+            Some(JoinedRelic {
+                vaulted: relic.drops.is_empty(),
+                rewards: drops
+                    .iter()
+                    .map(|drop| JoinedReward {
+                        item: JoinedItem {
+                            name: &drop.item_name,
+                        },
+                        chance: drop.chance,
+                    })
+                    .collect(),
+                unique_name: relic.unique_name,
+                name: relic.name,
+            })
+        })
+        .collect::<Vec<_>>();
+    if joined.is_empty() {
+        return Err(CatalogError::InvalidMetadata);
+    }
+    serde_json::to_vec(&joined).map_err(|_| CatalogError::InvalidJson)
+}
+
 fn reward_catalog_paths(name: &str, catalog: &CatalogIndex) -> Vec<String> {
     // Relic rewards conventionally add ` Blueprint` to component names. Prefer the component
     // identity even when the catalog also has an exact inventory-recipe alias for that wording.
@@ -154,4 +197,57 @@ struct RelicReward {
 #[derive(Deserialize)]
 struct RelicRewardItem {
     name: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CurrentRelicRecord {
+    unique_name: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    drops: Vec<serde::de::IgnoredAny>,
+}
+
+#[derive(Deserialize)]
+struct DropTables {
+    relics: Vec<DropTable>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DropTable {
+    tier: String,
+    #[serde(default)]
+    relic_name: String,
+    state: String,
+    rewards: Vec<DropTableReward>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DropTableReward {
+    item_name: String,
+    #[serde(default)]
+    chance: Option<f64>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct JoinedRelic<'a> {
+    unique_name: String,
+    name: String,
+    vaulted: bool,
+    rewards: Vec<JoinedReward<'a>>,
+}
+
+#[derive(Serialize)]
+struct JoinedReward<'a> {
+    item: JoinedItem<'a>,
+    chance: Option<f64>,
+}
+
+#[derive(Serialize)]
+struct JoinedItem<'a> {
+    name: &'a str,
 }

@@ -14,6 +14,15 @@ see the difference.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Rewards from the newest relics are named again.** The relic catalog came from a copy of WFCD's
+  Relics.json frozen in July 2026, because WFCD's current file no longer lists rewards. Relics
+  released since, the Citrine Prime ones among them, had no rewards to match, so a squad opening
+  one could see its `2X Forma Blueprint` named `Forma Blueprint` at 65 %. Each relic's rewards now
+  come from WFCD's drop tables, joined to the current Relics.json by the relic's name; a relic no
+  mission drops any more counts as vaulted.
+
 ## [0.14.0] - 2026-10-29
 
 ### Added

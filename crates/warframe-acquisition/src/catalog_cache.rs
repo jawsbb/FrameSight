@@ -14,7 +14,10 @@ use thiserror::Error;
 use crate::{CatalogIndex, RelicRewardIndex};
 
 pub const WFCD_ALL_JSON_URL: &str = "https://api.warframestat.us/items";
-pub const WFCD_RELICS_JSON_URL: &str = "https://raw.githubusercontent.com/WFCD/warframe-items/81c893536dee6de23fbf114cf52d1b01d23bd65d/data/json/Relics.json";
+pub const WFCD_RELICS_JSON_URL: &str =
+    "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/Relics.json";
+/// WFCD's drop tables, where relic rewards live now that its Relics.json no longer carries them.
+pub const WFCD_RELIC_DROPS_URL: &str = "https://drops.warframestat.us/data/relics.json";
 // Raised from 64 MiB: the WFCD items catalog passed 64 MiB in October 2026.
 const MAX_CATALOG_BYTES: usize = 256 * 1024 * 1024;
 
@@ -77,7 +80,9 @@ impl WfcdRelicCatalogHttp {
 
 impl RelicCatalogSource for WfcdRelicCatalogHttp {
     fn fetch(&self) -> Result<Vec<u8>, CatalogFetch> {
-        fetch_bounded(&self.client, WFCD_RELICS_JSON_URL)
+        let relics = fetch_bounded(&self.client, WFCD_RELICS_JSON_URL)?;
+        let drop_tables = fetch_bounded(&self.client, WFCD_RELIC_DROPS_URL)?;
+        crate::join_wfcd_drop_tables(&relics, &drop_tables).map_err(|_| CatalogFetch::Unavailable)
     }
 }
 
