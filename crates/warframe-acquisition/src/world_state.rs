@@ -1,5 +1,5 @@
 //! The game's public world state: the open-world cycles, void fissures and storms, the sortie, the
-//! archon hunt and Baro Ki'Teer.
+//! archon hunt, Baro Ki'Teer and the bounties' reward rotations.
 //!
 //! Read from Digital Extremes' own `worldState.php`, the document the game client reads, rather
 //! than from a mirror: `api.warframestat.us` was measured over two hours behind on 2026-10-28,
@@ -13,6 +13,12 @@
 //! - Earth is computed: four-hour states from the Unix epoch, day first.
 //! - Orb Vallis is computed: a 26m40s loop, 6m40s warm then 20 minutes cold, from the anchor the
 //!   parser re-measured in February 2026 because the old one had drifted.
+//!
+//! A bounty's rotation is read off the job itself: its `rewards` table ends `Table{A,B,C}Rewards`,
+//! the letter of the drop table it pays from until the cycle ends. The wiki has every bounty share
+//! one letter, ABCABC every 150 minutes; the document disagrees for the Cambion Drift, whose tiers
+//! were measured on different letters in one cycle, so the job is believed over the wiki. Zariman,
+//! Albrecht's Laboratories and Höllvania list no jobs here: one table per tier, nothing rotates.
 //!
 //! Zariman and Duviri are left out: the parser's Zariman rule counts from a 2022 epoch against
 //! bounty periods that run about a second short of 2.5 hours, so it has drifted by hours since,
@@ -53,6 +59,81 @@ pub enum Place {
     Cetus,
     Vallis,
     Cambion,
+}
+
+/// A drop table's letter: an endless mission's reward interval, or a bounty cycle's table.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+pub enum Rotation {
+    A,
+    B,
+    C,
+}
+
+impl Rotation {
+    pub(crate) fn from_letter(letter: &str) -> Option<Self> {
+        Some(match letter {
+            "A" => Self::A,
+            "B" => Self::B,
+            "C" => Self::C,
+            _ => return None,
+        })
+    }
+}
+
+/// An open world whose bounties rotate.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Hub {
+    Cetus,
+    Vallis,
+    Cambion,
+}
+
+impl Hub {
+    pub(crate) const ALL: [Self; 3] = [Self::Cetus, Self::Vallis, Self::Cambion];
+
+    fn of_syndicate(tag: &str) -> Option<Self> {
+        Some(match tag {
+            "CetusSyndicate" => Self::Cetus,
+            "SolarisSyndicate" => Self::Vallis,
+            "EntratiSyndicate" => Self::Cambion,
+            _ => return None,
+        })
+    }
+
+    /// How the catalogue's drop lists name the hub and its bounties.
+    pub(crate) fn zone(self) -> (&'static str, &'static str) {
+        match self {
+            Self::Cetus => ("Earth/Cetus", "Cetus Bounty"),
+            Self::Vallis => ("Venus/Orb Vallis", "Orb Vallis Bounty"),
+            Self::Cambion => ("Deimos/Cambion Drift", "Cambion Drift Bounty"),
+        }
+    }
+}
+
+/// A bounty tier: what the world state's job and the catalogue's drop table name alike.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct BountyTier {
+    pub hub: Hub,
+    /// An Isolation Vault, whose Arcana variant follows the same letter.
+    pub vault: bool,
+    pub min_level: u32,
+    pub max_level: u32,
+}
+
+/// One bounty tier on offer, and the table it pays from until `expiry`.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct Bounty {
+    #[serde(flatten)]
+    pub tier: BountyTier,
+    pub rotation: Rotation,
+    pub expiry: u64,
+}
+
+/// The letter a job's reward table pays from: `…/TierATableCRewards` is C.
+fn job_rotation(rewards: &str) -> Option<Rotation> {
+    let (_, letter) = rewards.strip_suffix("Rewards")?.rsplit_once("Table")?;
+    Rotation::from_letter(letter)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -152,6 +233,8 @@ pub struct WorldView {
     pub sortie: Option<Sortie>,
     pub archon_hunt: Option<Sortie>,
     pub baro: Option<Baro>,
+    /// The bounty tiers running now, by hub, then field before vault, then level.
+    pub bounties: Vec<Bounty>,
 }
 
 /// One world state document, parsed. Cycles and expiries are worked out by [`WorldState::view`] at
@@ -165,6 +248,8 @@ pub struct WorldState {
     sortie: Option<Sortie>,
     archon_hunt: Option<Sortie>,
     baro: Option<Baro>,
+    /// Every tier listed, the running cycle's and the next one's, as (activation, tier).
+    bounties: Vec<(u64, Bounty)>,
 }
 
 impl WorldState {
@@ -187,13 +272,34 @@ impl WorldState {
                 })
                 .collect()
         };
+        let bounties = raw
+            .syndicate_missions
+            .iter()
+            .filter_map(|syndicate| Some((Hub::of_syndicate(&syndicate.tag)?, syndicate)))
+            .flat_map(|(hub, syndicate)| {
+                syndicate.jobs.iter().filter_map(move |job| {
+                    let bounty = Bounty {
+                        tier: BountyTier {
+                            hub,
+                            vault: job.rewards.contains("VaultBounty"),
+                            min_level: job.min_enemy_level,
+                            max_level: job.max_enemy_level,
+                        },
+                        rotation: job_rotation(&job.rewards)?,
+                        expiry: syndicate.expiry,
+                    };
+                    Some((syndicate.activation, bounty))
+                })
+            })
+            .collect();
         Some(Self {
             cetus: raw
                 .syndicate_missions
                 .into_iter()
-                .filter(|syndicate| syndicate.tag == "CetusSyndicate")
+                .filter(|syndicate| Hub::of_syndicate(&syndicate.tag) == Some(Hub::Cetus))
                 .map(|syndicate| (syndicate.activation, syndicate.expiry))
                 .collect(),
+            bounties,
             fissures: fissures(raw.active_missions),
             storms: fissures(raw.void_storms),
             sortie: raw.sorties.into_iter().next().map(|s| s.resolve(names)),
@@ -246,7 +352,21 @@ impl WorldState {
             sortie: self.sortie.clone().filter(|sortie| now < sortie.expiry),
             archon_hunt: self.archon_hunt.clone().filter(|hunt| now < hunt.expiry),
             baro: self.baro.clone().filter(|baro| now < baro.expiry),
+            bounties: self.bounties(now),
         }
+    }
+
+    /// The bounty tiers running at `now`, by hub, then field before vault, then level.
+    pub fn bounties(&self, now: u64) -> Vec<Bounty> {
+        let mut running: Vec<Bounty> = self
+            .bounties
+            .iter()
+            .filter(|(activation, bounty)| *activation <= now && now < bounty.expiry)
+            .map(|(_, bounty)| bounty.clone())
+            .collect();
+        running.sort();
+        running.dedup();
+        running
     }
 }
 
@@ -539,6 +659,19 @@ struct RawSyndicate {
     activation: u64,
     #[serde(deserialize_with = "mongo_date")]
     expiry: u64,
+    #[serde(default)]
+    jobs: Vec<RawJob>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RawJob {
+    #[serde(default)]
+    rewards: String,
+    #[serde(default)]
+    min_enemy_level: u32,
+    #[serde(default)]
+    max_enemy_level: u32,
 }
 
 /// A sortie lists `Variants`, an archon hunt `Missions`; both are `{missionType, node}`.

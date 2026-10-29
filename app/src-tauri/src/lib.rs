@@ -644,17 +644,23 @@ async fn get_relics(state: State<'_, SharedRuntime>) -> Result<app_core::RelicsV
 }
 
 /// The Farm & sales page: built from the collection, the two price dumps, the catalogue's drop
-/// lists and the relic tables already in hand.
+/// lists and the relic tables already in hand, and the bounty tiers the Dashboard's last world state
+/// says run now.
 #[tauri::command]
-async fn get_farm(state: State<'_, SharedRuntime>) -> Result<app_core::FarmView, String> {
+async fn get_farm(
+    state: State<'_, SharedRuntime>,
+    world: State<'_, world_state::WorldCache>,
+) -> Result<app_core::FarmView, String> {
     let shared = Arc::clone(state.inner());
+    let world = world.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         ensure_relic_index(&shared)?;
+        let bounties = world_state::running_bounties(&world);
         shared
             .lock()
             .map_err(|_| "application state is unavailable".to_owned())?
             .core
-            .farm_view()
+            .farm_view(bounties.as_deref())
             .map_err(|_| "farm view is unavailable".to_owned())
     })
     .await

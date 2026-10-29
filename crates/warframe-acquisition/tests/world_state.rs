@@ -2,7 +2,8 @@ use std::cell::Cell;
 
 use tempfile::tempdir;
 use warframe_acquisition::{
-    Cycle, CycleState, Era, Node, Place, WorldNames, WorldNamesCache, WorldState,
+    Bounty, Cycle, CycleState, Era, Hub, Node, Place, Rotation, WorldNames, WorldNamesCache,
+    WorldState,
 };
 
 /// `api.warframe.com/cdn/worldState.php` as served at 2026-10-28T17:01:55Z.
@@ -112,6 +113,66 @@ fn leaves_cetus_and_cambion_out_once_every_listed_bounty_cycle_is_over() {
         .map(|cycle| cycle.place)
         .collect();
     assert_eq!(places, [Place::Earth, Place::Vallis]);
+}
+
+fn tiers(bounties: &[Bounty], hub: Hub) -> Vec<(bool, u32, u32, Rotation)> {
+    bounties
+        .iter()
+        .filter(|bounty| bounty.tier.hub == hub)
+        .map(|Bounty { tier, rotation, .. }| {
+            (tier.vault, tier.min_level, tier.max_level, *rotation)
+        })
+        .collect()
+}
+
+#[test]
+fn reads_each_bounty_tier_rotation_off_its_reward_table() {
+    let bounties = world().view(NOW).bounties;
+    assert!(bounties.iter().all(|bounty| bounty.expiry == CETUS_END));
+    use Rotation::{A, B, C};
+    assert_eq!(
+        tiers(&bounties, Hub::Cetus),
+        [
+            (false, 5, 15, C),
+            (false, 10, 30, C),
+            (false, 20, 40, C),
+            (false, 30, 50, C),
+            (false, 40, 60, C),
+            (false, 50, 70, C),
+            (false, 100, 100, C),
+        ]
+    );
+    // The Cambion Drift's tiers do not share one letter, whatever the wiki says.
+    assert_eq!(
+        tiers(&bounties, Hub::Cambion),
+        [
+            (false, 5, 15, C),
+            (false, 15, 25, C),
+            (false, 25, 30, A),
+            (false, 30, 40, B),
+            (false, 40, 60, A),
+            (false, 100, 100, A),
+            (true, 30, 40, B),
+            (true, 40, 50, B),
+            (true, 50, 60, B),
+        ]
+    );
+}
+
+#[test]
+fn moves_the_bounties_to_the_next_listed_cycle() {
+    let bounties = world().view(CETUS_END).bounties;
+    assert!(
+        bounties
+            .iter()
+            .all(|bounty| bounty.expiry == NEXT_CETUS_END)
+    );
+    assert!(
+        tiers(&bounties, Hub::Vallis)
+            .iter()
+            .all(|tier| tier.3 == Rotation::A)
+    );
+    assert!(world().view(NEXT_CETUS_END).bounties.is_empty());
 }
 
 #[test]

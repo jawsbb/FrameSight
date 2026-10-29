@@ -68,8 +68,8 @@ pub use run_drops::RunDrop;
 #[cfg(windows)]
 pub use windows_proc::WindowsProc;
 pub use world_state::{
-    Cycle, CycleState, Era, Node, Place, WorldNames, WorldNamesCache, WorldState, WorldStateHttp,
-    WorldView,
+    Bounty, BountyTier, Cycle, CycleState, Era, Hub, Node, Place, Rotation, WorldNames,
+    WorldNamesCache, WorldState, WorldStateHttp, WorldView,
 };
 
 /// A credential whose standard formatting surfaces never expose its contents.

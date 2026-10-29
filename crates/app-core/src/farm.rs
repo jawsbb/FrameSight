@@ -8,11 +8,17 @@
 //! sales (the Collection's `sellableValue`, so an item is worth the same on both pages).
 //!
 //! Built on demand from what is already loaded: the collection, the daily price table and the one a
-//! week before it, the catalogue's drop lists and WFCD's relic tables. Nothing here asks the network.
+//! week before it, the catalogue's drop lists and WFCD's relic tables. Nothing here asks the network;
+//! the bounty tiers running now are handed in by the caller, from the Dashboard's last world state.
+//!
+//! A bounty pays from one table per cycle, so only the table running now is a farm: the others are
+//! left out while the running tiers are known, and ranked as before when they are not.
 
 use std::collections::{BTreeMap, HashMap};
 
 use serde::Serialize;
+use warframe_acquisition::{Bounty, BountyTier, Rotation};
+use warframe_domain::Category;
 
 use crate::{AppCore, AppError, Refinement};
 
@@ -129,6 +135,8 @@ pub struct FarmView {
     pub drops: bool,
     /// Whether WFCD's relic tables are loaded; without them a relic cannot be valued by opening.
     pub relic_tables: bool,
+    /// Whether the bounty tiers running now are known; without them every bounty table is ranked.
+    pub bounties: bool,
     pub sell: Vec<SellRow>,
     pub open: Vec<OpenRow>,
     pub farm: Vec<FarmRow>,
@@ -175,12 +183,19 @@ pub struct FarmRow {
     /// Platinum expected from one run, sales counted. An average.
     pub value: f64,
     pub pace: Pace,
+    /// For a bounty table running now, the Unix milliseconds at which its cycle ends.
+    pub until: Option<u64>,
     /// What falls there, the most valuable first.
     pub drops: Vec<FarmDrop>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct FarmDrop {
+    /// Its inventory path.
+    pub id: String,
+    /// The collection row holding the most copies of it, which its item sheet opens on.
+    pub row: Option<String>,
+    pub category: Category,
     /// warframe.market's name.
     pub name: String,
     /// Percent per run.
@@ -189,7 +204,6 @@ pub struct FarmDrop {
     pub unit: f64,
     /// Its share of the run's value, sales counted.
     pub value: f64,
-    pub relic: bool,
     pub monthly_trades: Option<u32>,
     pub change: Option<f64>,
 }
@@ -208,40 +222,47 @@ pub struct Trend {
 /// What can drop at a place, priced, before the places are ranked.
 pub struct PricedDrop<'a> {
     pub location: &'a str,
+    pub until: Option<u64>,
+    pub path: &'a str,
+    pub row: Option<&'a str>,
+    pub category: Category,
     pub name: &'a str,
     pub chance: f64,
     pub unit: Expected,
-    pub relic: bool,
     pub monthly_trades: Option<u32>,
     pub change: Option<f64>,
 }
 
 /// Places by the platinum one run brings, sales counted.
 pub fn farm_rows<'a>(drops: impl IntoIterator<Item = PricedDrop<'a>>) -> Vec<FarmRow> {
-    let mut places: BTreeMap<&str, (Expected, Vec<FarmDrop>)> = BTreeMap::new();
+    let mut places: BTreeMap<&str, (Expected, Option<u64>, Vec<FarmDrop>)> = BTreeMap::new();
     for drop in drops {
-        let (total, listed) = places.entry(drop.location).or_default();
+        let (total, until, listed) = places.entry(drop.location).or_default();
         total.add(drop.chance, drop.unit);
+        *until = drop.until;
         listed.push(FarmDrop {
+            id: drop.path.to_owned(),
+            row: drop.row.map(str::to_owned),
+            category: drop.category,
             name: drop.name.to_owned(),
             chance: drop.chance,
             unit: drop.unit.raw,
             value: drop.chance / 100.0 * drop.unit.value,
-            relic: drop.relic,
             monthly_trades: drop.monthly_trades,
             change: drop.change,
         });
     }
     let mut rows = places
         .into_iter()
-        .filter(|(_, (total, _))| total.value > 0.0)
-        .map(|(location, (total, mut drops))| {
+        .filter(|(_, (total, _, _))| total.value > 0.0)
+        .map(|(location, (total, until, mut drops))| {
             drops.sort_by(|left, right| right.value.total_cmp(&left.value));
             drops.truncate(DROPS_SHOWN);
             FarmRow {
                 location: location.to_owned(),
                 value: total.value,
                 pace: total.pace(),
+                until,
                 drops,
             }
         })
@@ -287,7 +308,8 @@ impl AppCore {
         self.earlier_prices = Some(prices);
     }
 
-    pub fn farm_view(&self) -> Result<FarmView, AppError> {
+    /// `bounties` are the tiers running now, `None` when the world state could not say.
+    pub fn farm_view(&self, bounties: Option<&[Bounty]>) -> Result<FarmView, AppError> {
         let prices = self.prices.as_deref();
         let earlier = self.earlier_prices.as_deref();
         let market = |name: &str| prices?.market_name(name);
@@ -348,32 +370,58 @@ impl AppCore {
             .as_deref()
             .map(|catalog| catalog.run_drops())
             .unwrap_or_default();
+        // Each running tier, with its letter and its end; `None` while they are not known.
+        let running: Option<HashMap<BountyTier, (Rotation, u64)>> = bounties.map(|bounties| {
+            bounties
+                .iter()
+                .map(|bounty| (bounty.tier, (bounty.rotation, bounty.expiry)))
+                .collect()
+        });
+        // The row holding the most copies of each inventory path; a row's id is its path, then
+        // `#rank` for a ranked copy, as `ItemId::catalog_path` reads it.
+        let mut rows: HashMap<&str, (&str, u32)> = HashMap::new();
+        for item in held.clone() {
+            let path = item.id().split('#').next().unwrap_or_default();
+            let best = rows.entry(path).or_insert((item.id(), 0));
+            if item.quantity() > best.1 {
+                *best = (item.id(), item.quantity());
+            }
+        }
         let mut relics: HashMap<&str, Option<Expected>> = HashMap::new();
         let priced = run_drops.iter().filter_map(|drop| {
-            let unit = match drop.relic.as_deref() {
-                Some(path) => {
-                    (*relics.entry(path).or_insert_with(|| {
-                        let opening = self
-                            .relics
-                            .as_deref()
-                            .and_then(|index| index.relic(path))
-                            .and_then(|relic| {
-                                opening_value(relic.drops.iter().map(|reward| {
-                                    (reward.chance, price(&reward.name), trades(&reward.name))
-                                }))
-                            });
-                        let sale = price(&drop.item).map(|p| Expected::item(p, trades(&drop.item)));
-                        relic_worth(opening, sale)
-                    }))?
-                }
-                None => Expected::item(price(&drop.item)?, trades(&drop.item)),
+            let until = match (drop.bounty, &running) {
+                (Some((tier, rotation)), Some(running)) => match running.get(&tier) {
+                    Some(&(now, expiry)) if now == rotation => Some(expiry),
+                    _ => return None,
+                },
+                _ => None,
+            };
+            let unit = if drop.category == Category::Relic {
+                (*relics.entry(&drop.path).or_insert_with(|| {
+                    let opening = self
+                        .relics
+                        .as_deref()
+                        .and_then(|index| index.relic(&drop.path))
+                        .and_then(|relic| {
+                            opening_value(relic.drops.iter().map(|reward| {
+                                (reward.chance, price(&reward.name), trades(&reward.name))
+                            }))
+                        });
+                    let sale = price(&drop.item).map(|p| Expected::item(p, trades(&drop.item)));
+                    relic_worth(opening, sale)
+                }))?
+            } else {
+                Expected::item(price(&drop.item)?, trades(&drop.item))
             };
             Some(PricedDrop {
                 location: &drop.location,
+                until,
+                path: &drop.path,
+                row: rows.get(drop.path.as_str()).map(|(row, _)| *row),
+                category: drop.category,
                 name: &drop.item,
                 chance: drop.chance,
                 unit,
-                relic: drop.relic.is_some(),
                 monthly_trades: trades(&drop.item),
                 change: change(&drop.item),
             })
@@ -414,6 +462,7 @@ impl AppCore {
             earlier_date: earlier.map(|table| table.dump_date().to_owned()),
             drops: !run_drops.is_empty(),
             relic_tables: self.relics.is_some(),
+            bounties: bounties.is_some(),
             sell,
             open,
             farm,
@@ -433,10 +482,13 @@ mod tests {
     fn drop<'a>(location: &'a str, name: &'a str, chance: f64, unit: Expected) -> PricedDrop<'a> {
         PricedDrop {
             location,
+            until: None,
+            path: name,
+            row: None,
+            category: Category::Mod,
             name,
             chance,
             unit,
-            relic: false,
             monthly_trades: None,
             change: None,
         }
@@ -524,7 +576,7 @@ mod tests {
         // A relic chained through its opening ranks its mission like any other drop.
         let rows = farm_rows([
             PricedDrop {
-                relic: true,
+                category: Category::Relic,
                 ..drop(
                     "Void/Mot (Survival), Rotation C",
                     "Axi A1 Relic",

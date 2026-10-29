@@ -2,16 +2,21 @@ use std::sync::Arc;
 
 use app_core::{AppCore, Pace};
 use local_store::SnapshotMeta;
-use warframe_acquisition::{CatalogIndex, PriceTable, RelicRewardIndex};
+use warframe_acquisition::{
+    Bounty, BountyTier, CatalogIndex, Hub, PriceTable, RelicRewardIndex, Rotation,
+};
 use warframe_domain::{CatalogItem, Category, InventoryEntry, InventorySnapshot, ItemId};
 
 const LITH: &str = "/Lotus/Types/Game/Projections/T1VoidProjectionTestABronze";
 
-/// A mod that drops on a rotation and from an enemy, and a relic that drops on another.
+/// A mod that drops on a rotation, from an enemy and in two tables of a bounty, and a relic that
+/// drops on another rotation.
 const CATALOG: &str = r#"[
   {"uniqueName":"/Lotus/Upgrades/Mods/Rifle/Serration","name":"Serration","category":"Mods","drops":[
     {"location":"Earth/Mantle (Capture)","chance":10,"type":"Serration"},
-    {"location":"Scorpion","chance":50,"type":"Serration"}
+    {"location":"Scorpion","chance":50,"type":"Serration"},
+    {"location":"Earth/Cetus (Level 5 - 15 Cetus Bounty), Rotation A","chance":10,"type":"Serration"},
+    {"location":"Earth/Cetus (Level 5 - 15 Cetus Bounty), Rotation C","chance":5,"type":"Serration"}
   ]},
   {"uniqueName":"/Lotus/Types/Game/Projections/T1VoidProjectionTestABronze","name":"Lith T1 Intact","category":"Relics","drops":[
     {"location":"Void/Mot (Survival), Rotation C","chance":20,"type":"Lith T1 Relic"}
@@ -81,7 +86,9 @@ fn the_farm_view_ranks_what_sells_and_chains_a_mission_through_its_relic() {
         PriceTable::from_dump_json(dump(10.0, 24.0).as_bytes(), "2026-10-20").unwrap(),
     ));
 
-    let view = core.farm_view().unwrap();
+    // No bounty tier runs: neither Cetus table is a farm now.
+    let view = core.farm_view(Some(&[])).unwrap();
+    assert!(view.bounties);
     assert_eq!(view.prices_date.as_deref(), Some("2026-10-27"));
     assert_eq!(view.earlier_date.as_deref(), Some("2026-10-20"));
 
@@ -111,8 +118,47 @@ fn the_farm_view_ranks_what_sells_and_chains_a_mission_through_its_relic() {
         ["Earth/Mantle (Capture)", "Void/Mot (Survival), Rotation C"]
     );
     assert!((view.farm[0].value - 3.0).abs() < 1e-9);
-    assert!(view.farm[1].drops[0].relic);
+    assert_eq!(view.farm[1].drops[0].category, Category::Relic);
     assert!((view.farm[1].value - 0.2 * relic.value).abs() < 1e-9);
+
+    let cetus = |rotation| Bounty {
+        tier: BountyTier {
+            hub: Hub::Cetus,
+            vault: false,
+            min_level: 5,
+            max_level: 15,
+        },
+        rotation,
+        expiry: 1_000,
+    };
+    let farmed = |bounties: Option<&[Bounty]>| -> Vec<(String, Option<u64>)> {
+        core.farm_view(bounties)
+            .unwrap()
+            .farm
+            .into_iter()
+            .filter(|row| row.location.starts_with("Earth/Cetus"))
+            .map(|row| (row.location, row.until))
+            .collect()
+    };
+    assert_eq!(
+        farmed(Some(&[cetus(Rotation::C)])),
+        [(
+            "Earth/Cetus (Level 5 - 15 Cetus Bounty), Rotation C".to_owned(),
+            Some(1_000)
+        )]
+    );
+    // Unknown, every table ranks as it did before.
+    assert_eq!(farmed(None).len(), 2);
+    assert_eq!(
+        view.farm[0].drops[0].id,
+        "/Lotus/Upgrades/Mods/Rifle/Serration"
+    );
+    assert_eq!(view.farm[0].drops[0].category, Category::Mod);
+    // The held copy is the row its sheet opens on.
+    assert_eq!(
+        view.farm[0].drops[0].row.as_deref(),
+        Some("/Lotus/Upgrades/Mods/Rifle/Serration")
+    );
 
     // Serration rose 25% and sells ninety a month, and the account holds four.
     assert_eq!(view.trends.len(), 1);
