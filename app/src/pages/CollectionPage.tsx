@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { AccessMode, AppView, CollectionItem, ItemCategory } from '../backend'
 import { collectionTotals, figure, masteryOrder, masteryProgress, pageWindow } from '../collection'
-import { isListable, listedOrderFor } from '../orders'
+import { sellingFor } from '../orders'
 import { MetalMark } from '../MetalMark'
 import type { SellHandler, UpdateHandler } from '../SellForm'
 import { CollectionEntry, type EntryContext } from '../components/CollectionEntry'
@@ -88,8 +88,7 @@ export function CollectionPage({ view, effectiveMode, filters, onFilters, pricin
     : {
       ownershipVerified,
       showDucats,
-      listedOrder: listedOrderFor(view.market_account.orders, item.id),
-      sellable: ownershipVerified && view.market_account.link === 'linked' && isListable(item, view.market_account.listable),
+      ...sellingFor(item, view.market_account, ownershipVerified),
       onSell,
       onUpdate,
       busy: ordersBusy,

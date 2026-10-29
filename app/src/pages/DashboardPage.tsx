@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification'
-import { getWorldState, type Cycle, type CycleState, type Era, type Fissure, type Sortie, type WorldNode, type WorldView } from '../backend'
+import { getWorldState, type Bounty, type Cycle, type CycleState, type Era, type Fissure, type Hub, type Sortie, type WorldNode, type WorldView } from '../backend'
 import { Icon, type IconName } from '../components/Icon'
 import { useMessages, type Messages } from '../i18n'
 import { readFissureAlerts, readFissureFilters, writeFissureAlerts, writeFissureFilters } from '../settings'
-import { ANY_FILTER, ERAS, FISSURE_TABS, duration, fissureIds, fissuresOf, matches, newMatches, nextDailyReset, type FissureFilter, type FissureFilters, type FissureTab } from '../world'
+import { ANY_FILTER, ENDLESS, ERAS, FISSURE_TABS, duration, fissureIds, fissuresOf, matches, newMatches, nextDailyReset, rotationMarks, type FissureFilter, type FissureFilters, type FissureTab } from '../world'
 import './DashboardPage.css'
 
 /** How often the page asks again while it is on screen; the backend keeps an answer this long. */
@@ -31,13 +31,11 @@ const factionImages: Record<string, string> = {
   Narmer: 'NarmerEyeSigil(SxWhite).png',
 }
 
+const hubImages: Record<Hub, string> = { cetus: 'PlainsofEidolonScene.png', vallis: 'OrbVallisScene.png', cambion: 'DeimosCambionDriftScene.png' }
+
 function cycleImage(cycle: Cycle): string {
-  switch (cycle.place) {
-    case 'earth': return cycle.state === 'night' ? 'EarthTileNight1.png' : 'EarthTileDay1.png'
-    case 'cetus': return 'PlainsofEidolonScene.png'
-    case 'vallis': return 'OrbVallisScene.png'
-    case 'cambion': return 'DeimosCambionDriftScene.png'
-  }
+  if (cycle.place !== 'earth') return hubImages[cycle.place]
+  return cycle.state === 'night' ? 'EarthTileNight1.png' : 'EarthTileDay1.png'
 }
 
 /** A decorative wiki picture that steps aside when it does not load, offline for one. */
@@ -264,9 +262,68 @@ function Today({ world, now }: { world: WorldView; now: number }) {
   </section>
 }
 
+/** One tier's level range beside its table's letter. */
+function TierTag({ bounty }: { bounty: Bounty }) {
+  const b = useMessages().dashboard.bounties
+  return <span className="tag rotation-tier" aria-label={b.tier(bounty.min_level, bounty.max_level, bounty.rotation)}>
+    <span aria-hidden="true">{bounty.min_level}–{bounty.max_level}</span>
+    <b aria-hidden="true">{bounty.rotation}</b>
+  </span>
+}
+
+/** Each open world's bounty tiers and the table each pays from, until the cycle turns. */
+function Bounties({ world, now }: { world: WorldView; now: number }) {
+  const d = useMessages().dashboard
+  const b = d.bounties
+  const ends = Math.min(...world.bounties.map(bounty => bounty.expiry))
+  return <section className="world-section" aria-labelledby="world-bounties">
+    <div className="world-head">
+      <h2 id="world-bounties" className="section-title">{b.title}</h2>
+      {world.bounties.length > 0 && <span className="band-note world-figure">{b.changes(duration(ends - now, d.units))}</span>}
+    </div>
+    <div className="group">
+      {world.bounties.length === 0 && <p className="world-empty">{b.none}</p>}
+      {/* The backend sorts by hub, then field before vault, then level. */}
+      {[...new Set(world.bounties.map(bounty => bounty.hub))].map(hub => <div key={hub} className="world-row">
+        <span className="world-badge"><WikiArt file={hubImages[hub]} width={96} className="badge-art portrait"/></span>
+        <span className="world-label">
+          {d.places[hub]}
+          {[false, true].map(vault => {
+            const tiers = world.bounties.filter(bounty => bounty.hub === hub && bounty.vault === vault)
+            return tiers.length > 0 && <span key={String(vault)} className="rotation-tiers">
+              {vault && <span className="band-note">{b.vault}</span>}
+              {tiers.map(bounty => <TierTag key={`${bounty.min_level}-${bounty.max_level}`} bounty={bounty}/>)}
+            </span>
+          })}
+        </span>
+      </div>)}
+    </div>
+    <p className="band-note">{b.note}</p>
+  </section>
+}
+
+/** The wiki's reward intervals: when A, B and C fall in each endless mission. */
+function EndlessRotations() {
+  const t = useMessages()
+  const e = t.dashboard.endless
+  return <section className="world-section" aria-labelledby="world-endless">
+    <h2 id="world-endless" className="section-title">{e.title}</h2>
+    <dl className="group rotation-list">
+      {ENDLESS.map(({ mission, every, unit }) => <div key={mission} className="rotation-row">
+        <dt>{missionName(mission, t)}</dt>
+        <dd>{rotationMarks(every).map(mark => <span key={mark.rotation} className="rotation-mark"><b>{mark.rotation}</b> {mark.at.join(' · ')}</span>)}<span className="band-note">{e.units[unit]}</span></dd>
+      </div>)}
+      <div className="rotation-row"><dt>{e.arbitration}</dt><dd>{e.arbitrationPattern}</dd></div>
+      <div className="rotation-row"><dt>{e.caches}</dt><dd>{e.cachesPattern}</dd></div>
+    </dl>
+    <p className="band-note">{e.note}</p>
+  </section>
+}
+
 /**
  * What a player wants on logging in, read from the game's own world state: the open-world cycles,
- * the void fissures (filtered, with an optional notification for new ones) and today's rotations.
+ * the void fissures (filtered, with an optional notification for new ones), today's rotations, the
+ * bounty tables running now and the wiki's endless reward intervals.
  */
 export function DashboardPage() {
   const d = useMessages().dashboard
@@ -307,7 +364,11 @@ export function DashboardPage() {
         <Cycles world={world} now={now}/>
         <div className="world-columns">
           <Fissures world={world} now={now} filters={filters} onFilters={changeFilters} alerts={alerts} onAlerts={() => void toggleAlerts()} denied={denied}/>
-          <Today world={world} now={now}/>
+          <div className="world-stack">
+            <Today world={world} now={now}/>
+            <Bounties world={world} now={now}/>
+            <EndlessRotations/>
+          </div>
         </div>
       </>}
     <div className="world-foot">

@@ -1,4 +1,4 @@
-import type { Era, Fissure, WorldView } from './backend'
+import type { Era, Fissure, Rotation, WorldView } from './backend'
 
 export const ERAS: readonly Era[] = ['lith', 'meso', 'neo', 'axi', 'requiem', 'omnia']
 export const FISSURE_TABS = ['normal', 'steel', 'storms'] as const
@@ -50,4 +50,36 @@ export function duration(milliseconds: number, units: { d: string; h: string; m:
 /** The next 00:00 UTC, when dailies reset. */
 export function nextDailyReset(now: number): number {
   return (Math.floor(now / 86_400_000) + 1) * 86_400_000
+}
+
+/** What an endless mission counts its rewards in. */
+export type EndlessUnit = 'minutes' | 'waves' | 'rounds' | 'drills' | 'zones' | 'crucibles' | 'squads' | 'exolizers' | 'ruptures' | 'orphix'
+
+/**
+ * The wiki's "Mission Rewards" summary: one reward each `every` units, in WFCD's mission names.
+ * Disruption is left out, its rotation following defended conduits rather than a count.
+ */
+export const ENDLESS: ReadonlyArray<{ mission: string; every: number; unit: EndlessUnit }> = [
+  { mission: 'Survival', every: 5, unit: 'minutes' },
+  { mission: 'Defense', every: 3, unit: 'waves' },
+  { mission: 'Interception', every: 1, unit: 'rounds' },
+  { mission: 'Excavation', every: 1, unit: 'drills' },
+  { mission: 'Sanctuary Onslaught', every: 2, unit: 'zones' },
+  { mission: 'Mirror Defense', every: 2, unit: 'waves' },
+  { mission: 'Infested Salvage', every: 1, unit: 'waves' },
+  { mission: 'Defection', every: 2, unit: 'squads' },
+  { mission: 'Alchemy', every: 1, unit: 'crucibles' },
+  { mission: 'Orphix', every: 3, unit: 'orphix' },
+  { mission: 'Void Cascade', every: 4, unit: 'exolizers' },
+  { mission: 'Void Flood', every: 3, unit: 'ruptures' },
+  { mission: 'Void Armageddon', every: 1, unit: 'rounds' },
+]
+
+/** The marks of one A-A-B-C loop: every 5 minutes is A at 5 and 10, B at 15, C at 20. */
+export function rotationMarks(every: number): Array<{ rotation: Rotation; at: number[] }> {
+  return [
+    { rotation: 'A', at: [every, 2 * every] },
+    { rotation: 'B', at: [3 * every] },
+    { rotation: 'C', at: [4 * every] },
+  ]
 }

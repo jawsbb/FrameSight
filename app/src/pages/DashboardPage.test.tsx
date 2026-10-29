@@ -41,6 +41,12 @@ const world: WorldView = {
   },
   archon_hunt: { boss: 'Archon Nira', faction: 'Narmer', expiry: seconds(4 * 86_400), missions: [{ mission_type: 'Rescue', node: { name: 'Carme', planet: 'Jupiter', enemy: 'Corpus' } }] },
   baro: { activation: seconds(2 * 86_400), expiry: seconds(4 * 86_400), relay: { name: 'Larunda Relay', planet: 'Mercury', enemy: null } },
+  bounties: [
+    { hub: 'cetus', vault: false, min_level: 5, max_level: 15, rotation: 'C', expiry: seconds(20 * 60 + 43) },
+    { hub: 'cetus', vault: false, min_level: 10, max_level: 30, rotation: 'C', expiry: seconds(20 * 60 + 43) },
+    { hub: 'cambion', vault: false, min_level: 25, max_level: 30, rotation: 'A', expiry: seconds(20 * 60 + 43) },
+    { hub: 'cambion', vault: true, min_level: 30, max_level: 40, rotation: 'B', expiry: seconds(20 * 60 + 43) },
+  ],
   fetched_at: seconds(-12),
   stale: false,
 }
@@ -178,6 +184,27 @@ describe('Dashboard', () => {
     expect(today).toHaveTextContent(/Archon huntArchon Nira · NarmerRescue Carme \(Jupiter\)4d 0h 0m 0s/)
     expect(today).toHaveTextContent(/Baro Ki’TeerLarunda Relay \(Mercury\)Arrives in 2d 0h 0m 0s/)
     expect(today).toHaveTextContent(/Daily resetAt 00:00 UTC6h 59m 46s/)
+  })
+
+  it('lists each bounty tier with the table it pays from, until the cycle turns', async () => {
+    render(<DashboardPage/>)
+    await settle()
+    const bounties = screen.getByRole('region', { name: 'Bounty rotations' })
+    expect(within(bounties).getByText('Next tables in 20m 43s')).toBeInTheDocument()
+    expect(within(bounties).getByLabelText('Level 5 to 15, rotation C')).toBeInTheDocument()
+    expect(within(bounties).getByLabelText('Level 25 to 30, rotation A')).toBeInTheDocument()
+    expect(within(bounties).getByText('Isolation vaults')).toBeInTheDocument()
+    expect(within(bounties).getByLabelText('Level 30 to 40, rotation B')).toBeInTheDocument()
+    expect(within(bounties).queryByText('Orb Vallis')).not.toBeInTheDocument()
+  })
+
+  it('lays the wiki’s A, A, B, C on each endless mission’s interval', async () => {
+    render(<DashboardPage/>)
+    await settle()
+    const endless = screen.getByRole('region', { name: 'Endless mission rotations' })
+    const survival = within(endless).getByText('Survival').closest('div')
+    expect(survival).toHaveTextContent('A 5 · 10B 15C 20min')
+    expect(within(endless).getByText('Sanctuary Onslaught').closest('div')).toHaveTextContent('A 2 · 4B 6C 8zones')
   })
 
   it('says how old the data is, and falls back to the last state when the game does not answer', async () => {

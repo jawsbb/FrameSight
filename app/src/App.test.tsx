@@ -124,7 +124,7 @@ const view: AppView = {
 }
 
 /** An empty world: the dashboard the app opens on asks for it, and the dashboard's own suite tests it. */
-const world: WorldView = { cycles: [], fissures: [], storms: [], sortie: null, archon_hunt: null, baro: null, fetched_at: 0, stale: false }
+const world: WorldView = { cycles: [], fissures: [], storms: [], sortie: null, archon_hunt: null, baro: null, bounties: [], fetched_at: 0, stale: false }
 
 /** The app opens on the dashboard; most of what is tested here is the collection behind it. */
 async function openCollection(user: Pick<ReturnType<typeof userEvent.setup>, 'click'> = userEvent) {

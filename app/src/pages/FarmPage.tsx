@@ -1,9 +1,12 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
-import { getFarm, marketItemHistory, type AccessMode, type AppView, type DayTrades, type FarmPlace, type FarmView, type Pace } from '../backend'
+import { getFarm, marketItemHistory, type AccessMode, type AppView, type CollectionItem, type DayTrades, type FarmDrop, type FarmPlace, type FarmView, type Pace } from '../backend'
 import { figure, rankLabel } from '../collection'
-import { isListable, listedOrderFor } from '../orders'
+import { isListable, listedOrderFor, sellingFor } from '../orders'
 import { SellForm, type SellHandler, type UpdateHandler } from '../SellForm'
 import { EmptyState } from '../components/EmptyState'
+import type { EntryContext } from '../components/CollectionEntry'
+import { ItemSheet } from '../components/ItemSheet'
+import { useItemSheet } from '../components/useItemSheet'
 import { Icon } from '../components/Icon'
 import { relicLabel } from '../relics'
 import { Platinum } from '../components/Platinum'
@@ -27,7 +30,8 @@ type Picked = { name: string; market: string }
 /**
  * Farm & sales: what to sell, open and farm, ranked by what the market takes. Every figure is the
  * backend's, built from what it already holds; only the curve of an item the player picks asks
- * warframe.market, once.
+ * warframe.market, once. A bounty table is ranked only while it runs, so the page asks again when
+ * the first one running ends.
  */
 export function FarmPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }: {
   view: AppView
@@ -43,6 +47,7 @@ export function FarmPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }: 
   const [tab, setTab] = useState<Tab>('all')
   const [chart, setChart] = useState<Action>('farm')
   const [picked, setPicked] = useState<Picked | null>(null)
+  const [turns, setTurns] = useState(0)
   const snapshotAt = view.collection.snapshot?.observed_at
   const pricesAt = view.health.collection_prices.last_success
   const catalogAt = view.health.catalog.last_success
@@ -53,7 +58,15 @@ export function FarmPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }: 
       .then(next => { if (active) { setFarm(next); setFailed(false) } })
       .catch(() => { if (active) setFailed(true) })
     return () => { active = false }
-  }, [snapshotAt, pricesAt, catalogAt])
+  }, [snapshotAt, pricesAt, catalogAt, turns])
+
+  const turn = Math.min(...(farm?.farm ?? []).flatMap(row => row.until ?? []))
+  useEffect(() => {
+    if (!Number.isFinite(turn)) return
+    // A second past the end, so the backend's world state has moved on to the next cycle.
+    const timer = setTimeout(() => setTurns(count => count + 1), Math.max(1000, turn - Date.now() + 1000))
+    return () => clearTimeout(timer)
+  }, [turn])
 
   if (!farm) {
     return <section className="page" aria-labelledby="farm-title" aria-live="polite">
@@ -283,6 +296,10 @@ function Block({ action, farm, view, full, limit, picked, onPick, onSell, onUpda
   const headingId = useId()
   const [selling, setSelling] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(null)
+  // The place whose drops the sheet walks; its items are built from the props each render.
+  const [sheetPlace, setSheetPlace] = useState<string | null>(null)
+  const sheetDrops = farm.farm.find(row => row.location === sheetPlace)?.drops ?? []
+  const sheet = useItemSheet(sheetDrops.map(drop => sheetItem(drop, view.collection.items)))
   const heading = <h3 id={headingId} className="section-title farm-block-title">{f.actions[action]}</h3>
   if (action !== 'farm' && !full) {
     return <section aria-labelledby={headingId}>{heading}<EmptyState icon="farm" title={f.fullRequired} detail={f.fullRequiredDetail}/></section>
@@ -292,6 +309,18 @@ function Block({ action, farm, view, full, limit, picked, onPick, onSell, onUpda
     return <section aria-labelledby={headingId}>{heading}<EmptyState icon="farm" title={f.table.empty[action]} detail={!farm.prices_date ? f.table.waiting : action === 'farm' && farm.drops ? f.chart.empty : f.table.emptyDetail[action]}/></section>
   }
   const account = view.market_account
+  const context = (item: CollectionItem): EntryContext => ({
+    ownershipVerified: full,
+    showDucats: false,
+    ...sellingFor(item, account, full),
+    onSell,
+    onUpdate,
+    busy: ordersBusy,
+  })
+  const openDrop = (place: string, drop: FarmDrop, trigger: HTMLElement) => {
+    setSheetPlace(place)
+    sheet.open(sheetItem(drop, view.collection.items).id, trigger)
+  }
   const pick: Pick = (name, market, label = name) => market
     ? <button type="button" className="farm-pick" aria-pressed={picked === market} aria-label={f.table.pick(label)} onClick={() => onPick({ name, market })}>{label}</button>
     : <span>{label}</span>
@@ -299,6 +328,7 @@ function Block({ action, farm, view, full, limit, picked, onPick, onSell, onUpda
     {heading}
     {action === 'sell' && account.link !== 'linked' && <p className="band-note">{f.table.linkToSell}</p>}
     {action === 'open' && !farm.relic_tables && <p className="band-note">{f.table.noRelicTables}</p>}
+    {action === 'farm' && <p className="band-note">{farm.bounties ? f.table.bounties : f.table.bountiesUnknown}</p>}
     <div className="group farm-table">
       <div className="farm-row farm-head" aria-hidden="true">
         {(['action', 'item', 'where', 'unit', 'sales', 'change'] as const).map(column => <span key={column}>{f.table.columns[column]}</span>)}<span/>
@@ -333,22 +363,41 @@ function Block({ action, farm, view, full, limit, picked, onPick, onSell, onUpda
             <span className="farm-act"/>
           </div>
         </li>)}
-        {action === 'farm' && farm.farm.slice(0, limit).map(row => <PlaceRow key={row.location} row={row} expanded={open === row.location} onToggle={() => setOpen(open === row.location ? null : row.location)} pick={pick}/>)}
+        {action === 'farm' && farm.farm.slice(0, limit).map(row => <PlaceRow key={row.location} row={row} expanded={open === row.location} onToggle={() => setOpen(open === row.location ? null : row.location)} onOpen={openDrop}/>)}
       </ul>
     </div>
+    {sheet.item && <ItemSheet item={sheet.item} index={sheet.index} total={sheet.total} onStep={sheet.step} onClose={sheet.close} {...context(sheet.item)}/>}
   </section>
 }
 
-function PlaceRow({ row, expanded, onToggle, pick }: { row: FarmPlace; expanded: boolean; onToggle: () => void; pick: Pick }) {
+/** The collection's row the backend names for a drop, else the drop as the catalogue knows it. */
+function sheetItem(drop: FarmDrop, items: readonly CollectionItem[]): CollectionItem {
+  return items.find(item => item.id === drop.row) ?? {
+    id: drop.id,
+    name: drop.name,
+    category: drop.category,
+    quantity: 0,
+    mastered: false,
+    live: false,
+    priceable: true,
+    // A relic's unit is the better of opening it and selling it, not its price.
+    ...(drop.category !== 'relic' && { platinum: drop.unit }),
+    ...(drop.monthly_trades !== null && { monthly_trades: drop.monthly_trades }),
+  }
+}
+
+function PlaceRow({ row, expanded, onToggle, onOpen }: { row: FarmPlace; expanded: boolean; onToggle: () => void; onOpen: (place: string, drop: FarmDrop, trigger: HTMLElement) => void }) {
   const t = useMessages()
   const f = t.farm
   const detailId = useId()
   const [top] = row.drops
+  const name = (drop: FarmDrop) => <button type="button" className="farm-pick" aria-haspopup="dialog" aria-label={f.table.open(drop.name)} onClick={event => onOpen(row.location, drop, event.currentTarget)}>{drop.name}</button>
+  const until = row.until && new Intl.DateTimeFormat(t.locale, { hour: '2-digit', minute: '2-digit' }).format(row.until)
   return <li>
     <div className="farm-row">
       <span className="tag farm-action">{f.actions.farm}</span>
-      <span className="farm-item">{pick(top.name, top.name)}{row.drops.length > 1 && <span className="band-note">{f.table.more(row.drops.length - 1)}</span>}<PaceTag pace={row.pace}/></span>
-      <span className="farm-where">{row.location}</span>
+      <span className="farm-item">{name(top)}{row.drops.length > 1 && <span className="band-note">{f.table.more(row.drops.length - 1)}</span>}<PaceTag pace={row.pace}/></span>
+      <span className="farm-where">{row.location}{until && <span className="tag">{f.table.until(until)}</span>}</span>
       <span className="farm-unit"><Platinum value={row.value} approx/><span className="band-note">{f.table.perRun}</span></span>
       <span className="farm-sales">{top.monthly_trades ? figure(top.monthly_trades, t) : '—'}</span>
       <span className="farm-delta"><Change value={top.change}/></span>
@@ -361,9 +410,9 @@ function PlaceRow({ row, expanded, onToggle, pick }: { row: FarmPlace; expanded:
     {expanded && <ul className="farm-drops" id={detailId} aria-label={f.table.drops(row.location)}>
       {row.drops.map(drop => <li key={drop.name} className="farm-row">
         <span/>
-        <span className="farm-item">{pick(drop.name, drop.name)}{drop.relic && <span className="tag">{f.table.relic}</span>}</span>
+        <span className="farm-item">{name(drop)}{drop.category === 'relic' && <span className="tag">{f.table.relic}</span>}</span>
         <span className="farm-chance">{t.relics.chance(drop.chance)} {f.table.perRun}</span>
-        <span className="farm-unit"><Platinum value={drop.unit} approx={drop.relic}/></span>
+        <span className="farm-unit"><Platinum value={drop.unit} approx={drop.category === 'relic'}/></span>
         <span className="farm-sales">{drop.monthly_trades ? figure(drop.monthly_trades, t) : '—'}</span>
         <span className="farm-delta"><Change value={drop.change}/></span>
         <span/>

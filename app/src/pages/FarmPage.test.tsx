@@ -1,9 +1,15 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppView, FarmView } from '../backend'
 
-const backend = vi.hoisted(() => ({ getFarm: vi.fn(), marketItemHistory: vi.fn(), marketRowOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }) }))
+const backend = vi.hoisted(() => ({
+  getFarm: vi.fn(),
+  marketItemHistory: vi.fn(),
+  marketRowOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }),
+  getItemDetail: vi.fn().mockResolvedValue({ prime: false, abilities: [], components: [], drops: [], stats: [] }),
+  getItemBuilds: vi.fn().mockResolvedValue([]),
+}))
 vi.mock('../backend', () => backend)
 
 import { FarmPage } from './FarmPage'
@@ -30,16 +36,17 @@ const farm: FarmView = {
   earlier_date: '2026-10-20',
   drops: true,
   relic_tables: true,
+  bounties: true,
   sell: [
     { id: SERRATION, name: 'Serration', quantity: 4, platinum: 30, monthly_trades: 90, value: 120, pace: 'fast', change: 0.25, market: 'Serration' },
     { id: '/scan', name: 'Scan Matter', quantity: 5, platinum: 240, monthly_trades: null, value: 0, pace: 'slow', change: null, market: 'Scan Matter' },
   ],
   open: [{ id: '/lith', name: 'Lith T1', refinement: 'radiant', quantity: 3, vaulted: true, value: 11.6, pace: 'fair', change: -0.1, market: 'Lith T1 Relic (Radiant)' }],
   farm: [{
-    location: 'Void/Mot (Survival), Rotation C', value: 2.3, pace: 'fast',
+    location: 'Void/Mot (Survival), Rotation C', value: 2.3, pace: 'fast', until: null,
     drops: [
-      { name: 'Lith T1 Relic', chance: 20, unit: 11.6, value: 2.3, relic: true, monthly_trades: 120, change: 0.05 },
-      { name: 'Serration', chance: 0.5, unit: 30, value: 0.15, relic: false, monthly_trades: 90, change: 0.25 },
+      { id: '/lith-intact', row: null, category: 'relic', name: 'Lith T1 Relic', chance: 20, unit: 11.6, value: 2.3, monthly_trades: 120, change: 0.05 },
+      { id: SERRATION, row: SERRATION, category: 'mod', name: 'Serration', chance: 0.5, unit: 30, value: 0.15, monthly_trades: 90, change: 0.25 },
     ],
   }],
   trends: [
@@ -141,6 +148,41 @@ describe('Farm & sales page', () => {
     const drops = screen.getByRole('list', { name: 'What drops at Void/Mot (Survival), Rotation C' })
     expect(within(drops).getByText('Relic, valued by opening')).toBeInTheDocument()
     expect(within(drops).getByText('0.5% per run')).toBeInTheDocument()
+  })
+
+  it('opens a drop in the item sheet, the collection’s row when one is held', async () => {
+    const user = userEvent.setup()
+    show(farm)
+    await user.click(await screen.findByRole('button', { name: 'What drops at Void/Mot (Survival), Rotation C' }))
+    const drops = screen.getByRole('list', { name: 'What drops at Void/Mot (Survival), Rotation C' })
+    await user.click(within(drops).getByRole('button', { name: 'Open Serration' }))
+    const sheet = screen.getByRole('dialog', { name: 'Serration' })
+    expect(within(sheet).getByText('×4')).toBeInTheDocument()
+    expect(within(sheet).getByText('2 of 2')).toBeInTheDocument()
+    expect(backend.getItemDetail).toHaveBeenCalledWith(SERRATION)
+    // The relic beside it is not held: the sheet builds it from the drop.
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.getByRole('dialog', { name: 'Lith T1 Relic' })).toBeInTheDocument()
+    expect(backend.getItemDetail).toHaveBeenLastCalledWith('/lith-intact')
+  })
+
+  it('marks a bounty table running now and asks again once it ends', async () => {
+    vi.useFakeTimers({ now: Date.UTC(2026, 9, 28, 17, 0), shouldAdvanceTime: true })
+    const until = Date.UTC(2026, 9, 28, 17, 30)
+    const bounty = { ...farm.farm[0], location: 'Earth/Cetus (Level 5 - 15 Cetus Bounty), Rotation C', until }
+    show({ ...farm, farm: [bounty] })
+    const time = new Intl.DateTimeFormat(catalogs.en.locale, { hour: '2-digit', minute: '2-digit' }).format(until)
+    expect(await screen.findByText(`Table running until ${time}`)).toBeInTheDocument()
+    expect(screen.getByText(/only the tables running now are ranked/)).toBeInTheDocument()
+    expect(backend.getFarm).toHaveBeenCalledOnce()
+    await act(async () => { await vi.advanceTimersByTimeAsync(30 * 60_000 + 1000) })
+    expect(backend.getFarm).toHaveBeenCalledTimes(2)
+    vi.useRealTimers()
+  })
+
+  it('says every bounty table is ranked when the running ones are unknown', async () => {
+    show({ ...farm, bounties: false })
+    expect(await screen.findByText(/every bounty table is ranked/)).toBeInTheDocument()
   })
 
   it('speaks French', async () => {

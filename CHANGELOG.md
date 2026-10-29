@@ -16,6 +16,24 @@ see the difference.
 
 ### Added
 
+- **The Dashboard lists the bounty rotations running now, and the endless missions' rotations.**
+  For Cetus, Orb Vallis and the Cambion Drift, each bounty tier (and each Isolation Vault) shows
+  its level range and the table it pays from, A, B or C, read off the job in the game's world
+  state, with the time left until the cycle turns. The wiki has every bounty share one letter;
+  the Cambion Drift's tiers were measured on different ones, so the job is believed. Beside it, the
+  wiki's reward intervals for the endless missions: A, A, B, C on each mission's count (Survival
+  every 5 minutes, Defense every 3 waves, Sanctuary Onslaught every 2 zones…), the Arbitrations'
+  A, A, B, B, C, C, C, C, and the spy vaults and caches.
+- **Farm & sales ranks only the bounty tables running now.** A Cetus, Orb Vallis or Cambion Drift
+  bounty table, or an Isolation Vault's, is ranked only while its cycle runs, marked with the time
+  it ends, and the page asks again when the first one ends. It reads the last world state the
+  Dashboard downloaded, which lists the running cycle and the next, and never downloads one
+  itself; until the Dashboard has read one, every table is ranked as before and the page says so.
+  Ghoul, Plague Star and Höllvania bounties keep one table and stay ranked.
+- **A drop on Farm & sales opens its item sheet.** The item names under a place open the side
+  sheet the Collection uses: the collection's own row when the account holds the item, else the
+  drop as the catalogue knows it, with its price, monthly sales, sources and sell form; the arrow
+  keys walk the place's other drops.
 - **A sell listing can be marked sold.** The count sold goes through warframe.market's own close
   route (`POST /v2/order/{id}/close`), which records the trade: the whole listing closes it, less
   lowers it. Bounded by the listing, never by the collection, and in whole trades for a bulk one.

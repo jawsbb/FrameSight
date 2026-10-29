@@ -7,7 +7,7 @@
  * machine that has never read the game would be an accusation nothing supports, sitting next to a
  * button that deletes a listing the player wanted.
  */
-import type { CollectionItem, CredentialBacking, MarketOrder, OrderStatus, ReconciledOrder } from './backend'
+import type { CollectionItem, CredentialBacking, MarketAccount, MarketOrder, OrderStatus, ReconciledOrder } from './backend'
 import { en, type Messages } from './i18n/en'
 
 /** Whether the backend is making a claim about this order, as opposed to declining to. */
@@ -110,6 +110,15 @@ export function backingLabel(backing: CredentialBacking | undefined, t: Messages
  * path would offer one of them for all three. */
 export function isListable(item: CollectionItem, listable: readonly string[]): boolean {
   return item.quantity > 0 && listable.includes(item.id)
+}
+
+/** A card's or sheet's selling half: the row's standing listing, and whether it may be listed at
+ * all, which needs its ownership `verified` (Full access) and a linked account. */
+export function sellingFor(item: CollectionItem, account: MarketAccount, verified: boolean): { listedOrder: MarketOrder | null; sellable: boolean } {
+  return {
+    listedOrder: listedOrderFor(account.orders, item.id),
+    sellable: verified && account.link === 'linked' && isListable(item, account.listable),
+  }
 }
 
 /**

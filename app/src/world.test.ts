@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Fissure, WorldView } from './backend'
-import { duration, matches, newMatches, nextDailyReset } from './world'
+import { duration, matches, newMatches, nextDailyReset, rotationMarks } from './world'
 
 const units = { d: 'd', h: 'h', m: 'm', s: 's' }
 const fissure = (id: string, overrides: Partial<Fissure> = {}): Fissure => ({
   id, era: 'axi', mission_type: 'Capture', node: { name: 'Brugia', planet: 'Eris', enemy: 'Infested' }, steel_path: false, expiry: 0, ...overrides,
 })
 const world = (fissures: Fissure[], storms: Fissure[] = []): WorldView => ({
-  cycles: [], fissures, storms, sortie: null, archon_hunt: null, baro: null, fetched_at: 0, stale: false,
+  cycles: [], fissures, storms, sortie: null, archon_hunt: null, baro: null, bounties: [], fetched_at: 0, stale: false,
 })
 
 describe('duration', () => {
@@ -42,5 +42,15 @@ describe('daily reset', () => {
   it('is the next midnight UTC', () => {
     expect(nextDailyReset(Date.UTC(2026, 9, 28, 17, 0, 14))).toBe(Date.UTC(2026, 9, 29))
     expect(nextDailyReset(Date.UTC(2026, 9, 29))).toBe(Date.UTC(2026, 9, 30))
+  })
+})
+
+describe('rotationMarks', () => {
+  it('lays one A-A-B-C loop on the reward interval', () => {
+    expect(rotationMarks(5)).toEqual([
+      { rotation: 'A', at: [5, 10] },
+      { rotation: 'B', at: [15] },
+      { rotation: 'C', at: [20] },
+    ])
   })
 })

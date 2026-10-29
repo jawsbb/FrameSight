@@ -55,6 +55,19 @@
 .world-missions { display: grid; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; font-weight: 400; }
 .world-missions .band-note { margin-left: 4px; }
 
+.world-stack { display: grid; gap: var(--step); align-content: start; min-width: 0; }
+
+/* A bounty tier: its levels in dim tabular figures, then its table's letter in text colour. */
+.rotation-tiers { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; font-weight: 400; }
+.rotation-tier { display: inline-flex; gap: 6px; font-variant-numeric: tabular-nums; }
+.rotation-tier b, .rotation-mark b { color: var(--text); font-weight: 600; }
+
+/* An endless mission's interval: the mission on the left, A, B and C at their marks on the right. */
+.rotation-list { margin: 0; }
+.rotation-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--step); padding: 6px 14px; }
+.rotation-row dt { font-weight: 500; }
+.rotation-row dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
 .world-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tight) var(--step); }
 
 @media (max-width: 900px) {

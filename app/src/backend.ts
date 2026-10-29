@@ -116,6 +116,10 @@ export interface Fissure { id: string; era: Era; mission_type: string; node: Wor
 export interface WorldMission { mission_type: string; node: WorldNode }
 /** A sortie or an archon hunt. */
 export interface Sortie { boss: string; faction: string | null; missions: WorldMission[]; expiry: number }
+export type Rotation = 'A' | 'B' | 'C'
+export type Hub = Exclude<CyclePlace, 'earth'>
+/** One bounty tier on offer, and the drop table it pays from until `expiry`. */
+export interface Bounty { hub: Hub; vault: boolean; min_level: number; max_level: number; rotation: Rotation; expiry: number }
 export interface WorldView {
   cycles: Cycle[]
   fissures: Fissure[]
@@ -123,6 +127,8 @@ export interface WorldView {
   sortie: Sortie | null
   archon_hunt: Sortie | null
   baro: { activation: number; expiry: number; relay: WorldNode } | null
+  /** The tiers running now, by hub, field before vault, then level. */
+  bounties: Bounty[]
   /** When this state was downloaded; `stale` when the latest attempt failed and this is the one before. */
   fetched_at: number
   stale: boolean
@@ -284,12 +290,15 @@ export interface FarmSell { id: string; name: string; quantity: number; platinum
 /** A held relic: `value` is one solo opening on average, each reward weighed by its sales. */
 export interface FarmOpen { id: string; name: string; refinement: Refinement | null; quantity: number; vaulted: boolean | null; value: number; pace: Pace; change: number | null; market: string | null }
 /** One thing that falls at a place: `chance` in percent per run, `unit` one copy at its price (a relic: the better of opening and selling it), `value` its share of the run. */
-export interface FarmDrop { name: string; chance: number; unit: number; value: number; relic: boolean; monthly_trades: number | null; change: number | null }
+/** `id` is the inventory path; `row` the collection row holding the most copies, which its sheet opens on. */
+export interface FarmDrop { id: string; row: string | null; category: ItemCategory; name: string; chance: number; unit: number; value: number; monthly_trades: number | null; change: number | null }
 /** One run of a place: `value` is the platinum expected, sales counted. */
-export interface FarmPlace { location: string; value: number; pace: Pace; drops: FarmDrop[] }
+export interface FarmPlace { location: string; value: number; pace: Pace; until: number | null; drops: FarmDrop[] }
 export interface FarmTrend { name: string; change: number; platinum: number; monthly_trades: number; held: number }
-/** `prices_date`/`earlier_date` null: that dump has not loaded. `drops`/`relic_tables` false: the catalogue or relic tables are missing. */
-export interface FarmView { prices_date: string | null; earlier_date: string | null; drops: boolean; relic_tables: boolean; sell: FarmSell[]; open: FarmOpen[]; farm: FarmPlace[]; trends: FarmTrend[] }
+/** `prices_date`/`earlier_date` null: that dump has not loaded. `drops`/`relic_tables` false: the catalogue or relic tables are missing.
+ * `bounties` false: the running bounty tiers are unknown, so every bounty table is ranked; true, only
+ * the tables running now are, each with its `until`. */
+export interface FarmView { prices_date: string | null; earlier_date: string | null; drops: boolean; relic_tables: boolean; bounties: boolean; sell: FarmSell[]; open: FarmOpen[]; farm: FarmPlace[]; trends: FarmTrend[] }
 export const getFarm = () => invoke<FarmView>('get_farm')
 /** One day of completed trades at rank 0, oldest first. */
 export interface DayTrades { date: string; median: number; volume: number }
