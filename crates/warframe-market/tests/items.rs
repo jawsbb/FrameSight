@@ -1,7 +1,7 @@
 mod common;
 
 use common::{FakeTransport, ok};
-use warframe_market::{Listing, MarketError, MarketItems};
+use warframe_market::{Listing, MarketError, MarketItems, localized_names};
 
 /// The shape of `/v2/items`, verified against the live endpoint. Trimmed from the real payload of
 /// 3,838 entries (1.61 MB, measured 2026-08-22); every entry below is a real one, kept whole so
@@ -434,4 +434,30 @@ fn an_item_is_held_by_its_path_its_ranked_copies_and_its_refinements() {
     );
     assert_eq!(items.rows_of("5cfa3b1e7d2c1b0012a3f1aa", rows), [rows[3]]);
     assert!(items.rows_of("unknown", rows).is_empty());
+}
+
+/// Two real entries of `/v2/items` asked with `Language: fr`, trimmed to their names. An entry the
+/// market has not translated carries English alone and has nothing to say in French.
+#[test]
+fn localized_names_ask_for_the_language_and_key_it_by_the_english_name() {
+    let transport = FakeTransport::new(vec![ok(r#"{"data":[
+        {"id":"a","slug":"braton_prime_barrel","i18n":{
+            "en":{"name":"Braton Prime Barrel"},"fr":{"name":"Braton Prime - Canon"}}},
+        {"id":"b","slug":"ash_prime_neuroptics_blueprint","i18n":{
+            "en":{"name":"Ash Prime Neuroptics Blueprint"},
+            "fr":{"name":"Ash Prime - Neuroptiques (Schéma)"}}},
+        {"id":"c","slug":"untranslated","i18n":{"en":{"name":"Untranslated"}}}
+    ]}"#)]);
+
+    let names = localized_names(&transport, "fr").expect("names parse");
+
+    assert_eq!(names.len(), 2);
+    assert_eq!(names["Braton Prime Barrel"], "Braton Prime - Canon");
+    assert_eq!(
+        names["Ash Prime Neuroptics Blueprint"],
+        "Ash Prime - Neuroptiques (Schéma)"
+    );
+    let seen = transport.seen();
+    assert_eq!(seen[0].language, Some("fr"));
+    assert_eq!(seen[0].token, None);
 }

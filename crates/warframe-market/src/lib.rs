@@ -29,7 +29,7 @@ pub use credential_store::{
 };
 
 mod items;
-pub use items::{ItemSummary, Listing, MAX_ITEMS_BYTES, MarketItems};
+pub use items::{ItemSummary, Listing, MAX_ITEMS_BYTES, MarketItems, localized_names};
 
 mod live_orders;
 pub use live_orders::{ItemOrders, LiveOrder, MAX_TOP_BYTES, TraderStatus, item_orders, parse_top};
@@ -69,6 +69,9 @@ pub struct MarketRequest {
     pub url: String,
     pub token: Option<String>,
     pub body: Option<String>,
+    /// The `Language` header, which picks the language the item names come back in beside
+    /// English. `None` asks for English alone.
+    pub language: Option<&'static str>,
 }
 
 /// Hand-written so a stray `{request:?}`, in a log line, a panic message or an `.expect(&format!())`,

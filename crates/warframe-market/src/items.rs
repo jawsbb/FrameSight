@@ -62,6 +62,58 @@ struct ItemNames {
     thumb: Option<String>,
 }
 
+/// The item table, with names in `language` beside English when one is asked for.
+fn fetch_items(
+    transport: &dyn MarketTransport,
+    language: Option<&'static str>,
+) -> Result<Vec<u8>, MarketError> {
+    let response = transport.send(MarketRequest {
+        method: Method::Get,
+        url: format!("{API_V2}/items"),
+        language,
+        // Public. Sending the credential would spend the account's identity on a request that
+        // does not need it, and on the one request large enough to be worth caching publicly.
+        token: None,
+        body: None,
+    })?;
+    match response.status {
+        200..=299 if response.body.len() <= MAX_ITEMS_BYTES => Ok(response.body),
+        200..=299 => Err(MarketError::Malformed),
+        429 => Err(MarketError::RateLimited),
+        _ => Err(MarketError::Unreachable),
+    }
+}
+
+/// What each item is called in `language`, by its English name.
+///
+/// warframe.market's names are the game's own: measured 2026-10-29 against the game's public
+/// export, `Braton Prime Barrel` is `Braton Prime - Canon` in both. That is what lets a screen
+/// drawn in another language be read against an English catalogue.
+pub fn localized_names(
+    transport: &dyn MarketTransport,
+    language: &'static str,
+) -> Result<HashMap<String, String>, MarketError> {
+    localized_names_from_response(&fetch_items(transport, Some(language))?, language)
+}
+
+fn localized_names_from_response(
+    body: &[u8],
+    language: &str,
+) -> Result<HashMap<String, String>, MarketError> {
+    let response =
+        serde_json::from_slice::<ItemsResponse>(body).map_err(|_| MarketError::Malformed)?;
+    Ok(response
+        .data
+        .into_iter()
+        .filter_map(|mut record| {
+            let localized = record.i18n.remove(language)?.name;
+            let english = record.i18n.remove("en")?.name;
+            (!english.trim().is_empty() && !localized.trim().is_empty())
+                .then_some((english, localized))
+        })
+        .collect())
+}
+
 /// Where warframe.market serves the item pictures its table names.
 const ASSETS: &str = "https://warframe.market/static/assets/";
 
@@ -152,22 +204,7 @@ impl MarketItems {
     }
 
     pub fn fetch(transport: &dyn MarketTransport) -> Result<Self, MarketError> {
-        let response = transport.send(MarketRequest {
-            method: Method::Get,
-            url: format!("{API_V2}/items"),
-            // Public. Sending the credential would spend the account's identity on a request that
-            // does not need it, and on the one request large enough to be worth caching publicly.
-            token: None,
-            body: None,
-        })?;
-        match response.status {
-            200..=299 if response.body.len() <= MAX_ITEMS_BYTES => {
-                Self::from_response(&response.body)
-            }
-            200..=299 => Err(MarketError::Malformed),
-            429 => Err(MarketError::RateLimited),
-            _ => Err(MarketError::Unreachable),
-        }
+        Self::from_response(&fetch_items(transport, None)?)
     }
 
     /// The collection's own identity for this order's item, when the market publishes one.

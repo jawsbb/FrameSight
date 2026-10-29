@@ -78,6 +78,7 @@ pub fn sign_in(
         url: format!("{API_V1}/auth/signin"),
         // The seed value the route requires. Not a credential: it names the scheme the client
         // wants its token issued under.
+        language: None,
         token: Some(String::new()),
         body: Some(body.to_string()),
     })?;
@@ -106,6 +107,7 @@ pub fn verify_token(
     let response = transport.send(MarketRequest {
         method: Method::Get,
         url: format!("{API_V2}/me"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: None,
     })?;

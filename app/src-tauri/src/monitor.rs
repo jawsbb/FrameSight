@@ -1370,8 +1370,13 @@ pub(crate) fn run(
                     );
                     tracked_resolution = Some((process.pid(), path.clone()));
                     if let Some(ref ee_path) = path {
-                        if let Ok(mut runtime) = shared.lock() {
+                        let pacer = shared.lock().ok().map(|mut runtime| {
                             runtime.last_ee_log_path = Some(ee_path.clone());
+                            runtime.live_prices.pacer()
+                        });
+                        // The log's head says what language the cards will be drawn in.
+                        if let Some(pacer) = pacer {
+                            crate::game_language::follow(ee_path, pacer);
                         }
                         // The overlay's presence is edge-triggered from the log and the live
                         // tail starts at EOF, so a kiosk already on screen when the app started

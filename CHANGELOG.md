@@ -16,6 +16,13 @@ see the difference.
 
 ### Added
 
+- **The reward and kiosk overlays read a game running in French.** The readers matched card text
+  against English names only, so with the game in French no card was ever named and no overlay
+  showed. The game's language is read off the top of EE.log, and while it is French each reward
+  is also matched under the name warframe.market publishes for it, which is the game's own
+  (`Braton Prime - Canon`), with accents folded so Tesseract's English model reads either way.
+  A card is still named in English. Blueprints the market does not trade are spelled as the
+  ones it does, `Forma (Schéma)`. Only French is read; other languages stay on English names.
 - **Collection shows what a game session added, the duplicates, and what a stack would sell for.**
   The first inventory sync of each game run keeps the holding the last run left; from then on a
   card carries "+N this session" for each copy gained since, and the This session tab lists them.

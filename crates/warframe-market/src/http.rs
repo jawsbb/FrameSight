@@ -62,6 +62,10 @@ impl MarketTransport for MarketHttp {
             Method::Delete => self.client.delete(&request.url),
         };
         let builder = apply_token(builder, request.token.as_deref(), &request.url);
+        let builder = match request.language {
+            Some(language) => builder.header("Language", language),
+            None => builder,
+        };
         let builder = match request.body {
             Some(body) => builder
                 .header(reqwest::header::CONTENT_TYPE, "application/json")

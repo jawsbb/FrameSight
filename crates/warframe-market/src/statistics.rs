@@ -94,6 +94,7 @@ pub fn item_statistics(
     let response = transport.send(MarketRequest {
         method: Method::Get,
         url: format!("{API_V1}/items/{slug}/statistics"),
+        language: None,
         token: None,
         body: None,
     })?;

@@ -33,6 +33,7 @@ use warframe_acquisition::WindowsProc as GameMemory;
 
 mod access;
 mod builds;
+mod game_language;
 mod kiosk_geometry;
 mod kiosk_log;
 mod kiosk_ocr;

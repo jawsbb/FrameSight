@@ -108,6 +108,7 @@ pub fn list_mine(
     let response = transport.send(MarketRequest {
         method: Method::Get,
         url: format!("{API_V2}/orders/my"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: None,
     })?;
@@ -152,6 +153,7 @@ pub fn delete_order(
     let response = transport.send(MarketRequest {
         method: Method::Delete,
         url: format!("{API_V2}/order/{order_id}"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: None,
     })?;
@@ -181,6 +183,7 @@ pub fn set_order_quantity(
     let response = transport.send(MarketRequest {
         method: Method::Patch,
         url: format!("{API_V2}/order/{order_id}"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: Some(format!("{{\"quantity\":{quantity}}}")),
     })?;
@@ -210,6 +213,7 @@ pub fn update_order(
     let response = transport.send(MarketRequest {
         method: Method::Patch,
         url: format!("{API_V2}/order/{order_id}"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: Some(format!(
             "{{\"platinum\":{platinum},\"quantity\":{quantity}}}"
@@ -239,6 +243,7 @@ pub fn close_order(
     let response = transport.send(MarketRequest {
         method: Method::Post,
         url: format!("{API_V2}/order/{order_id}/close"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: Some(format!("{{\"quantity\":{quantity}}}")),
     })?;
@@ -334,6 +339,7 @@ pub fn create_order(
     let response = transport.send(MarketRequest {
         method: Method::Post,
         url: format!("{API_V2}/order"),
+        language: None,
         token: Some(token.expose().to_owned()),
         body: Some(body),
     })?;

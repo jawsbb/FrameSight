@@ -143,6 +143,7 @@ pub fn item_orders(transport: &dyn MarketTransport, slug: &str) -> Result<ItemOr
     let response = transport.send(MarketRequest {
         method: Method::Get,
         url: format!("{API_V2}/orders/item/{slug}/top"),
+        language: None,
         token: None,
         body: None,
     })?;
