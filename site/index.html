@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FrameSight · Warframe reward and Ducat Kiosk overlay for Linux and Windows</title>
+<meta name="description" content="Free, open-source Warframe companion. See platinum and ducat values on the Void Fissure reward screen and Baro's Ducat Kiosk, price your collection, track mastery and manage warframe.market orders. Native on Linux, Windows and the Steam Deck. No Overwolf, no account, no telemetry.">
+<link rel="canonical" href="https://framesight.vercel.app/">
+<link rel="alternate" hreflang="en" href="https://framesight.vercel.app/">
+<link rel="alternate" hreflang="fr" href="https://framesight.vercel.app/fr/">
+<link rel="alternate" hreflang="x-default" href="https://framesight.vercel.app/">
+<meta name="theme-color" content="#1b1a19">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FrameSight">
+<meta property="og:title" content="FrameSight · Know what every Warframe reward is worth">
+<meta property="og:description" content="Platinum and ducat values on the reward screen and Baro's Ducat Kiosk. Free and open source, native on Linux, Windows and the Steam Deck. No Overwolf, no account, no telemetry.">
+<meta property="og:url" content="https://framesight.vercel.app/">
+<meta property="og:image" content="https://framesight.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four Warframe reward slips with platinum and ducat values, the best of each crowned.">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="/assets/platinum.png" as="image">
+<link rel="stylesheet" href="/assets/site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://framesight.vercel.app/#app",
+      "name": "FrameSight",
+      "description": "A free, open-source Warframe companion: platinum and ducat values on the Void Fissure reward screen and Baro's Ducat Kiosk, a priced collection, a mastery checklist and warframe.market order management.",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Windows 10, Windows 11, Linux, SteamOS",
+      "url": "https://framesight.vercel.app/",
+      "downloadUrl": "https://github.com/jawsbb/FrameSight/releases/latest",
+      "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "screenshot": "https://framesight.vercel.app/og.png",
+      "inLanguage": "en"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Does FrameSight modify Warframe or automate anything?", "acceptedAnswer": { "@type": "Answer", "text": "No. FrameSight only reads: the screen and EE.log for the overlays, and, at Full access only, an account ID and nonce from the game process. No access level writes to the game or automates input." } },
+        { "@type": "Question", "name": "Does it need Overwolf or an account?", "acceptedAnswer": { "@type": "Answer", "text": "No. FrameSight is a standalone desktop app. It has no account and sends no telemetry. Linking warframe.market is optional." } },
+        { "@type": "Question", "name": "Does it work on Linux and the Steam Deck?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. FrameSight is developed on Linux and reads Warframe running through Proton or Wine. There are .rpm and .deb packages, and an AppImage for the Steam Deck in Desktop Mode and other distributions." } },
+        { "@type": "Question", "name": "Where do the prices come from?", "acceptedAnswer": { "@type": "Answer", "text": "From warframe.market: a daily summary served by relics.run for the collection, and the sellers who are in game right now for the reward screen. Ducat values are Baro Ki'Teer's." } },
+        { "@type": "Question", "name": "Why does the overlay not appear?", "acceptedAnswer": { "@type": "Answer", "text": "Set Warframe's Display Mode to Borderless: in exclusive fullscreen no application can draw over the game. The reward reader also needs the game client in English." } },
+        { "@type": "Question", "name": "Is FrameSight free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. It is free and open source under the GPL-3.0 license." } }
+      ]
+    }
+  ]
+}
+</script>
+<script type="module" src="/assets/site.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/><path d="M12 1.75v4.5M12 17.75v4.5M1.75 12h4.5M17.75 12h4.5"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/></symbol>
+  <symbol id="i-none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 7.5-5 4.5 5 4.5M15.5 7.5l5 4.5-5 4.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17.2v.1"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><path d="M3.5 14.5a8.5 8.5 0 0 1 17 0"/><path d="m12 14.5 4-4.5"/><circle cx="12" cy="14.5" r="1.25"/><path d="M7 18.5h10"/></symbol>
+  <symbol id="i-collection" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-relics" viewBox="0 0 24 24"><path d="M12 3 18.5 8v8L12 21l-6.5-5V8z"/><path d="m5.5 8 6.5 4 6.5-4M12 12v9"/></symbol>
+  <symbol id="i-foundry" viewBox="0 0 24 24"><path d="M5.5 6h15v4h-6v3c0 1.4 1.3 2.6 3.5 3.1V19H6v-2.9c2.2-.5 3.5-1.7 3.5-3.1v-3H9C6.4 10 4.3 9 2.5 7.2 3.6 6.4 4.6 6 5.5 6z"/></symbol>
+  <symbol id="i-market" viewBox="0 0 24 24"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.1 6.1a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.5"/></symbol>
+  <symbol id="i-farm" viewBox="0 0 24 24"><path d="M12 20.5V11"/><path d="M12 13.5c0-4.4 2.9-7.5 7.5-7.5 0 4.4-2.9 7.5-7.5 7.5z"/><path d="M12 15.5c0-3.6-2.4-6-6-6 0 3.6 2.4 6 6 6z"/></symbol>
+  <symbol id="i-rewards" viewBox="0 0 24 24"><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H5a2.5 2.5 0 0 0 2.6 3.4M16.5 6H19a2.5 2.5 0 0 1-2.6 3.4M12 13.5V17M8.5 20h7"/></symbol>
+  <symbol id="i-orders" viewBox="0 0 24 24"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12.5h4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z"/></symbol>
+  <symbol id="i-cold" viewBox="0 0 24 24"><path d="M12 3.5v17M4.6 7.75l14.8 8.5M4.6 16.25l14.8-8.5M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="FrameSight home"><svg class="mark"><use href="#i-mark"/></svg>FrameSight</a>
+    <nav class="site-nav" aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#kiosk">Ducat Kiosk</a>
+      <a href="#access">Privacy</a>
+      <a href="#download">Download</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="head-end">
+      <nav class="segmented" aria-label="Language">
+        <a href="/" aria-current="true" hreflang="en" lang="en">EN</a>
+        <a href="/fr/" hreflang="fr" lang="fr">FR</a>
+      </nav>
+      <a class="icon-link" href="https://github.com/jawsbb/FrameSight" aria-label="Source code on GitHub"><svg class="icon"><use href="#i-github"/></svg></a>
+      <a class="btn small" href="#download">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap">
+    <div>
+      <h1 id="hero-title">Know what every reward is worth <span class="quiet">before the timer runs out.</span></h1>
+      <p class="lede"><strong>FrameSight</strong> puts platinum and ducat values under every card on Warframe's reward screen and on Baro's Ducat Kiosk, then prices your whole collection between missions. Free and open source, native on Linux, Windows and the Steam Deck.</p>
+      <div class="cta-row">
+        <a class="btn primary large" href="#download" data-cta="primary"><svg class="icon"><use href="#i-download"/></svg><span>Download</span></a>
+        <a class="btn large" href="#features">See what it does</a>
+      </div>
+      <p class="release-line"><span data-version>Latest release on GitHub</span> · Windows 10/11 · Linux · Steam Deck · GPL-3.0</p>
+      <ul class="pledges" aria-label="What FrameSight leaves out">
+        <li><svg class="icon"><use href="#i-none"/></svg>No Overwolf</li>
+        <li><svg class="icon"><use href="#i-none"/></svg>No account</li>
+        <li><svg class="icon"><use href="#i-none"/></svg>No telemetry</li>
+        <li><svg class="icon"><use href="#i-code"/></svg>Open source</li>
+      </ul>
+    </div>
+
+    <figure style="margin:0">
+      <div class="stage" data-demo data-phase="priced" role="img" aria-label="Warframe's Void Fissure reward screen with FrameSight's overlay: under each of the four reward cards, a slip shows its platinum and ducat value, and the best of each metal is crowned.">
+        <div class="stage-inner">
+          <div class="stage-top" aria-hidden="true">
+            <span class="game-title">Void Fissure · Rewards</span>
+            <span class="game-timer"><svg viewBox="0 0 40 40"><circle class="track" cx="20" cy="20" r="18"/><circle class="run" cx="20" cy="20" r="18"/></svg><b>12</b></span>
+          </div>
+          <div class="game-cards" aria-hidden="true"></div>
+          <div class="slips">
+            <noscript>
+              <style>.stage .slip { opacity: 1; transform: none; }</style>
+            </noscript>
+          </div>
+          <span class="reader" aria-hidden="true"><i class="reader-dot"></i><span class="reader-text">Priced from players in game now</span></span>
+          <div class="scan" aria-hidden="true"></div>
+        </div>
+      </div>
+      <figcaption class="stage-note">Illustrative values. In game, prices come from the warframe.market sellers who are online.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="panel" id="features">
+<section class="chapter" aria-labelledby="tour-title">
+  <div class="wrap">
+    <div class="chapter-head" data-reveal>
+      <h2 id="tour-title">Between missions, everything in one quiet window.</h2>
+      <p>The world's timers, a collection priced to the platinum, and sell orders that match what you actually hold. Dense where it helps, silent everywhere else.</p>
+    </div>
+
+    <div class="tour">
+      <div class="tour-steps">
+        <article class="tour-step" data-view="dashboard">
+          <h3>The world at a glance</h3>
+          <p>Open-world cycles, Void Fissures with their relic era, the sortie, the archon hunt and Baro's next visit, read straight from the game's world state.</p>
+          <ul>
+            <li><svg class="icon"><use href="#i-check"/></svg>Bounty tiers with the reward table each one pays from</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>Endless mission rotations: A, A, B, C</li>
+          </ul>
+        </article>
+        <article class="tour-step" data-view="collection">
+          <h3>Your collection, priced</h3>
+          <p>Gear, Prime parts, relics, mods and arcanes on one screen, each with its platinum and ducat value. Filter to what you own, what you have mastered, or what is left to master.</p>
+          <ul>
+            <li><svg class="icon"><use href="#i-check"/></svg>Mods and arcanes priced at their actual rank</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>Overframe's best builds on every Warframe and weapon</li>
+          </ul>
+        </article>
+        <article class="tour-step" data-view="orders">
+          <h3>Listings that match your inventory</h3>
+          <p>Link warframe.market only if you want to. FrameSight flags a listing for an item you no longer hold, or one that oversells what you have, and puts the repair right beside it.</p>
+          <ul>
+            <li><svg class="icon"><use href="#i-check"/></svg>List, delist, mark sold and set your online status</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>Optional sync after each inventory read</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="tour-visual">
+        <div class="window" aria-hidden="true">
+          <div class="win-bar">
+            <span class="brand"><svg class="mark"><use href="#i-mark"/></svg>FrameSight</span>
+            <span class="win-status"><i></i>Online<span>&nbsp;· auto</span></span>
+            <span class="win-controls"><span><svg viewBox="0 0 10 10"><path d="M1 5h8"/></svg></span><span><svg viewBox="0 0 10 10"><path d="M1.5 1.5h7v7h-7z"/></svg></span><span><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9"/></svg></span></span>
+          </div>
+          <nav class="win-rail">
+            <span data-view="dashboard"><svg class="icon"><use href="#i-dashboard"/></svg></span>
+            <span data-view="collection"><svg class="icon"><use href="#i-collection"/></svg></span>
+            <span><svg class="icon"><use href="#i-relics"/></svg></span>
+            <span><svg class="icon"><use href="#i-foundry"/></svg></span>
+            <span><svg class="icon"><use href="#i-market"/></svg></span>
+            <span><svg class="icon"><use href="#i-farm"/></svg></span>
+            <span><svg class="icon"><use href="#i-rewards"/></svg></span>
+            <span data-view="orders"><svg class="icon"><use href="#i-orders"/></svg></span>
+            <hr>
+            <span><svg class="icon"><use href="#i-settings"/></svg></span>
+          </nav>
+          <div class="win-page">
+
+            <div class="view" data-view="dashboard">
+              <div class="view-head"><h4>Dashboard</h4></div>
+              <div class="cycles">
+                <div class="cycle" style="--scene:linear-gradient(110deg,#5a4524 0%,transparent 70%)"><b>Cetus</b><span><svg class="icon"><use href="#i-sun"/></svg>Day<span class="num">1h 12m</span></span></div>
+                <div class="cycle" style="--scene:linear-gradient(110deg,#243c55 0%,transparent 70%)"><b>Orb Vallis</b><span><svg class="icon"><use href="#i-cold"/></svg>Cold<span class="num">14m</span></span></div>
+                <div class="cycle" style="--scene:linear-gradient(110deg,#33452a 0%,transparent 70%)"><b>Cambion Drift</b><span><svg class="icon"><use href="#i-moon"/></svg>Vome<span class="num">41m</span></span></div>
+              </div>
+              <div class="dash-cols">
+                <div>
+                  <span class="group-title">Void fissures</span>
+                  <div class="group">
+                    <div class="row"><span class="era">Li</span><span class="grow">Capture · Hepit<small>Void · Corrupted</small></span><span class="num">31m</span></div>
+                    <div class="row"><span class="era">Me</span><span class="grow">Survival · Ophelia<small>Uranus · Grineer</small></span><span class="num">48m</span></div>
+                    <div class="row"><span class="era">Ne</span><span class="grow">Defense · Hydron<small>Sedna · Grineer</small></span><span class="num">1h 05m</span></div>
+                    <div class="row"><span class="era">Ax</span><span class="grow">Excavation · Apollo<small>Lua · Corrupted</small></span><span class="num">1h 37m</span></div>
+                    <div class="row"><span class="era">Rq</span><span class="grow">Disruption · Kappa<small>Sedna · Grineer</small></span><span class="num">2h 10m</span></div>
+                  </div>
+                </div>
+                <div>
+                  <span class="group-title">Today</span>
+                  <div class="group">
+                    <div class="row"><span class="grow">Sortie<small>Defense, Spy, Assassinate</small></span><span class="num">9h 4m</span></div>
+                    <div class="row"><span class="grow">Archon hunt<small>Archon Nira</small></span><span class="num">3d</span></div>
+                    <div class="row"><span class="grow">Baro Ki'Teer<small>Strata Relay, Earth</small></span><span class="num">2d 6h</span></div>
+                  </div>
+                  <span class="group-title">Bounties · Cetus</span>
+                  <div class="group">
+                    <div class="row"><span class="grow">Tiers</span><span class="tag">5–15 <b>&nbsp;A</b></span><span class="tag">10–30 <b>&nbsp;B</b></span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="view" data-view="collection">
+              <div class="view-head"><h4>Collection</h4>
+                <span class="segmented"><span>All</span><span>Owned</span><span>Mastered</span><span aria-selected="true">To master</span></span>
+              </div>
+              <div class="figures"><span>344 to master</span><span class="sep">·</span><span>1,046 tracked</span><span class="sep">·</span><span>worth</span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">9,812</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">23,450</span></div>
+              <div class="chips"><span>All <em>344</em></span><span>Warframes <em>12</em></span><span>Primary <em>41</em></span><span>Melee <em>52</em></span><span data-pressed>Prime parts <em>96</em></span><span>Relics <em>61</em></span><span>Mods <em>82</em></span></div>
+              <div class="cards">
+                <div class="card" data-absent><span class="well"><i style="--art:url(/assets/parts/warframe-system.png)"></i></span><span><b>Nekros Prime Systems Blueprint</b><small>Prime part</small><span class="tags"><span class="tag absent">Not owned</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">18</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">45</span></span></span></div>
+                <div class="card"><span class="well"><i style="--art:url(/assets/parts/warframe-helmet.png)"></i></span><span><b>Khora Prime Neuroptics Blueprint</b><small>Prime part</small><span class="tags"><span class="tag strong">Owned ×1</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">31</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">45</span></span></span></div>
+                <div class="card" data-absent><span class="well"><i style="--art:url(/assets/parts/gun-barrel.png)"></i></span><span><b>Akstiletto Prime Barrel</b><small>Prime part</small><span class="tags"><span class="tag absent">Not owned</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">9</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">100</span></span></span></div>
+                <div class="card"><span class="well"><i style="--art:url(/assets/parts/weapon-blade.png)"></i></span><span><b>Kronen Prime Blade</b><small>Prime part</small><span class="tags"><span class="tag strong">Owned ×2</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">6</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">100</span></span></span></div>
+                <div class="card"><span class="well"><i style="--art:url(/assets/parts/gun-receiver.png)"></i></span><span><b>Braton Prime Receiver</b><small>Prime part</small><span class="tags"><span class="tag ok">Mastered</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">4</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">15</span></span></span></div>
+                <div class="card"><span class="well"><i style="--art:url(/assets/parts/gun-stock.png)"></i></span><span><b>Lex Prime Receiver</b><small>Prime part</small><span class="tags"><span class="tag strong">Owned ×3</span></span><span class="vals"><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">3</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20">15</span></span></span></div>
+              </div>
+            </div>
+
+            <div class="view" data-view="orders">
+              <div class="view-head"><h4>Orders</h4><span class="mini-btn" style="margin-left:auto">Refresh orders</span></div>
+              <div class="figures"><span>4 listings</span><span class="sep">·</span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">79</span><span>listed</span><span class="sep">·</span><span>1 needs attention</span></div>
+              <div class="group"><div class="row"><span class="switch"></span><span class="grow">Sync after an inventory read<small>Takes down what you no longer hold, lowers what you oversell.</small></span></div></div>
+              <span class="group-title">Sell orders</span>
+              <div class="group">
+                <div class="row ledger-row"><span class="well"><i style="--art:url(/assets/parts/warframe-helmet.png)"></i></span><span class="grow">Khora Prime Neuroptics Blueprint<small>Sell order · visible</small></span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">31</span><span class="count">×1</span><span class="acts"><span class="mini-btn sold">Sold</span><span class="mini-btn">Edit</span></span></div>
+                <div class="row ledger-row flagged"><span class="well"><i style="--art:url(/assets/parts/gun-barrel.png)"></i></span><span class="grow">Akstiletto Prime Barrel<small><span class="flag-dot"></span>Listed ×3, you hold 1 · <a>Lower to 1</a></small></span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">9</span><span class="count">×3</span><span class="acts"><span class="mini-btn sold">Sold</span><span class="mini-btn">Edit</span></span></div>
+                <div class="row ledger-row"><span class="well"><i style="--art:url(/assets/parts/warframe-system.png)"></i></span><span class="grow">Nekros Prime Systems Blueprint<small>Sell order · visible</small></span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">18</span><span class="count">×1</span><span class="acts"><span class="mini-btn sold">Sold</span><span class="mini-btn">Edit</span></span></div>
+                <div class="row ledger-row"><span class="well"><i style="--art:url(/assets/parts/weapon-blade.png)"></i></span><span class="grow">Kronen Prime Blade<small>Sell order · visible</small></span><span class="p-fig"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">6</span><span class="count">×2</span><span class="acts"><span class="mini-btn sold">Sold</span><span class="mini-btn">Edit</span></span></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="tour-mobile">
+          <div class="segmented" role="tablist" aria-label="App pages">
+            <button type="button" role="tab" data-view="dashboard">Dashboard</button>
+            <button type="button" role="tab" data-view="collection">Collection</button>
+            <button type="button" role="tab" data-view="orders">Orders</button>
+          </div>
+          <p></p>
+        </div>
+        <p class="stage-note">Interface shown with illustrative data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="panel" id="kiosk">
+<section class="chapter" aria-labelledby="kiosk-title">
+  <div class="wrap split flip">
+    <div class="split-text" data-reveal>
+      <h2 id="kiosk-title">Baro's Ducat Kiosk, priced in platinum.</h2>
+      <p>Before you trade a Prime part for ducats, see what it would sell for. Every tile gets its platinum figure, every pick lands in a sell list, and the list totals itself as it fills.</p>
+      <ul>
+        <li><svg class="icon"><use href="#i-check"/></svg>Parts of gear you have not mastered read Unmastered, with Full access</li>
+        <li><svg class="icon"><use href="#i-check"/></svg>Drawn over the kiosk itself; the game never loses focus</li>
+      </ul>
+    </div>
+    <div>
+      <div class="stage kiosk" aria-label="A Ducat Kiosk mock: pick tiles to add them to the sell list.">
+        <div class="kiosk-screen">
+          <div class="kiosk-grid">
+            <button type="button" class="kiosk-tile" aria-pressed="true" data-name="Euphona Prime Receiver" data-p="25" data-d="100"><span class="plate" style="--i:0"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">25p</span><i class="game-art" style="--art:url(/assets/parts/gun-receiver.png)"></i><span class="game-name">Euphona Prime Receiver</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Kompressa Prime Barrel" data-p="8" data-d="45"><span class="plate word" style="--i:1">Unmastered</span><span class="plate" style="--i:1"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">8p</span><i class="game-art" style="--art:url(/assets/parts/gun-barrel.png)"></i><span class="game-name">Kompressa Prime Barrel</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="true" data-name="Titania Prime Systems Blueprint" data-p="33" data-d="100"><span class="plate" style="--i:2"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">33p</span><i class="game-art" style="--art:url(/assets/parts/warframe-system.png)"></i><span class="game-name">Titania Prime Systems Blueprint</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Nekros Prime Chassis Blueprint" data-p="12" data-d="45"><span class="plate" style="--i:3"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">12p</span><i class="game-art" style="--art:url(/assets/parts/warframe-chassis.png)"></i><span class="game-name">Nekros Prime Chassis Blueprint</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Afentis Prime Blade" data-p="10" data-d="45"><span class="plate word" style="--i:4">Unmastered</span><span class="plate" style="--i:4"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">10p</span><i class="game-art" style="--art:url(/assets/parts/weapon-blade.png)"></i><span class="game-name">Afentis Prime Blade</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="true" data-name="Panthera Prime Barrel" data-p="21" data-d="100"><span class="plate" style="--i:5"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">21p</span><i class="game-art" style="--art:url(/assets/parts/gun-barrel.png)"></i><span class="game-name">Panthera Prime Barrel</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Hystrix Prime Receiver" data-p="19" data-d="45"><span class="plate" style="--i:6"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">19p</span><i class="game-art" style="--art:url(/assets/parts/gun-receiver.png)"></i><span class="game-name">Hystrix Prime Receiver</span></button>
+            <button type="button" class="kiosk-tile" aria-pressed="false" data-name="Kronen Prime Handle" data-p="7" data-d="45"><span class="plate" style="--i:7"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20">7p</span><i class="game-art" style="--art:url(/assets/parts/weapon-hilt.png)"></i><span class="game-name">Kronen Prime Handle</span></button>
+          </div>
+          <div class="kiosk-list" aria-live="polite">
+            <p class="kiosk-head">Sell list</p>
+            <ol></ol>
+            <div class="kiosk-total"><span>Total</span><span class="plate"><img class="metal-mark" src="/assets/platinum.png" alt="" width="20" height="20"><b data-total="p">79</b>p</span><span class="d-fig"><img class="metal-mark" src="/assets/ducats.png" alt="" width="16" height="20"><b data-total="d">300</b></span></div>
+          </div>
+        </div>
+      </div>
+      <p class="stage-note">Try it: pick the tiles. Illustrative prices.</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="panel" id="access">
+<section class="chapter" aria-labelledby="access-title">
+  <div class="wrap access">
+    <div class="split-text" data-reveal>
+      <h2 id="access-title">You decide what it may read. Before it reads anything.</h2>
+      <p>FrameSight asks for an access level the first time it opens, and observes nothing until you confirm. Lower it later and everything it no longer permits stops at once.</p>
+    </div>
+    <div>
+      <div class="access-card">
+        <div class="levels" role="radiogroup" aria-label="Access level">
+          <button type="button" class="level" role="radio" aria-checked="false" tabindex="-1" data-level="companion"><span class="pips"><i data-on></i><i></i><i></i></span><b>Companion</b><small>Reads nothing from the game</small></button>
+          <button type="button" class="level" role="radio" aria-checked="true" tabindex="0" data-level="overlay"><span class="pips"><i data-on></i><i data-on></i><i></i></span><b>Overlay</b><small>Reads the screen and the game's log</small></button>
+          <button type="button" class="level" role="radio" aria-checked="false" tabindex="-1" data-level="full"><span class="pips"><i data-on></i><i data-on></i><i data-on></i></span><b>Full</b><small>Also syncs your inventory</small></button>
+        </div>
+        <div class="access-rows" data-level="companion" hidden>
+          <div class="row"><span>Reads</span><span>Nothing from the game.</span></div>
+          <div class="row"><span>Gives you</span><span>The Dashboard, the collection from a snapshot, prices, relics, farming, and warframe.market orders.</span></div>
+          <div class="row"><span>Sends</span><span>Nothing about you. Prices, the item catalogue and world state are downloaded. warframe.market sees you only if you link it.</span></div>
+        </div>
+        <div class="access-rows" data-level="overlay">
+          <div class="row"><span>Reads</span><span>The screen, and the game's log file <code>EE.log</code> to know when a reward screen opens. Never the game's memory.</span></div>
+          <div class="row"><span>Gives you</span><span>Everything in Companion, plus the reward overlay and the Ducat Kiosk overlay.</span></div>
+          <div class="row"><span>Sends</span><span>Nothing more than Companion. The screen is read on your machine with Tesseract.</span></div>
+        </div>
+        <div class="access-rows" data-level="full" hidden>
+          <div class="row"><span>Reads</span><span>Everything in Overlay, plus an account ID and nonce from the Warframe process.</span></div>
+          <div class="row"><span>Gives you</span><span>Automatic inventory sync, and owned, missing and mastery marks on every slip, card and kiosk tile.</span></div>
+          <div class="row"><span>Sends</span><span>That ID and nonce to <code>mobile.warframe.com</code>'s inventory endpoint, and nowhere else.</span></div>
+        </div>
+      </div>
+      <div class="never"><svg class="icon"><use href="#i-shield"/></svg><span><b>At every level:</b> no writing to the game, no automated input, no telemetry.</span></div>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="panel" id="download">
+<section class="chapter" aria-labelledby="download-title">
+  <div class="wrap">
+    <div class="chapter-head" data-reveal>
+      <h2 id="download-title">Download FrameSight</h2>
+      <p><span data-version>The latest release</span>, built for 64-bit Windows and Linux. Pick your system.</p>
+    </div>
+    <div class="dl">
+      <div class="segmented dl-tabs" role="tablist" aria-label="Operating system">
+        <button type="button" role="tab" id="tab-windows" aria-controls="dl-windows" aria-selected="true" data-tab="windows">Windows</button>
+        <button type="button" role="tab" id="tab-fedora" aria-controls="dl-fedora" aria-selected="false" tabindex="-1" data-tab="fedora">Fedora</button>
+        <button type="button" role="tab" id="tab-debian" aria-controls="dl-debian" aria-selected="false" tabindex="-1" data-tab="debian">Ubuntu &amp; Debian</button>
+        <button type="button" role="tab" id="tab-appimage" aria-controls="dl-appimage" aria-selected="false" tabindex="-1" data-tab="appimage">Steam Deck &amp; other Linux</button>
+      </div>
+
+      <div class="dl-panel" id="dl-windows" role="tabpanel" aria-labelledby="tab-windows">
+        <div>
+          <h3>Windows 10 and 11</h3>
+          <p>One installer, for your user only, so no admin prompt. It carries its own text reader and fetches Microsoft's WebView2 runtime if your PC lacks it.</p>
+          <a class="btn primary large" href="https://github.com/jawsbb/FrameSight/releases/latest" data-asset="windows"><svg class="icon"><use href="#i-download"/></svg>Download the installer</a>
+          <p class="file mono" data-file="windows">x64-setup.exe</p>
+        </div>
+        <div>
+          <h4>Before your first mission</h4>
+          <ol>
+            <li>SmartScreen warns the first time because the installer is not code-signed. Choose <b>More info</b>, then <b>Run anyway</b>.</li>
+            <li>Set Warframe's <b>Display Mode</b> to <b>Borderless</b>. In exclusive fullscreen no app can draw over the game.</li>
+            <li>Pick an access level when FrameSight opens. Nothing observes the game until you confirm.</li>
+          </ol>
+          <div class="dl-note"><svg class="icon"><use href="#i-warn"/></svg><span>FrameSight is developed on Linux. Windows builds are tested, but less often: if something is off, an issue on GitHub helps.</span></div>
+        </div>
+      </div>
+
+      <div class="dl-panel" id="dl-fedora" role="tabpanel" aria-labelledby="tab-fedora" hidden>
+        <div>
+          <h3>Fedora 40 and newer</h3>
+          <p>An <code class="mono">.rpm</code> package with a <code class="mono">tennoscope</code> command and a desktop entry. Warframe can run through Steam's Proton or Wine.</p>
+          <a class="btn primary large" href="https://github.com/jawsbb/FrameSight/releases/latest" data-asset="fedora"><svg class="icon"><use href="#i-download"/></svg>Download the .rpm</a>
+          <p class="file mono" data-file="fedora">x86_64.rpm</p>
+        </div>
+        <div>
+          <h4>Install it, with the text reader the overlays use</h4>
+          <div class="cmd"><code data-filename="fedora">sudo dnf install ./TennoScope-*.x86_64.rpm tesseract tesseract-langpack-eng</code><button type="button" class="copy"><svg class="icon"><use href="#i-copy"/></svg></button></div>
+          <ul>
+            <li>Run it from the terminal in the folder you downloaded to.</li>
+            <li>Wine's virtual-desktop mode also needs <code class="mono">xwininfo</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="dl-panel" id="dl-debian" role="tabpanel" aria-labelledby="tab-debian" hidden>
+        <div>
+          <h3>Ubuntu 24.04, Debian 13 and newer</h3>
+          <p>A <code class="mono">.deb</code> package with a <code class="mono">tennoscope</code> command and a desktop entry.</p>
+          <a class="btn primary large" href="https://github.com/jawsbb/FrameSight/releases/latest" data-asset="debian"><svg class="icon"><use href="#i-download"/></svg>Download the .deb</a>
+          <p class="file mono" data-file="debian">amd64.deb</p>
+        </div>
+        <div>
+          <h4>Install it</h4>
+          <div class="cmd"><code data-filename="debian">sudo apt install ./TennoScope_*_amd64.deb</code><button type="button" class="copy"><svg class="icon"><use href="#i-copy"/></svg></button></div>
+          <div class="dl-note"><svg class="icon"><use href="#i-warn"/></svg><span>The package needs glibc 2.39. On Ubuntu 22.04 or Debian 12, take the AppImage instead.</span></div>
+        </div>
+      </div>
+
+      <div class="dl-panel" id="dl-appimage" role="tabpanel" aria-labelledby="tab-appimage" hidden>
+        <div>
+          <h3>Steam Deck and any 64-bit Linux</h3>
+          <p>One self-contained file, nothing to install. On the Steam Deck, switch to Desktop Mode first.</p>
+          <a class="btn primary large" href="https://github.com/jawsbb/FrameSight/releases/latest" data-asset="appimage"><svg class="icon"><use href="#i-download"/></svg>Download the AppImage</a>
+          <p class="file mono" data-file="appimage">amd64.AppImage</p>
+        </div>
+        <div>
+          <h4>Make it runnable, then start it</h4>
+          <div class="cmd"><code data-filename="appimage">chmod +x TennoScope_*_amd64.AppImage &amp;&amp; ./TennoScope_*_amd64.AppImage</code><button type="button" class="copy"><svg class="icon"><use href="#i-copy"/></svg></button></div>
+          <ul>
+            <li>Works back to Ubuntu 22.04 and Debian 12.</li>
+            <li>The reward overlay needs <code class="mono">tesseract</code> with its English data from your distribution.</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="dl-foot">Every build, checksum and changelog is on the <a class="link" href="https://github.com/jawsbb/FrameSight/releases">GitHub releases page</a>. The reward reader matches English item names, so the game client has to be in English.</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="panel" id="faq">
+<section class="chapter" aria-labelledby="faq-title">
+  <div class="wrap faq">
+    <div class="split-text" data-reveal>
+      <h2 id="faq-title">Questions, answered plainly.</h2>
+      <p>Anything else lives in the <a class="link" href="https://github.com/jawsbb/FrameSight">repository</a>.</p>
+    </div>
+    <div class="faq-list">
+      <details open>
+        <summary>Does FrameSight modify Warframe or automate anything?</summary>
+        <div><p>No. It only reads: the screen and <code class="mono">EE.log</code> for the overlays, and, at Full access only, an account ID and nonce from the game process. No access level writes to the game or automates input.</p></div>
+      </details>
+      <details>
+        <summary>Does it need Overwolf or an account?</summary>
+        <div><p>No. FrameSight is a standalone desktop app with no account and no telemetry. Linking warframe.market is optional and only needed to manage your orders.</p></div>
+      </details>
+      <details>
+        <summary>Does it work on Linux and the Steam Deck?</summary>
+        <div><p>Yes, it is developed on Linux. It reads Warframe running through Proton or Wine, and the Steam Deck runs the AppImage in Desktop Mode.</p></div>
+      </details>
+      <details>
+        <summary>Where do the prices come from?</summary>
+        <div><p>From warframe.market. The collection uses a daily summary served by relics.run; the reward screen prices the whole squad's relic pool from the sellers who are in game right now. Ducat values are Baro Ki'Teer's.</p></div>
+      </details>
+      <details>
+        <summary>Why doesn't the overlay show up?</summary>
+        <div><p>Set Warframe's Display Mode to Borderless: in exclusive fullscreen nothing can draw over the game. The reward reader also needs the game in English, and the access level set to Overlay or Full.</p></div>
+      </details>
+      <details>
+        <summary>Is it free?</summary>
+        <div><p>Yes, free and open source under the GPL-3.0 license. FrameSight continues TennoScope, created by Deftera186 and its contributors.</p></div>
+      </details>
+    </div>
+  </div>
+</section>
+</div>
+
+<section class="closer" aria-labelledby="closer-title">
+  <div class="wrap">
+    <svg class="mark"><use href="#i-mark"/></svg>
+    <h2 id="closer-title">Your next relic is already cracking.</h2>
+    <p>Install FrameSight now, and the next reward screen will tell you which card to take.</p>
+    <div class="cta-row">
+      <a class="btn primary large" href="#download" data-cta="primary"><svg class="icon"><use href="#i-download"/></svg><span>Download</span></a>
+      <a class="btn large" href="https://github.com/jawsbb/FrameSight"><svg class="icon"><use href="#i-github"/></svg>Source on GitHub</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <nav class="foot-links" aria-label="Footer">
+      <a href="https://github.com/jawsbb/FrameSight">GitHub</a>
+      <a href="https://github.com/jawsbb/FrameSight/releases">Releases</a>
+      <a href="https://github.com/jawsbb/FrameSight/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/jawsbb/FrameSight/blob/main/SECURITY.md">Security</a>
+      <a href="https://github.com/jawsbb/FrameSight/blob/main/LICENSE">GPL-3.0</a>
+      <a href="/fr/" hreflang="fr" lang="fr">Français</a>
+    </nav>
+    <p>FrameSight is an unofficial fan project, not affiliated with or endorsed by Digital Extremes. Warframe, its names, icons and artwork belong to Digital Extremes.</p>
+  </div>
+</footer>
+</body>
+</html>
