@@ -8,7 +8,7 @@ UpgradeBehavior: install
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/jawsbb/FrameSight/releases/download/v0.14.1/FrameSight_0.14.1_x64-setup.exe
-  InstallerSha256: 80B4A065AA43CC60E035D3A53C4E3374F7D8FDF49ED6DCAEA4AFD5E6C2C59288
+  InstallerSha256: 8B4FB734B32A9B8B589672AC9687DC313E96A02B550445097D0ED9AC82DE66C8
   InstallerSwitches:
     Silent: /S
     SilentWithProgress: /S
