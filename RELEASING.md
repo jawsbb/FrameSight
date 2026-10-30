@@ -74,8 +74,14 @@ document: substitute the version you are cutting.
    ```bash
    git commit -am "chore(release): prepare vX.Y.Z"
    git tag -a vX.Y.Z -m "vX.Y.Z"
-   git push origin main --follow-tags
+   git push origin main vX.Y.Z
    ```
+
+   Name the tag; never `--follow-tags`. A clone that also fetched TennoScope carries its annotated
+   tags, and `--follow-tags` pushes every one the remote lacks. GitHub starts no workflow at all
+   when more than three tags arrive in one push, so the release never runs, and the release-tag
+   rules forbid deleting the strays. If it happens anyway, start the release by hand:
+   `gh workflow run release.yml --ref vX.Y.Z`.
 
 5. **Wait for the release workflow**, then edit the draft it created. The draft arrives
    pre-filled with GitHub's generated commit list, and that is not the release notes. Replace them
