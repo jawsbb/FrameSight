@@ -41,16 +41,17 @@ Claims about other tools carry their source and the month they were checked.
 
 ## Deploy on Vercel
 
-New project from this repository, **Root Directory** `site`, framework preset **Other**.
-`vercel.json` runs `node build.mjs`, serves `public/`, and sets clean URLs, cache and security
-headers.
+The Vercel project `framesight` (team `jawsbbs-projects`) builds this repository with **Root
+Directory** `site` and no framework preset; every push to `main` deploys to production, and pull
+requests get a preview. `vercel.json` runs `node build.mjs`, serves `public/`, and sets clean URLs,
+cache and security headers.
 
-## Before going live
-
-- **Domain.** `SITE` in `build.mjs` says `https://framesight.vercel.app`; the sitemap, robots.txt,
-  canonicals and JSON-LD follow it. Change it there if the site gets another address.
-- **Search engines.** Once deployed, add the domain to Google Search Console and Bing Webmaster
-  Tools and submit `/sitemap.xml`.
+- **Domain.** The site lives at `https://framesight-warframe.vercel.app` (`framesight.vercel.app`
+  belongs to another product; the project's generated `framesight-six.vercel.app` redirects to it).
+  `SITE` in `build.mjs` holds it, and the sitemap, robots.txt, canonicals and JSON-LD follow it:
+  change it there and add the domain to the project if the site moves.
+- **Search engines.** Add the domain to Google Search Console and Bing Webmaster Tools and submit
+  `/sitemap.xml`.
 - **Releases.** The download buttons point at `https://github.com/jawsbb/FrameSight/releases/latest`;
   `src/site.js` (`REPO`) asks the GitHub API for the latest release and swaps in the direct
   `.exe`, `.rpm`, `.deb` and `.AppImage` links, file names and the version.

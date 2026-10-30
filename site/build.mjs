@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const src = join(here, 'src')
 const out = join(here, 'public')
-const SITE = 'https://framesight.vercel.app'
+const SITE = 'https://framesight-warframe.vercel.app'
 const REPO = 'https://github.com/jawsbb/FrameSight'
 
 const langs = [
