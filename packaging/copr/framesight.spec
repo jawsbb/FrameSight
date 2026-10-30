@@ -3,7 +3,7 @@ Name:           framesight
 # tarball, so an untagged version has nothing to build, and rpm.vercmp sorts
 # v0.12.1-rc1 above v0.12.0, which would have dnf serving a release candidate
 # as the newest build in a channel documented as the stable install path.
-Version:        0.14.0
+Version:        0.14.1
 Release:        1%{?dist}
 Summary:        Local-first Warframe collection and relic companion
 License:        GPL-3.0-only
@@ -100,6 +100,9 @@ pnpm --dir app check
 %{_datadir}/doc/%{name}/THIRD_PARTY_NOTICES.md
 
 %changelog
+* Fri Oct 30 2026 jawsbb <https://github.com/jawsbb/FrameSight/issues> - 0.14.1-1
+- Rewards from the newest relics, Citrine Prime among them, are named again
+
 * Thu Oct 29 2026 jawsbb <https://github.com/jawsbb/FrameSight/issues> - 0.14.0-1
 - First FrameSight release, v0.14.0
 

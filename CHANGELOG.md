@@ -14,16 +14,15 @@ see the difference.
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-10-30
+
 ### Fixed
 
-- **Rewards from the newest relics are named again.** The relic catalog came from a copy of WFCD's
-  Relics.json frozen in July 2026, because WFCD's current file no longer lists rewards. Relics
-  released since, the Citrine Prime ones among them, had no rewards to match, so a squad opening
-  one could see its `2X Forma Blueprint` named `Forma Blueprint` at 65 %. Each relic's rewards now
-  come from WFCD's drop tables, joined to the current Relics.json by the relic's name; a relic no
-  mission drops any more counts as vaulted. The catalog is fetched again at every start, with the
-  cached copy kept for when the network is down: it used to be read from the cache first, so an
-  install kept the first copy it ever fetched.
+- **Rewards from the newest relics are named again.** Relics released since July 2026, the Citrine
+  Prime ones among them, had no rewards in FrameSight's relic catalog, so their cards could be
+  misread: a `2X Forma Blueprint` showed as `Forma Blueprint` at 65 %. The catalog now comes from
+  WFCD's current drop tables and is fetched again at every start, so a new relic is known as soon
+  as WFCD lists it.
 
 ## [0.14.0] - 2026-10-29
 
@@ -941,7 +940,8 @@ First release.
 - Raw inventory responses are validated in memory and are not persisted.
 - No telemetry, no analytics, no remote account, no secret persistence.
 
-[Unreleased]: https://github.com/jawsbb/FrameSight/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/jawsbb/FrameSight/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/jawsbb/FrameSight/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/jawsbb/FrameSight/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/Deftera186/tennoscope/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/Deftera186/tennoscope/compare/v0.12.1-rc1...v0.13.0
