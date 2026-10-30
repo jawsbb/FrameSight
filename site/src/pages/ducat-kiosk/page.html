@@ -1,0 +1,45 @@
+{{>page-hero}}
+
+<div class="doc">
+  <div class="doc-wide" data-reveal>
+    {{>kiosk}}
+    <p class="note">{{demo.note}}</p>
+  </div>
+
+  <section>
+    <h2 data-split>{{how.title}}</h2>
+    <ol class="steps">
+      <li>{{how.step1}}</li>
+      <li>{{how.step2}}</li>
+      <li>{{how.step3}}</li>
+      <li>{{how.step4}}</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2 data-split>{{ratio.title}}</h2>
+    <p>{{ratio.text}}</p>
+    <div class="facts">
+      <div class="fact card"><b>{{ratio.lowTitle}}</b><span>{{ratio.lowText}}</span></div>
+      <div class="fact card"><b>{{ratio.highTitle}}</b><span>{{ratio.highText}}</span></div>
+    </div>
+    <p>{{ratio.after}}</p>
+  </section>
+
+  <section>
+    <h2 data-split>{{baro.title}}</h2>
+    <p>{{baro.text}}</p>
+  </section>
+
+  <section>
+    <h2 data-split>{{needs.title}}</h2>
+    <ul>
+      <li>{{needs.borderless}}</li>
+      <li>{{needs.language}}</li>
+      <li>{{needs.access}}</li>
+      <li>{{needs.tesseract}}</li>
+    </ul>
+  </section>
+</div>
+
+{{>page-end}}

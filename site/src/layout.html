@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{=meta.title}}</title>
+<meta name="description" content="{{=meta.description}}">
+<link rel="canonical" href="{{url}}">
+{{alternates}}
+<meta name="theme-color" content="#0c0e13">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FrameSight">
+<meta property="og:title" content="{{=meta.title}}">
+<meta property="og:description" content="{{=meta.description}}">
+<meta property="og:url" content="{{url}}">
+<meta property="og:image" content="{{site}}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{=app.ogAlt}}">
+<meta property="og:locale" content="{{locale}}">
+<meta property="og:locale:alternate" content="{{altLocale}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="/assets/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css">
+<script type="application/ld+json">
+{{jsonLd}}
+</script>
+<script type="module" src="/assets/site.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/><path d="M12 1.75v4.5M12 17.75v4.5M1.75 12h4.5M17.75 12h4.5"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17.2v.1"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+  <symbol id="i-diamond" viewBox="0 0 24 24"><path d="M12 3 21 12 12 21 3 12z"/><path d="M12 8 16 12 12 16 8 12z"/></symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><path d="M3.5 14.5a8.5 8.5 0 0 1 17 0"/><path d="m12 14.5 4-4.5"/><circle cx="12" cy="14.5" r="1.25"/><path d="M7 18.5h10"/></symbol>
+  <symbol id="i-collection" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-relics" viewBox="0 0 24 24"><path d="M12 3 18.5 8v8L12 21l-6.5-5V8z"/><path d="m5.5 8 6.5 4 6.5-4M12 12v9"/></symbol>
+  <symbol id="i-foundry" viewBox="0 0 24 24"><path d="M5.5 6h15v4h-6v3c0 1.4 1.3 2.6 3.5 3.1V19H6v-2.9c2.2-.5 3.5-1.7 3.5-3.1v-3H9C6.4 10 4.3 9 2.5 7.2 3.6 6.4 4.6 6 5.5 6z"/></symbol>
+  <symbol id="i-market" viewBox="0 0 24 24"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.1 6.1a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.5"/></symbol>
+  <symbol id="i-farm" viewBox="0 0 24 24"><path d="M12 20.5V11"/><path d="M12 13.5c0-4.4 2.9-7.5 7.5-7.5 0 4.4-2.9 7.5-7.5 7.5z"/><path d="M12 15.5c0-3.6-2.4-6-6-6 0 3.6 2.4 6 6 6z"/></symbol>
+  <symbol id="i-rewards" viewBox="0 0 24 24"><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H5a2.5 2.5 0 0 0 2.6 3.4M16.5 6H19a2.5 2.5 0 0 1-2.6 3.4M12 13.5V17M8.5 20h7"/></symbol>
+  <symbol id="i-orders" viewBox="0 0 24 24"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12.5h4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z"/></symbol>
+  <symbol id="i-cold" viewBox="0 0 24 24"><path d="M12 3.5v17M4.6 7.75l14.8 8.5M4.6 16.25l14.8-8.5M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5"/></symbol>
+</svg>
+
+<a class="skip" href="#main">{{nav.skip}}</a>
+
+<header class="site-head">
+  <div class="head-inner">
+    <a class="brand" href="{{home}}" aria-label="{{=nav.home}}"><svg class="mark"><use href="#i-mark"/></svg>FrameSight</a>
+    <nav class="site-nav" aria-label="{{=nav.label}}">
+      <a href="{{link.relic-reward-overlay}}">{{nav.overlay}}</a>
+      <a href="{{link.ducat-kiosk}}">{{nav.kiosk}}</a>
+      <a href="{{link.linux}}">Linux</a>
+      <a href="{{link.steam-deck}}">Steam Deck</a>
+      <a href="{{link.alternatives}}">{{nav.compare}}</a>
+    </nav>
+    <div class="head-end">
+      <a class="lang" href="{{otherUrl}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{nav.otherLang}}</a>
+      <a class="icon-link" href="{{repo}}" aria-label="{{=nav.github}}"><svg class="icon"><use href="#i-github"/></svg></a>
+      <a class="btn btn-light btn-sm" href="{{home}}#download">{{nav.download}}</a>
+    </div>
+  </div>
+</header>
+
+
+<main id="main">
+{{content}}
+</main>
+
+
+<footer class="site-foot">
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <a class="brand" href="{{home}}"><svg class="mark"><use href="#i-mark"/></svg>FrameSight</a>
+      <p>{{footer.tagline}}</p>
+    </div>
+    <nav class="foot-cols" aria-label="{{=footer.label}}">
+      <div>
+        <p class="foot-title">{{footer.product}}</p>
+        <a href="{{link.relic-reward-overlay}}">{{nav.overlay}}</a>
+        <a href="{{link.ducat-kiosk}}">{{nav.kiosk}}</a>
+        <a href="{{home}}#access">{{nav.privacy}}</a>
+        <a href="{{home}}#faq">FAQ</a>
+      </div>
+      <div>
+        <p class="foot-title">{{footer.platforms}}</p>
+        <a href="{{link.linux}}">Linux</a>
+        <a href="{{link.steam-deck}}">Steam Deck</a>
+        <a href="{{home}}#download">Windows</a>
+      </div>
+      <div>
+        <p class="foot-title">{{footer.compare}}</p>
+        <a href="{{link.alternatives}}">{{footer.allAlternatives}}</a>
+        <a href="{{link.alecaframe}}">{{footer.vsAlecaframe}}</a>
+      </div>
+      <div>
+        <p class="foot-title">{{footer.project}}</p>
+        <a href="{{repo}}">GitHub</a>
+        <a href="{{repo}}/releases">Releases</a>
+        <a href="{{repo}}/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="{{repo}}/blob/main/SECURITY.md">{{footer.security}}</a>
+        <a href="{{repo}}/blob/main/LICENSE">GPL-3.0</a>
+      </div>
+    </nav>
+    <p class="foot-legal">{{footer.legal}} <a href="{{otherUrl}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{footer.otherLang}}</a></p>
+  </div>
+</footer>
+</body>
+</html>

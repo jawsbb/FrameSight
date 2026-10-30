@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "title": "Overlay des récompenses de reliques Warframe · FrameSight",
+    "description": "La valeur en platine et en ducats de chaque récompense de Fissure du Néant, dès l’ouverture de l’écran. Gratuit, open source, sans Overwolf."
+  },
+  "crumb": "Overlay de récompenses",
+  "card": "Platine et ducats sous chaque carte de l’écran de récompenses des Fissures du Néant.",
+  "see": [
+    "ducat-kiosk",
+    "linux",
+    "alternatives"
+  ],
+  "hero": {
+    "title": "Chaque récompense de relique, chiffrée avant la fin du compte à rebours.",
+    "lede": "L’overlay de FrameSight affiche la valeur en platine et en ducats sous chaque carte de l’écran de récompenses des Fissures du Néant, et couronne la meilleure de chaque. Sans Overwolf, sans compte, sans rien écrire dans le jeu."
+  },
+  "demo": {
+    "note": "Valeurs d’illustration. En jeu, les prix viennent des vendeurs warframe.market connectés."
+  },
+  "how": {
+    "title": "Comment l’overlay lit l’écran de récompenses",
+    "step1": "Warframe écrit une ligne dans son journal, <code>EE.log</code>, quand l’écran de récompenses s’ouvre. FrameSight attend cette ligne au lieu de surveiller l’écran pendant toute la mission.",
+    "step2": "Il capture la fenêtre du jeu et lit les titres des cartes avec Tesseract, un lecteur de texte open source, sur votre machine. Aucune image n’en sort.",
+    "step3": "Chaque titre est rapproché du catalogue d’objets, et tout le lot de reliques de l’escouade est chiffré à partir des vendeurs warframe.market en jeu à cet instant.",
+    "step4": "Une fiche apparaît sous chaque carte avec sa valeur en platine et en ducats. Le meilleur prix en platine et le meilleur en ducats reçoivent chacun une couronne, car ce sont rarement la même carte."
+  },
+  "slip": {
+    "title": "Ce que dit chaque fiche",
+    "text": "Les fiches s’affichent dans une fenêtre transparente aux clics, par-dessus le jeu : elles ne prennent jamais le focus, et vos clics vont directement à Warframe.",
+    "platTitle": "Platine",
+    "platText": "Ce que la pièce se vend maintenant, d’après les joueurs connectés.",
+    "ducatTitle": "Ducats",
+    "ducatText": "Ce que Baro Ki’Teer en donne, si vous préférez l’échanger à son kiosque.",
+    "crownTitle": "Top platine, Top ducats",
+    "crownText": "La meilleure carte pour chaque métal est couronnée : le choix se fait d’un coup d’œil.",
+    "marksTitle": "Possédé, manquant, non maîtrisé",
+    "marksText": "Avec l’accès Complet, chaque fiche indique aussi ce que vous possédez, ce qui vous manque et ce qu’il vous faut encore pour la maîtrise."
+  },
+  "needs": {
+    "title": "Ce qu’il lui faut",
+    "borderless": "<b>Le mode d’affichage Sans bordure.</b> En plein écran exclusif, aucun programme ne peut dessiner par-dessus le jeu : réglez le mode d’affichage de Warframe sur Sans bordure.",
+    "language": "<b>Le jeu en anglais ou en français.</b> Le lecteur reconnaît les noms d’objets anglais, et les noms français quand <code>EE.log</code> indique un jeu en français. Les autres langues ne sont pas lues.",
+    "access": "<b>Le niveau d’accès Overlay ou Complet.</b> Compagnon ne lit rien du jeu, il n’a donc pas d’overlay.",
+    "tesseract": "<b>Sur Linux, Tesseract avec ses données anglaises.</b> L’installeur Windows embarque le sien ; sur Linux, il vient de votre distribution (<a class=\"link\" href=\"{{link.linux}}\">commandes d’installation</a>).",
+    "screen": "<b>Un écran 16:9 ou 16:10.</b> La position des cartes est mesurée en 1920×1080 et suit la hauteur de la fenêtre, et le 1280×800 du Steam Deck a sa propre référence. Les écrans plus larges ne sont pas testés."
+  },
+  "safe": {
+    "title": "Il lit. Il n’écrit jamais.",
+    "text": "Au niveau Overlay, FrameSight lit deux choses : l’écran et le journal du jeu. Il ne lit pas la mémoire du jeu, n’injecte rien, n’envoie aucune saisie et n’a aucune télémétrie. Le code est sur GitHub sous GPL-3.0 : chacune de ces affirmations se vérifie."
+  },
+  "faq": {
+    "title": "Questions sur l’overlay",
+    "items": [
+      {
+        "q": "Pourquoi l’overlay n’apparaît-il pas ?",
+        "a": "Vérifiez trois choses : Warframe en mode Sans bordure, le jeu en anglais ou en français, et le niveau d’accès sur Overlay ou Complet. Sur Linux, vérifiez aussi que <code>tesseract</code> est installé avec ses données anglaises. Le panneau Diagnostics le signale quand le jeu est en plein écran exclusif."
+      },
+      {
+        "q": "D’où viennent les prix ?",
+        "a": "De warframe.market. Sur l’écran de récompenses, FrameSight chiffre le lot de reliques de l’escouade à partir des vendeurs en jeu à ce moment-là. Les valeurs en ducats sont celles de Baro Ki’Teer."
+      },
+      {
+        "q": "Est-ce que ça marche sur Linux et le Steam Deck ?",
+        "a": "Oui. FrameSight est développé sur Linux et lit Warframe lancé via Proton ou Wine. Voir les guides <a class=\"link\" href=\"{{link.linux}}\">Linux</a> et <a class=\"link\" href=\"{{link.steam-deck}}\">Steam Deck</a>."
+      },
+      {
+        "q": "Est-ce gratuit ?",
+        "a": "Oui : gratuit et open source sous GPL-3.0, sans compte et sans offre payante."
+      }
+    ]
+  }
+}

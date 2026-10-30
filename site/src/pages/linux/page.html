@@ -1,0 +1,56 @@
+{{>page-hero}}
+
+<div class="doc">
+  <section>
+    <h2 data-split>{{why.title}}</h2>
+    <p>{{why.text}}</p>
+    <div class="facts">
+      <div class="fact card"><b>{{why.nativeTitle}}</b><span>{{why.nativeText}}</span></div>
+      <div class="fact card"><b>{{why.protonTitle}}</b><span>{{why.protonText}}</span></div>
+      <div class="fact card"><b>{{why.readTitle}}</b><span>{{why.readText}}</span></div>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2 data-split>{{install.title}}</h2>
+    <p>{{install.text}}</p>
+
+    <h3>Fedora</h3>
+    <p>{{install.fedora}}</p>
+    <div class="cmd"><code data-filename="fedora">sudo dnf install ./FrameSight-*.x86_64.rpm tesseract tesseract-langpack-eng</code></div>
+
+    <h3>Ubuntu · Debian</h3>
+    <p>{{install.debian}}</p>
+    <div class="cmd"><code data-filename="debian">sudo apt install ./FrameSight_*_amd64.deb tesseract-ocr tesseract-ocr-eng</code></div>
+
+    <h3>Arch · Manjaro · EndeavourOS · CachyOS</h3>
+    <p>{{install.arch}}</p>
+    <div class="cmd"><code>curl -O https://raw.githubusercontent.com/jawsbb/FrameSight/main/packaging/arch-bin/PKGBUILD &amp;&amp; makepkg -si</code></div>
+    <div class="cmd"><code>sudo pacman -S tesseract tesseract-data-eng</code></div>
+
+    <h3>{{install.otherTitle}}</h3>
+    <p>{{install.other}}</p>
+    <div class="cmd"><code data-filename="appimage">chmod +x FrameSight_*_amd64.AppImage &amp;&amp; ./FrameSight_*_amd64.AppImage</code></div>
+
+    <div class="dl-note"><svg class="icon"><use href="#i-warn"/></svg><span>{{install.glibc}}</span></div>
+  </section>
+
+  <section>
+    <h2 data-split>{{session.title}}</h2>
+    <ul>
+      <li>{{session.proton}}</li>
+      <li>{{session.x11}}</li>
+      <li>{{session.wayland}}</li>
+      <li>{{session.virtual}}</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2 data-split>{{full.title}}</h2>
+    <p>{{full.text}}</p>
+    <div class="cmd"><code>cat /proc/sys/kernel/yama/ptrace_scope</code></div>
+    <p>{{full.after}}</p>
+  </section>
+</div>
+
+{{>page-end}}

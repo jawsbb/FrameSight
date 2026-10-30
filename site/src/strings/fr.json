@@ -1,0 +1,54 @@
+{
+  "nav": {
+    "skip": "Aller au contenu",
+    "home": "Accueil FrameSight",
+    "label": "Sections",
+    "kiosk": "Kiosque à ducats",
+    "privacy": "Confidentialité",
+    "github": "Code source sur GitHub",
+    "download": "Télécharger",
+    "otherLang": "EN",
+    "overlay": "Overlay de récompenses",
+    "compare": "Alternatives"
+  },
+  "footer": {
+    "label": "Pied de page",
+    "security": "Sécurité",
+    "otherLang": "English",
+    "legal": "FrameSight est un projet de fan non officiel, ni affilié à Digital Extremes ni approuvé par ce studio. Warframe, ses noms, icônes et illustrations appartiennent à Digital Extremes.",
+    "tagline": "Un compagnon Warframe gratuit et open source pour Linux, Windows et le Steam Deck.",
+    "product": "Produit",
+    "platforms": "Plateformes",
+    "compare": "Comparer",
+    "project": "Projet",
+    "allAlternatives": "Les compagnons Warframe comparés",
+    "vsAlecaframe": "FrameSight et AlecaFrame"
+  },
+  "closer": {
+    "title": "Votre prochaine relique s’ouvre déjà.",
+    "text": "Installez FrameSight maintenant, et le prochain écran de récompenses vous dira quelle carte prendre."
+  },
+  "cta": {
+    "github": "Voir sur GitHub"
+  },
+  "stage": {
+    "demoAlt": "L'écran de récompenses des fissures du Néant avec l'overlay de FrameSight : sous chacune des quatre cartes, une fiche donne sa valeur en platine et en ducats, et la meilleure de chaque métal est couronnée.",
+    "reader": "Prix des joueurs en jeu en ce moment"
+  },
+  "kiosk": {
+    "alt": "Maquette du kiosque à ducats : choisissez des cases pour les ajouter à la liste de vente.",
+    "list": "À vendre"
+  },
+  "crumbs": {
+    "home": "Accueil",
+    "label": "Fil d’Ariane"
+  },
+  "related": {
+    "title": "À lire aussi",
+    "more": "En savoir plus"
+  },
+  "app": {
+    "description": "Un compagnon Warframe gratuit et open source : la valeur en platine et en ducats sur l'écran de récompenses des fissures du Néant et au kiosque à ducats de Baro, une collection chiffrée, une liste de maîtrise et la gestion des ordres warframe.market.",
+    "ogAlt": "Quatre fiches de récompense Warframe avec leur valeur en platine et en ducats, la meilleure de chaque métal couronnée."
+  }
+}

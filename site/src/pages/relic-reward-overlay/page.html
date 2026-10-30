@@ -1,0 +1,47 @@
+{{>page-hero}}
+
+<div class="doc">
+  <div class="doc-wide" data-reveal>
+    {{>stage}}
+    <p class="note">{{demo.note}}</p>
+  </div>
+
+  <section>
+    <h2 data-split>{{how.title}}</h2>
+    <ol class="steps">
+      <li>{{how.step1}}</li>
+      <li>{{how.step2}}</li>
+      <li>{{how.step3}}</li>
+      <li>{{how.step4}}</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2 data-split>{{slip.title}}</h2>
+    <p>{{slip.text}}</p>
+    <div class="facts">
+      <div class="fact card"><b>{{slip.platTitle}}</b><span>{{slip.platText}}</span></div>
+      <div class="fact card"><b>{{slip.ducatTitle}}</b><span>{{slip.ducatText}}</span></div>
+      <div class="fact card"><b>{{slip.crownTitle}}</b><span>{{slip.crownText}}</span></div>
+      <div class="fact card"><b>{{slip.marksTitle}}</b><span>{{slip.marksText}}</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 data-split>{{needs.title}}</h2>
+    <ul>
+      <li>{{needs.borderless}}</li>
+      <li>{{needs.language}}</li>
+      <li>{{needs.access}}</li>
+      <li>{{needs.tesseract}}</li>
+      <li>{{needs.screen}}</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2 data-split>{{safe.title}}</h2>
+    <p>{{safe.text}}</p>
+  </section>
+</div>
+
+{{>page-end}}

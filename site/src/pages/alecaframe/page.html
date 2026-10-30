@@ -1,0 +1,42 @@
+{{>page-hero}}
+
+<div class="doc">
+  <section>
+    <h2 data-split>{{today.title}}</h2>
+    <p>{{today.text}}</p>
+    <ul>
+      <li>{{today.point1}}</li>
+      <li>{{today.point2}}</li>
+      <li>{{today.point3}}</li>
+      <li>{{today.point4}}</li>
+    </ul>
+    <p class="note">{{today.source}}</p>
+  </section>
+
+  <section>
+    <h2 data-split>{{instead.title}}</h2>
+    <p>{{instead.text}}</p>
+    <div class="facts">
+      <div class="fact card"><b>{{instead.rewardTitle}}</b><span>{{instead.rewardText}}</span></div>
+      <div class="fact card"><b>{{instead.kioskTitle}}</b><span>{{instead.kioskText}}</span></div>
+      <div class="fact card"><b>{{instead.collectionTitle}}</b><span>{{instead.collectionText}}</span></div>
+      <div class="fact card"><b>{{instead.marketTitle}}</b><span>{{instead.marketText}}</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 data-split>{{honest.title}}</h2>
+    <p>{{honest.text}}</p>
+  </section>
+
+  <section>
+    <h2 data-split>{{switch.title}}</h2>
+    <ol class="steps">
+      <li>{{switch.step1}}</li>
+      <li>{{switch.step2}}</li>
+      <li>{{switch.step3}}</li>
+    </ol>
+  </section>
+</div>
+
+{{>page-end}}

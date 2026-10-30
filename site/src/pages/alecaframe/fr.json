@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "title": "Alternative à AlecaFrame sur Linux, sans Overwolf · FrameSight",
+    "description": "AlecaFrame demande Overwolf, absent de Linux. FrameSight est un compagnon Warframe gratuit et open source, natif sur Linux et Steam Deck."
+  },
+  "crumb": "AlecaFrame",
+  "card": "AlecaFrame sur Linux, c’est Overwolf dans Proton. FrameSight tourne nativement.",
+  "see": [
+    "alternatives",
+    "linux",
+    "steam-deck"
+  ],
+  "hero": {
+    "title": "Une alternative à AlecaFrame qui tourne sur Linux.",
+    "lede": "AlecaFrame est un compagnon Warframe complet, mais il vit dans Overwolf, qui n’existe pas sur Linux. Si vous jouez sur Linux ou sur Steam Deck, ou préférez ne pas installer Overwolf, FrameSight couvre l’écran de récompenses nativement."
+  },
+  "today": {
+    "title": "AlecaFrame sur Linux, aujourd’hui",
+    "text": "La documentation d’AlecaFrame décrit une façon de le faire tourner sur Linux, et annonce clairement qu’il s’agit d’un contournement :",
+    "point1": "Overwolf s’installe dans le préfixe Proton de Warframe avec ProtonTricks, puis AlecaFrame dans Overwolf, et les deux se lancent via <code>protonhax</code>.",
+    "point2": "La page s’ouvre sur un avertissement : Overwolf ne prend pas officiellement en charge Linux, vous le faites donc à vos risques.",
+    "point3": "Selon la version de Proton, déplacer ou agrandir la fenêtre peut la faire planter, et après un plantage il faut arrêter le service Overwolf dans le préfixe avant de pouvoir relancer.",
+    "point4": "Ses développeurs indiquent qu’ils ne peuvent pas aider sur cette configuration et demandent de ne pas signaler de problème à son sujet.",
+    "source": "Source : <a class=\"link\" href=\"https://docs.alecaframe.com/linux-support\">documentation d’AlecaFrame, prise en charge de Linux</a>, vérifiée en octobre 2026."
+  },
+  "instead": {
+    "title": "Ce que fait FrameSight à la place",
+    "text": "FrameSight est un programme Linux ordinaire, empaqueté pour Fedora, Ubuntu, Debian et Arch, avec une AppImage pour le reste et le Steam Deck. Il observe Warframe depuis l’extérieur de son préfixe : pas de second environnement à maintenir en vie.",
+    "rewardTitle": "Écran de récompenses",
+    "rewardText": "Platine et ducats sous chaque carte, la meilleure de chaque couronnée. <a class=\"link\" href=\"{{link.relic-reward-overlay}}\">Comment ça marche</a>.",
+    "kioskTitle": "Kiosque à ducats",
+    "kioskText": "Un prix en platine sur chaque case du kiosque de Baro, et une liste de vente qui s’additionne. <a class=\"link\" href=\"{{link.ducat-kiosk}}\">Voir</a>.",
+    "collectionTitle": "Collection et maîtrise",
+    "collectionText": "Chaque objet chiffré en platine et en ducats, filtré sur ce qu’il reste à maîtriser.",
+    "marketTitle": "warframe.market",
+    "marketText": "Les ordres de vente confrontés à ce que vous possédez vraiment, si vous choisissez de lier votre compte."
+  },
+  "honest": {
+    "title": "Ce qu’AlecaFrame a et que FrameSight n’a pas",
+    "text": "La documentation d’AlecaFrame liste des outils pour rivens (un explorateur et des overlays de relance et de chat), des recommandations et un planificateur de reliques, des statistiques et des analyses d’échanges, ces dernières en option payante. FrameSight n’a pas d’outils pour rivens. Si c’est ce qui compte le plus pour vous et que vous jouez sur Windows, AlecaFrame vous conviendra mieux ; sur Linux et le Steam Deck, FrameSight est celui qui tourne nativement."
+  },
+  "switch": {
+    "title": "Essayer FrameSight à côté de vos outils",
+    "step1": "Installez le paquet de votre système depuis le <a class=\"link\" href=\"{{link.linux}}\">guide Linux</a>, ou l’AppImage sur le <a class=\"link\" href=\"{{link.steam-deck}}\">Steam Deck</a>.",
+    "step2": "Choisissez un niveau d’accès. Compagnon ne lit rien du jeu ; Overlay ajoute les overlays des récompenses et du kiosque ; Complet synchronise aussi votre inventaire.",
+    "step3": "Passez Warframe en Sans bordure et ouvrez une relique. Les fiches apparaissent sous les cartes à l’ouverture de l’écran de récompenses."
+  },
+  "faq": {
+    "title": "Questions sur AlecaFrame et FrameSight",
+    "items": [
+      {
+        "q": "AlecaFrame marche-t-il sur Linux ?",
+        "a": "Pas officiellement. Sa documentation décrit l’exécution d’Overwolf dans le préfixe Proton de Warframe comme un contournement non officiel, à vos risques, que ses développeurs ne prennent pas en charge."
+      },
+      {
+        "q": "FrameSight est-il lié à AlecaFrame ?",
+        "a": "Non. FrameSight est un projet open source indépendant. AlecaFrame appartient à ses auteurs et n’est nommé ici que pour comparer."
+      },
+      {
+        "q": "FrameSight demande-t-il Overwolf ou un compte ?",
+        "a": "Non. C’est une application de bureau autonome, sans compte ni télémétrie. Lier warframe.market est facultatif."
+      },
+      {
+        "q": "FrameSight gère-t-il les rivens ?",
+        "a": "Non. Il se concentre sur l’écran de récompenses, le kiosque à ducats, la collection et la maîtrise, et les ordres warframe.market."
+      }
+    ]
+  }
+}

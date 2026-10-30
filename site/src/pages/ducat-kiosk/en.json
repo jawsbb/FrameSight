@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "title": "Baro's Ducat Kiosk Overlay: Plat Value of Parts · FrameSight",
+    "description": "Before trading Prime parts for ducats, see what each sells for in platinum. Every tile of Baro's Ducat Kiosk priced, your sell list totalled. Free."
+  },
+  "crumb": "Ducat Kiosk",
+  "card": "Platinum on every tile of Baro's kiosk, and a sell list that totals itself.",
+  "see": [
+    "relic-reward-overlay",
+    "steam-deck",
+    "alternatives"
+  ],
+  "hero": {
+    "title": "Ducats or platinum? Decide at the kiosk.",
+    "lede": "When you turn Prime parts into ducats for Baro Ki'Teer, FrameSight shows what each one would sell for on warframe.market, right on the kiosk's tiles, and adds up what you are about to trade."
+  },
+  "demo": {
+    "note": "Try it: pick the tiles. Illustrative prices."
+  },
+  "how": {
+    "title": "How the kiosk overlay works",
+    "step1": "Open the Ducat Kiosk at a relay. FrameSight reads the part names on its tiles with Tesseract, on your machine, and keeps up as the grid scrolls.",
+    "step2": "Each tile gets a platinum figure: the median of completed trades on warframe.market, so one odd listing cannot swing it.",
+    "step3": "The parts you check land in a sell list, quantities included, which totals its platinum and its ducats as it fills.",
+    "step4": "With Full access, a part of gear you have not mastered or built reads <b>Unmastered</b>, so you do not trade away what you still need."
+  },
+  "ratio": {
+    "title": "A simple way to choose: ducats per platinum",
+    "text": "Divide a part's ducat value by its platinum price. The higher the result, the less you lose by giving it to Baro.",
+    "lowTitle": "100 ducats, sells for 4p",
+    "lowText": "25 ducats per platinum. Selling it to a player brings little: the kiosk is the better deal.",
+    "highTitle": "45 ducats, sells for 20p",
+    "highText": "About 2 ducats per platinum. That part is worth more on warframe.market than at the kiosk.",
+    "after": "Where you draw the line is up to you. The overlay puts both numbers side by side, on every tile, at the moment you decide. These figures are examples, not market prices."
+  },
+  "baro": {
+    "title": "When Baro comes back",
+    "text": "Baro Ki'Teer, the Void Trader, stops at a relay for a short visit every two weeks and sells his wares for ducats and credits. FrameSight's Dashboard counts down to his next visit and names the relay, so your sell list is ready before he lands."
+  },
+  "needs": {
+    "title": "What it needs",
+    "borderless": "<b>Borderless display mode</b>, so the overlay can draw over the game.",
+    "language": "<b>The game in English or French</b>, the two languages the reader matches.",
+    "access": "<b>The Overlay or Full access level.</b> The Unmastered mark needs Full.",
+    "tesseract": "<b>On Linux, Tesseract with its English data</b> (<a class=\"link\" href=\"{{link.linux}}\">install commands</a>). The Windows installer carries its own."
+  },
+  "faq": {
+    "title": "Ducat Kiosk questions",
+    "items": [
+      {
+        "q": "Does FrameSight sell or trade anything for me?",
+        "a": "No. It only shows prices. Trading at the kiosk stays in your hands: FrameSight never sends input to the game."
+      },
+      {
+        "q": "Why platinum medians and not the lowest offer?",
+        "a": "The lowest live offer can be a single odd listing. The median of completed trades holds still and is what the part actually sells for."
+      },
+      {
+        "q": "What happens when the screen cannot be read?",
+        "a": "Prices fade instead of landing on the wrong tile. Recognition fails closed: a price is shown only when the part is read."
+      },
+      {
+        "q": "Does it work on Linux and the Steam Deck?",
+        "a": "Yes, through Proton or Wine. See the <a class=\"link\" href=\"{{link.linux}}\">Linux</a> and <a class=\"link\" href=\"{{link.steam-deck}}\">Steam Deck</a> guides."
+      }
+    ]
+  }
+}
