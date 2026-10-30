@@ -5,17 +5,20 @@ FrameSight is licensed under GPL-3.0-only. This file identifies external data an
 ## WFCD Warframe Items
 
 At runtime the application fetches the item catalog from `https://api.warframestat.us/items` and
-the relic reward catalog from a pinned revision of `data/json/Relics.json` in the
-[WFCD/warframe-items](https://github.com/WFCD/warframe-items) project. Item artwork resolves to
+the relic names from `data/json/Relics.json` in the
+[WFCD/warframe-items](https://github.com/WFCD/warframe-items) project, and each relic's rewards
+from `https://drops.warframestat.us/data/relics.json`, published by
+[WFCD/warframe-drop-data](https://github.com/WFCD/warframe-drop-data). Item artwork resolves to
 `raw.githubusercontent.com/WFCD/warframe-items` as the player views it. Both catalogs are
 validated on load and kept in a local cache, and the cache records the retrieval time and a
 content hash. The item catalog supplies canonical item names, `/Lotus/` identifiers, categories,
 mastery metadata, image names, and Prime-component context. It is data consumed at runtime, not
 vendored application source.
 
-The pinned relic revision is published under the MIT License (Copyright 2017 Kaptard). Downstream
-distributors should retain that license and copyright notice when redistributing a catalog copy or
-a bundle that includes one.
+WFCD/warframe-items is published under the MIT License (Copyright 2017 Kaptard), and
+WFCD/warframe-drop-data under the MIT License (Copyright 2017 Christopher Kaster). Downstream
+distributors should retain those licenses and copyright notices when redistributing a catalog copy
+or a bundle that includes one.
 
 Warframe names, artwork, and game data are associated with Digital Extremes. This project is unofficial and does not claim ownership of them.
 

@@ -1299,10 +1299,9 @@ pub(crate) fn run(
         );
         poller
     };
-    let relic_catalog = shared
-        .lock()
-        .ok()
-        .and_then(|runtime| load_relic_catalog(&runtime.app_data));
+    // Released before loading: the load goes to the network, and the view poll needs the lock.
+    let app_data = shared.lock().ok().map(|runtime| runtime.app_data.clone());
+    let relic_catalog = app_data.as_deref().and_then(load_relic_catalog);
     let mut reward_session =
         RewardSession::new(catalog, relic_catalog, reward_catalog, price_cache.clone());
     // EE.log reaches us seconds after the events it describes (measured at ~7.5s on 2026-07-27),
@@ -1524,17 +1523,17 @@ fn load_catalog(app_data: &Path) -> Option<CatalogIndex> {
         .map(|catalog| catalog.index().clone())
 }
 
+/// The network first, then the cache: a new relic's rewards exist only in a fresh copy, and reading
+/// the cache first kept the first copy an install ever fetched for good.
 fn load_relic_catalog(app_data: &Path) -> Option<RelicRewardIndex> {
     let cache = RelicCatalogCache::new(app_data.join("catalog"));
-    if let Ok(catalog) = cache.load_cached() {
-        return Some(catalog.index().clone());
-    }
-    let source = WfcdRelicCatalogHttp::new().ok()?;
     let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs();
-    cache
-        .load(&source, now)
-        .ok()
-        .map(|catalog| catalog.index().clone())
+    match WfcdRelicCatalogHttp::new() {
+        Ok(source) => cache.load(&source, now),
+        Err(_) => cache.load_cached(),
+    }
+    .ok()
+    .map(|catalog| catalog.index().clone())
 }
 
 /// How often the kiosk poller looks, and how long it may run.

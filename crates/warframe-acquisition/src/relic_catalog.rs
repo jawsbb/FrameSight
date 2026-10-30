@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{CatalogError, CatalogIndex, RewardNeedle};
 
@@ -97,6 +97,49 @@ impl RelicRewardIndex {
     }
 }
 
+/// WFCD's Relics.json in the shape [`RelicRewardIndex::from_wfcd_json`] reads, put together from
+/// the two files WFCD keeps current: its Relics.json, which names each projection path ("Axi C12
+/// Intact") but no longer lists rewards, and its drop tables, which list them under that name. A
+/// relic no drop location lists any more is vaulted.
+pub fn join_wfcd_drop_tables(relics: &[u8], drop_tables: &[u8]) -> Result<Vec<u8>, CatalogError> {
+    let relics: Vec<RelicRecord> =
+        serde_json::from_slice(relics).map_err(|_| CatalogError::InvalidJson)?;
+    let tables: DropTables =
+        serde_json::from_slice(drop_tables).map_err(|_| CatalogError::InvalidJson)?;
+    let rewards = tables
+        .relics
+        .into_iter()
+        .map(|table| {
+            (
+                format!("{} {} {}", table.tier, table.relic_name, table.state),
+                table.rewards,
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let joined = relics
+        .into_iter()
+        .filter_map(|mut relic| {
+            // Looked up, not taken: two projection paths can share a name (Lith G12).
+            relic.rewards = rewards
+                .get(relic.name.trim())?
+                .iter()
+                .map(|drop| RelicReward {
+                    item: RelicRewardItem {
+                        name: drop.item_name.clone(),
+                    },
+                    chance: drop.chance,
+                })
+                .collect();
+            relic.vaulted = Some(relic.drops.is_empty());
+            Some(relic)
+        })
+        .collect::<Vec<_>>();
+    if joined.is_empty() {
+        return Err(CatalogError::InvalidMetadata);
+    }
+    serde_json::to_vec(&joined).map_err(|_| CatalogError::InvalidJson)
+}
+
 fn reward_catalog_paths(name: &str, catalog: &CatalogIndex) -> Vec<String> {
     // Relic rewards conventionally add ` Blueprint` to component names. Prefer the component
     // identity even when the catalog also has an exact inventory-recipe alias for that wording.
@@ -132,7 +175,7 @@ fn reward_catalog_paths(name: &str, catalog: &CatalogIndex) -> Vec<String> {
     Vec::new()
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RelicRecord {
     unique_name: String,
@@ -142,16 +185,42 @@ struct RelicRecord {
     vaulted: Option<bool>,
     #[serde(default)]
     rewards: Vec<RelicReward>,
+    /// The missions that drop the relic now, read only to tell whether it is vaulted.
+    #[serde(default, skip_serializing)]
+    drops: Vec<serde::de::IgnoredAny>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct RelicReward {
     item: RelicRewardItem,
     #[serde(default)]
     chance: Option<f64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct RelicRewardItem {
     name: String,
+}
+
+#[derive(Deserialize)]
+struct DropTables {
+    relics: Vec<DropTable>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DropTable {
+    tier: String,
+    #[serde(default)]
+    relic_name: String,
+    state: String,
+    rewards: Vec<DropTableReward>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DropTableReward {
+    item_name: String,
+    #[serde(default)]
+    chance: Option<f64>,
 }

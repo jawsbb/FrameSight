@@ -1,4 +1,4 @@
-use warframe_acquisition::{CatalogIndex, RelicRewardIndex};
+use warframe_acquisition::{CatalogIndex, RelicDrop, RelicRewardIndex, join_wfcd_drop_tables};
 
 #[test]
 fn loaded_projection_paths_resolve_to_deduplicated_reward_needles() {
@@ -163,4 +163,71 @@ fn a_relic_keeps_its_name_vault_status_and_each_reward_chance() {
             ("Nikana Prime Blueprint", Some(4.0))
         ]
     );
+}
+
+/// WFCD's Relics.json names each projection path but no longer lists rewards; its drop tables list
+/// them under the same "Tier Name Refinement". Shapes trimmed from both files, 2026-10-29.
+#[test]
+fn current_wfcd_relics_take_their_rewards_from_the_drop_tables() {
+    let relics = br#"[
+      {"uniqueName":"/Lotus/Types/Game/Projections/T4VoidProjectionCitrinePrimeBBronze","name":"Axi C12 Intact","type":"Relic",
+       "drops":[{"location":"Void/Mot (Survival), Rotation C","type":"Axi C12 Relic","chance":0.25,"rarity":"Legendary"}]},
+      {"uniqueName":"/Lotus/Types/Game/Projections/T1VoidProjectionAAPrimeBronze","name":"Lith A1 Intact","type":"Relic"},
+      {"uniqueName":"/Lotus/Types/Game/Projections/T1VoidProjectionUnlistedBronze","name":"Lith Z9 Intact","type":"Relic"},
+      {"uniqueName":"/Lotus/Types/Items/MiscItems/VoidTearDrop","name":"Void Traces","type":"Resource"}
+    ]"#;
+    let drop_tables = br#"{"relics":[
+      {"tier":"Axi","relicName":"C12","state":"Intact","rewards":[
+        {"_id":"a","itemName":"Citrine Prime Neuroptics Blueprint","rarity":"Rare","chance":2},
+        {"_id":"b","itemName":"2X Forma Blueprint","rarity":"Uncommon","chance":11}]},
+      {"tier":"Lith","relicName":"A1","state":"Intact","rewards":[
+        {"_id":"c","itemName":"Forma Blueprint","rarity":"Common","chance":25.33}]},
+      {"tier":"Requiem","state":"Intact","rewards":[
+        {"_id":"d","itemName":"Exilus Weapon Adapter Blueprint","rarity":"Common","chance":25.33}]}
+    ]}"#;
+
+    let index =
+        RelicRewardIndex::from_wfcd_json(&join_wfcd_drop_tables(relics, drop_tables).unwrap())
+            .unwrap();
+
+    let citrine = index
+        .relic("/Lotus/Types/Game/Projections/T4VoidProjectionCitrinePrimeBBronze")
+        .unwrap();
+    assert_eq!(citrine.name, "Axi C12 Intact");
+    assert_eq!(citrine.vaulted, Some(false));
+    assert_eq!(
+        citrine.drops,
+        vec![
+            RelicDrop {
+                name: "Citrine Prime Neuroptics Blueprint".into(),
+                chance: Some(2.0)
+            },
+            RelicDrop {
+                name: "2X Forma Blueprint".into(),
+                chance: Some(11.0)
+            },
+        ]
+    );
+    // No drop location lists it any more.
+    assert_eq!(
+        index
+            .relic("/Lotus/Types/Game/Projections/T1VoidProjectionAAPrimeBronze")
+            .unwrap()
+            .vaulted,
+        Some(true)
+    );
+    // Named but in no drop table: no rewards to match against, so no entry.
+    assert!(
+        index
+            .relic("/Lotus/Types/Game/Projections/T1VoidProjectionUnlistedBronze")
+            .is_none()
+    );
+}
+
+#[test]
+fn drop_tables_that_name_no_known_relic_are_refused() {
+    let relics =
+        br#"[{"uniqueName":"/Lotus/Types/Game/Projections/TestABronze","name":"Lith A1 Intact"}]"#;
+    assert!(join_wfcd_drop_tables(relics, br#"{"relics":[]}"#).is_err());
+    assert!(join_wfcd_drop_tables(relics, b"<html>").is_err());
 }
