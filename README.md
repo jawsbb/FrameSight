@@ -5,7 +5,7 @@
 <br>
 
 [![Download](https://img.shields.io/github/v/release/jawsbb/FrameSight?style=for-the-badge&label=download&color=f1ece2&labelColor=111213)](https://github.com/jawsbb/FrameSight/releases/latest)
-[![Website](https://img.shields.io/badge/website-framesight.vercel.app-ecd9a6?style=for-the-badge&labelColor=111213)](https://framesight.vercel.app)
+[![Website](https://img.shields.io/badge/website-framesight--warframe.vercel.app-ecd9a6?style=for-the-badge&labelColor=111213)](https://framesight-warframe.vercel.app)
 [![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-aaa59b?style=for-the-badge&labelColor=111213)](LICENSE)
 [![Platforms](https://img.shields.io/badge/Linux%20%C2%B7%20Windows%20%C2%B7%20Steam%20Deck-aaa59b?style=for-the-badge&labelColor=111213)](#install)
 
