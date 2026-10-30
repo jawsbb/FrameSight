@@ -5,16 +5,22 @@
   },
   "hero": {
     "pill": "New: bounty and endless rotations on the Dashboard",
-    "title": "The Void hides what every reward is worth.",
-    "lede": "FrameSight reads it for you. Platinum and ducats under every card on the reward screen and at Baro's kiosk, a priced collection between missions, and not one byte written to the game.",
+    "title": "Know what every Warframe reward is worth.",
+    "lede": "FrameSight shows the platinum and ducat price of each card on the relic reward screen and at Baro Ki’Teer’s kiosk. Free, open source, and it never writes to the game.",
     "release": "Free and open source",
     "meta": "No Overwolf · No account · No telemetry",
     "note": "Illustrative values. In game, prices come from the warframe.market sellers who are online.",
     "platformsLabel": "Made for Tenno who play on"
   },
-  "manifesto": {
-    "label": "Why FrameSight",
-    "text": "A few seconds on the reward screen. Four cards, and one of them pays for the run. FrameSight tells you which before the timer does, then gets out of the way.",
+  "how": {
+    "label": "How it works",
+    "title": "Install, allow, open a relic.",
+    "installTitle": "Install it",
+    "installText": "One installer on Windows. A package or an AppImage on Linux and the Steam Deck.",
+    "accessTitle": "Choose what it may read",
+    "accessText": "It reads nothing until you pick an access level. The overlays only need the screen and the game’s log.",
+    "playTitle": "Open a relic",
+    "playText": "On the reward screen, each card shows its platinum and ducat value. Take the one that pays.",
     "more": "How the reward overlay works"
   },
   "kiosk": {

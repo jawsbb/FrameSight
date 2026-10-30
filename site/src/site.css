@@ -287,11 +287,12 @@ b { font-weight: 600; }
 }
 .eyebrow .mark { width: 24px; height: 24px; padding: 4px; border-radius: 50%; background: var(--ivory); color: var(--ground-0); stroke-width: 2; }
 
-/* ---------------------------------------------------------------- manifesto */
+/* ---------------------------------------------------------------- how it works */
 
-.manifesto { width: min(100% - 2 * var(--gutter), 64rem); margin: 0 auto; padding: clamp(64px, 12vw, 180px) 0; text-align: center; }
-.manifesto-text { font-size: clamp(1.75rem, 1rem + 2.8vw, 3.5rem); font-weight: 300; line-height: 1.15; letter-spacing: -.04em; text-wrap: balance; }
-.manifesto-text .w { opacity: var(--o, 1); transition: opacity .2s linear; }
+.how { width: min(100% - 2 * var(--gutter), 64rem); margin: 0 auto; padding: clamp(64px, 10vw, 140px) 0; text-align: center; }
+.how-title { font-size: clamp(1.75rem, 1rem + 2.8vw, 3.5rem); font-weight: 300; line-height: 1.15; letter-spacing: -.04em; text-wrap: balance; }
+.how-steps { margin-top: clamp(32px, 5vw, 56px); padding: 0; list-style: none; text-align: left; }
+.step-n { margin-bottom: 16px; font-style: normal; }
 
 /* ---------------------------------------------------------------- cards */
 
@@ -643,7 +644,7 @@ b { font-weight: 600; }
 .more { display: inline-flex; align-items: center; gap: 8px; margin-top: 22px; color: var(--champagne); font-size: .9375rem; text-decoration: none; }
 .more .icon { width: 16px; height: 16px; transition: transform .35s var(--ease); }
 .more:hover .icon { transform: translateX(3px); }
-.manifesto .more { margin-top: 36px; }
+.how .more { margin-top: 36px; }
 
 /* ---------------------------------------------------------------- the dedicated pages' prose */
 
@@ -666,7 +667,8 @@ b { font-weight: 600; }
 .deck-download { margin-top: 28px; }
 .steps { counter-reset: step; list-style: none; padding: 0 !important; }
 .steps li { counter-increment: step; position: relative; padding-left: 44px; }
-.steps li::before { content: counter(step); position: absolute; left: 0; top: -1px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ground-2); box-shadow: inset 0 0 0 1px var(--gold-line); color: var(--champagne); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: -1px; }
+.steps li::before, .step-n { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ground-2); box-shadow: inset 0 0 0 1px var(--gold-line); color: var(--champagne); font-size: .8125rem; font-variant-numeric: tabular-nums; }
 
 .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
 .facts:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }

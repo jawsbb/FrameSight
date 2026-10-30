@@ -28,10 +28,15 @@
   </div>
 </section>
 
-<section class="manifesto" aria-labelledby="why-title">
-  <p class="eyebrow" id="why-title"><svg class="mark" aria-hidden="true"><use href="#i-mark"/></svg>{{manifesto.label}}</p>
-  <p class="manifesto-text" data-scrub>{{manifesto.text}}</p>
-  <a class="more" href="{{link.relic-reward-overlay}}">{{manifesto.more}}<svg class="icon"><use href="#i-arrow"/></svg></a>
+<section class="how" aria-labelledby="how-title">
+  <p class="eyebrow"><svg class="mark" aria-hidden="true"><use href="#i-mark"/></svg>{{how.label}}</p>
+  <h2 id="how-title" class="how-title">{{how.title}}</h2>
+  <ol class="facts how-steps">
+    <li class="fact card"><i class="step-n" aria-hidden="true">1</i><b>{{how.installTitle}}</b><span>{{how.installText}}</span></li>
+    <li class="fact card"><i class="step-n" aria-hidden="true">2</i><b>{{how.accessTitle}}</b><span>{{how.accessText}}</span></li>
+    <li class="fact card"><i class="step-n" aria-hidden="true">3</i><b>{{how.playTitle}}</b><span>{{how.playText}}</span></li>
+  </ol>
+  <a class="more" href="{{link.relic-reward-overlay}}">{{how.more}}<svg class="icon"><use href="#i-arrow"/></svg></a>
 </section>
 
 <section class="features" id="features">

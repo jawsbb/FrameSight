@@ -86,16 +86,9 @@ document.querySelectorAll('[data-split]:not([data-split="intro"])').forEach(el =
 })
 document.querySelectorAll('[data-reveal]').forEach(el => onView(el, t => t.setAttribute('data-shown', '')))
 
-// ------------------------------------------------------------------ scroll-linked: the screen leaves the canopy, the manifesto lights up
+// ------------------------------------------------------------------ scroll-linked: the screen leaves the canopy
 
 const scene = document.querySelector('.scene')
-const manifesto = document.querySelector('[data-scrub]')
-let manifestoWords = []
-if (manifesto) {
-  split(manifesto)
-  manifestoWords = [...manifesto.querySelectorAll('.w')]
-  manifesto.querySelectorAll('.w').forEach(w => w.removeAttribute('style'))
-}
 
 let ticking = false
 function onScroll() {
@@ -105,12 +98,6 @@ function onScroll() {
     ticking = false
     const vh = innerHeight
     if (scene && !reduced && scrollY < vh * 2) scene.style.setProperty('--s', clamp(scrollY / vh, 0, 1.4).toFixed(3))
-    if (manifestoWords.length) {
-      const r = manifesto.getBoundingClientRect()
-      const progress = reduced ? 1 : clamp((vh * .85 - r.top) / (r.height + vh * .35), 0, 1)
-      const lit = progress * manifestoWords.length
-      manifestoWords.forEach((w, i) => w.style.setProperty('--o', (0.16 + 0.84 * clamp(lit - i, 0, 1)).toFixed(2)))
-    }
   })
 }
 addEventListener('scroll', onScroll, { passive: true })
@@ -250,13 +237,16 @@ function onResize(targets, paint) {
   targets.forEach(t => observer.observe(t))
 }
 
-// The canopy's line crosses the screen low, under the slips; its crowns and its higher sides reach
-// above that line, so its canvas starts that much earlier. CSS places both canvases from --canopy-top.
+// The canopy's line crosses the screen under the slips, low enough that its crowns leave every price
+// readable; its crowns and its higher sides reach above that line, so its canvas starts that much
+// earlier. CSS places both canvases from --canopy-top.
 function paintHero(wrap) {
   const w = scene.clientWidth
-  const rise = wrap.offsetTop, tall = wrap.offsetHeight
+  const rise = wrap.offsetTop, slips = wrap.querySelector('.slips')
+  let under = slips.offsetHeight
+  for (let el = slips; el !== wrap; el = el.offsetParent) under += el.offsetTop
   const size = clamp(w * .042, 20, 64)
-  const top = rise + tall * (w < 700 ? .84 : .8)
+  const top = rise + under + size * 2.2
   const reach = size * 3.4
   scene.style.setProperty('--canopy-top', `${top - reach}px`)
   paintLand(scene.querySelector('.land'), [

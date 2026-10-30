@@ -5,16 +5,22 @@
   },
   "hero": {
     "pill": "Nouveau : rotations des primes et des missions sans fin",
-    "title": "Le Néant cache ce que vaut chaque récompense.",
-    "lede": "FrameSight la lit pour vous. Platine et ducats sous chaque carte de l’écran de récompenses et au kiosque de Baro, une collection chiffrée entre deux missions, et pas un octet écrit dans le jeu.",
+    "title": "Sachez ce que vaut chaque récompense Warframe.",
+    "lede": "FrameSight affiche le prix en platine et en ducats de chaque carte, sur l’écran de récompenses des reliques et au kiosque de Baro Ki’Teer. Gratuit, open source, et il n’écrit jamais dans le jeu.",
     "release": "Gratuit et open source",
     "meta": "Sans Overwolf · Sans compte · Sans télémétrie",
     "note": "Valeurs d’illustration. En jeu, les prix viennent des vendeurs warframe.market connectés.",
     "platformsLabel": "Fait pour les Tenno qui jouent sur"
   },
-  "manifesto": {
-    "label": "Pourquoi FrameSight",
-    "text": "Quelques secondes sur l’écran de récompenses. Quatre cartes, et l’une d’elles rembourse la mission. FrameSight vous dit laquelle avant le compte à rebours, puis s’efface.",
+  "how": {
+    "label": "Comment ça marche",
+    "title": "Installer, autoriser, ouvrir une relique.",
+    "installTitle": "Installez-le",
+    "installText": "Un installeur sous Windows. Un paquet ou une AppImage sous Linux et sur le Steam Deck.",
+    "accessTitle": "Choisissez ce qu’il peut lire",
+    "accessText": "Il ne lit rien tant que vous n’avez pas choisi un niveau d’accès. Les overlays n’ont besoin que de l’écran et du journal du jeu.",
+    "playTitle": "Ouvrez une relique",
+    "playText": "Sur l’écran de récompenses, chaque carte affiche sa valeur en platine et en ducats. Prenez celle qui rapporte.",
     "more": "Comment fonctionne l’overlay de récompenses"
   },
   "kiosk": {
