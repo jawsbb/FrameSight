@@ -1,7 +1,7 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { CollectionItem, MarketAccount, ReconciledOrder } from './backend'
+import { marketRowOrders, type CollectionItem, type LiveOrder, type MarketAccount, type ReconciledOrder } from './backend'
 import { OrdersView } from './pages/OrdersView'
 
 // The sell form reads the market beside the price; these tests are about the screen around it.
@@ -505,7 +505,7 @@ describe('selling from the inventory', () => {
         error={null}
       />,
     )
-    await user.click(screen.getByRole('button', { name: 'Sell' }))
+    await user.click(screen.getByRole('button', { name: 'Price…' }))
     // The price prefills from the card's own quote, so only the quantity is typed here.
     await user.clear(screen.getByLabelText('Quantity'))
     await user.type(screen.getByLabelText('Quantity'), '2')
@@ -526,7 +526,7 @@ describe('selling from the inventory', () => {
         error={null}
       />,
     )
-    await user.click(screen.getByRole('button', { name: 'Sell' }))
+    await user.click(screen.getByRole('button', { name: 'Price…' }))
     await user.click(screen.getByRole('button', { name: /list for sale/i }))
     expect(handlers.onSell).toHaveBeenCalledWith(serration.id, 48, 1, true)
   })
@@ -558,9 +558,88 @@ describe('selling from the inventory', () => {
         error={null}
       />,
     )
-    await user.click(screen.getByRole('button', { name: 'Sell' }))
+    await user.click(screen.getByRole('button', { name: 'Price…' }))
     await user.clear(screen.getByLabelText('Quantity'))
     await user.type(screen.getByLabelText('Quantity'), '9')
     expect(screen.getByRole('button', { name: /list for sale/i })).toBeDisabled()
+  })
+  function live(platinum: number, status: LiveOrder['status']): LiveOrder {
+    return { user: `seller-${platinum}`, status, platinum, quantity: 1, per_trade: 1, rank: null, subtype: null }
+  }
+
+  it('lists one copy at the cheapest in-game price in one press', async () => {
+    const user = userEvent.setup()
+    // Online sellers are cheaper here, but buyers whisper the ones in game.
+    vi.mocked(marketRowOrders).mockResolvedValueOnce({ sell: [live(18, 'ingame'), live(21, 'ingame'), live(9, 'online')], buy: [], fetched_at: 0 })
+    render(<OrdersView account={account({ listable: [braton.id] })} {...handlers} items={[braton]} busy={false} error={null} />)
+    await user.click(screen.getByRole('button', { name: 'Sell' }))
+    expect(marketRowOrders).toHaveBeenCalledWith(braton.id)
+    expect(handlers.onSell).toHaveBeenCalledWith(braton.id, 18, 1, true)
+  })
+
+  it('opens the form rather than inventing a price when nobody is selling', async () => {
+    const user = userEvent.setup()
+    vi.mocked(marketRowOrders).mockResolvedValueOnce({ sell: [], buy: [], fetched_at: 0 })
+    render(<OrdersView account={account({ listable: [braton.id] })} {...handlers} items={[braton]} busy={false} error={null} />)
+    await user.click(screen.getByRole('button', { name: 'Sell' }))
+    expect(handlers.onSell).not.toHaveBeenCalled()
+    expect(await screen.findByRole('form', { name: /list braton prime blueprint for sale/i })).toBeInTheDocument()
+  })
+
+  it('opens the form when the market cannot be read', async () => {
+    const user = userEvent.setup()
+    vi.mocked(marketRowOrders).mockRejectedValueOnce('offline')
+    render(<OrdersView account={account({ listable: [braton.id] })} {...handlers} items={[braton]} busy={false} error={null} />)
+    await user.click(screen.getByRole('button', { name: 'Sell' }))
+    expect(handlers.onSell).not.toHaveBeenCalled()
+    expect(await screen.findByRole('form', { name: /list braton prime blueprint for sale/i })).toBeInTheDocument()
+  })
+
+  it('shows listed holdings on request, with their listing and an edit instead of a sale', async () => {
+    const user = userEvent.setup()
+    render(
+      <OrdersView
+        account={account({ listable: [braton.id], orders: [entry('o1', { state: 'ok' }, 2, braton.id)] })}
+        {...handlers}
+        items={[braton]}
+        busy={false}
+        error={null}
+      />,
+    )
+    const section = screen.getByRole('region', { name: /sell from your inventory/i })
+    expect(section.querySelector('h3')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Listed' }))
+    const row = within(section).getByRole('article', { name: 'Braton Prime Blueprint' })
+    expect(row).toHaveTextContent('listed 2 of 3 @ 12p')
+    expect(within(row).queryByRole('button', { name: 'Sell' })).toBeNull()
+    expect(within(row).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+  })
+
+  it('filters out what is worth less than the minimum price', async () => {
+    const user = userEvent.setup()
+    render(<OrdersView account={account({ listable: [braton.id, serration.id] })} {...handlers} items={[braton, serration]} busy={false} error={null} />)
+    await user.selectOptions(screen.getByLabelText('Minimum price'), '15')
+    const section = screen.getByRole('region', { name: /sell from your inventory/i })
+    expect(Array.from(section.querySelectorAll('h3'), heading => heading.textContent)).toEqual(['Serration'])
+  })
+
+  it('sorts by how fast an item sells', async () => {
+    const user = userEvent.setup()
+    const fast = { ...braton, monthly_trades: 300 }
+    const slow = { ...serration, monthly_trades: 4 }
+    render(<OrdersView account={account({ listable: [fast.id, slow.id] })} {...handlers} items={[fast, slow]} busy={false} error={null} />)
+    await user.selectOptions(screen.getByLabelText('Sort items to sell'), 'sales')
+    const section = screen.getByRole('region', { name: /sell from your inventory/i })
+    expect(Array.from(section.querySelectorAll('h3'), heading => heading.textContent)).toEqual(['Braton Prime Blueprint', 'Serration'])
+  })
+
+  it('pages a long inventory rather than cutting it off', async () => {
+    const user = userEvent.setup()
+    const many = Array.from({ length: 25 }, (_, index) => ({ ...braton, id: `/Lotus/Part${index}`, name: `Part ${index}`, platinum: 100 - index }))
+    render(<OrdersView account={account({ listable: many.map(item => item.id) })} {...handlers} items={many} busy={false} error={null} />)
+    const section = screen.getByRole('region', { name: /sell from your inventory/i })
+    expect(section.querySelectorAll('h3')).toHaveLength(20)
+    await user.click(screen.getByRole('button', { name: /next page/i }))
+    expect(Array.from(section.querySelectorAll('h3'), heading => heading.textContent)).toEqual(['Part 20', 'Part 21', 'Part 22', 'Part 23', 'Part 24'])
   })
 })
