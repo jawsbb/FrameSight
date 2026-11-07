@@ -57,7 +57,12 @@ fn emit_kiosk_update(app: &AppHandle, session: Option<u64>) {
     let _ = app.emit_to("kiosk-overlay", "kiosk-updated", session);
 }
 
-const MARKER: &[u8] = b"Inventory sync done";
+/// Lines after which the inventory has changed. The game writes "Inventory sync done" when it
+/// re-reads the inventory on returning to the ship, but a trade changes the inventory without
+/// one: the only trace it leaves is the trade screen closing. That line is the same in every game
+/// language, unlike the localised success dialog before it, and is also written when a trade is
+/// cancelled, where the read just finds nothing changed.
+const MARKERS: [&[u8]; 2] = [b"Inventory sync done", b"Trade.lua: DBG: HudVis 0"];
 const CARRY_LIMIT: usize = 64;
 
 pub struct LogObservation {
@@ -253,9 +258,10 @@ impl MonitorMachine {
         let mut line_start = 0;
         for (index, byte) in joined.iter().enumerate() {
             if *byte == b'\n' {
-                triggered |= joined[line_start..index]
-                    .windows(MARKER.len())
-                    .any(|window| window == MARKER);
+                let line = &joined[line_start..index];
+                triggered |= MARKERS
+                    .iter()
+                    .any(|marker| line.windows(marker.len()).any(|window| window == *marker));
                 line_start = index + 1;
             }
         }
