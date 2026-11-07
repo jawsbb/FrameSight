@@ -25,7 +25,7 @@ optdepends=(
 # Binary repack of the release .deb: installs in seconds with no toolchain, for users who
 # just want to run it. Mirrors games-util/framesight-bin on Gentoo.
 source=("FrameSight_${pkgver}_amd64.deb::${url}/releases/download/v${pkgver}/FrameSight_${pkgver}_amd64.deb")
-sha256sums=('8b7079a592e1ab5b04748b67f89530e30639535e3afd9b236e74f68431f3597b')
+sha256sums=('f9d5d7f9fea52d9111a064bd7bddd58a2d5139d25c5a5d5de1b8b1c3a3a09093')
 
 package() {
   # No makedepends: bsdtar ships with pacman (libarchive), so unpacking the deb data
