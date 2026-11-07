@@ -1,13 +1,13 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
 # Created by https://github.com/microsoft/winget-create
 PackageIdentifier: jawsbb.FrameSight
-PackageVersion: 0.14.1
+PackageVersion: 0.15.0
 InstallerType: nullsoft
 Scope: user
 UpgradeBehavior: install
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/jawsbb/FrameSight/releases/download/v0.14.1/FrameSight_0.14.1_x64-setup.exe
+  InstallerUrl: https://github.com/jawsbb/FrameSight/releases/download/v0.15.0/FrameSight_0.15.0_x64-setup.exe
   InstallerSha256: 8B4FB734B32A9B8B589672AC9687DC313E96A02B550445097D0ED9AC82DE66C8
   InstallerSwitches:
     Silent: /S
