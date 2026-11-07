@@ -38,7 +38,11 @@ export interface ReconciledOrder { order: MarketOrder; name?: string; row_id?: s
 /** One change an automatic order sync made. `to` 0 is a listing taken down; `at` is in the form of `fetched_at`. */
 export interface SyncedOrder { name?: string; thumb_url?: string; from: number; to: number; at: string }
 /** `synced` is what the most recent sync that changed anything changed, empty before one has. */
-export interface MarketAccount { link: LinkState; backing?: CredentialBacking; orders: ReconciledOrder[]; fetched_at?: string; listed_platinum: number; flagged: number; listable: string[]; presence: PresenceView; synced: SyncedOrder[] }
+/** One slot of a set as held: two blades per set, three held. */
+export interface SetPartHeld { name: string; uses: number; held: number }
+/** A Prime set the collection holds a part of, as warframe.market lists it. `path` is the built item's, which names the set to `createSetOrder`; `complete` is how many whole sets the parts make. */
+export interface HeldSet { path: string; name: string; item_id: string; slug: string; thumb_url?: string; parts: SetPartHeld[]; complete: number; platinum?: number; monthly_trades?: number }
+export interface MarketAccount { link: LinkState; backing?: CredentialBacking; orders: ReconciledOrder[]; fetched_at?: string; listed_platinum: number; flagged: number; listable: string[]; sets: HeldSet[]; presence: PresenceView; synced: SyncedOrder[] }
 
 export interface AppView {
   collection: {
@@ -193,6 +197,9 @@ export const setMarketPresence = (status: Presence | null, auto: boolean) =>
   invoke<AppView>('set_market_presence', { status, auto })
 export const createOrder = (collectionId: string, platinum: number, quantity: number, visible: boolean) =>
   invoke<AppView>('create_order', { collectionId, platinum, quantity, visible })
+/** List whole sets made of held parts; the backend bounds the count by the sets the parts make. */
+export const createSetOrder = (setPath: string, platinum: number, quantity: number, visible: boolean) =>
+  invoke<AppView>('create_set_order', { setPath, platinum, quantity, visible })
 export const updateOrder = (orderId: string, platinum: number, quantity: number) =>
   invoke<AppView>('update_order', { orderId, platinum, quantity })
 /** Mark `quantity` of a sell listing sold: the whole listing closes it, less lowers it. Whole trades only. */

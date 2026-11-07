@@ -1357,6 +1357,7 @@ fn publish_account(shared: &SharedRuntime) -> Result<AppView, String> {
         snapshot,
         inventory_evidence_available,
         generation,
+        held_sets,
     ) = {
         let runtime = shared
             .lock()
@@ -1381,6 +1382,12 @@ fn publish_account(shared: &SharedRuntime) -> Result<AppView, String> {
         } else {
             None
         };
+        // Sets, like single rows, are offered for sale only on inventory evidence.
+        let held_sets = if inventory_evidence_available {
+            runtime.core.held_sets(&collection)
+        } else {
+            Vec::new()
+        };
         (
             runtime.live_prices.pacer(),
             token,
@@ -1390,6 +1397,7 @@ fn publish_account(shared: &SharedRuntime) -> Result<AppView, String> {
             snapshot,
             inventory_evidence_available,
             runtime.market.generation(),
+            held_sets,
         )
     };
 
@@ -1441,6 +1449,11 @@ fn publish_account(shared: &SharedRuntime) -> Result<AppView, String> {
             renewed,
             view,
         }) => {
+            let view = if view.link == app_core::LinkState::Linked {
+                view.with_sets(&items, held_sets)
+            } else {
+                view
+            };
             runtime.market.set_items(items);
             match runtime.market.adopt(renewed) {
                 Ok(()) => runtime
@@ -1756,6 +1769,46 @@ async fn create_order(
     })
     .await
     .map_err(|_| "listing task failed".to_owned())?
+}
+
+/// Publish a sell listing for whole Prime sets made of held parts.
+///
+/// Gated like `create_order`: the count of complete sets is inventory evidence. A set has no rank,
+/// subtype or trade size, so the listing names the market id alone.
+#[tauri::command]
+async fn create_set_order(
+    set_path: String,
+    platinum: u32,
+    quantity: u32,
+    visible: bool,
+    state: State<'_, SharedRuntime>,
+) -> Result<AppView, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let item_id = {
+            let runtime = shared
+                .lock()
+                .map_err(|_| "application state is unavailable".to_owned())?;
+            market_inventory_writes_authorized(&runtime)?;
+            market_account::authorize_set_sell(runtime.core.market_account(), &set_path, quantity)
+                .map_err(str::to_owned)?
+        };
+        let listing = warframe_market::Listing {
+            item_id: &item_id,
+            rank: None,
+            subtype: None,
+            per_trade: None,
+        };
+        write_then_refresh(&shared, "create set", |transport, token| {
+            warframe_market::create_order(
+                transport,
+                token,
+                warframe_market::NewSellOrder::from_listing(listing, platinum, quantity, visible),
+            )
+        })
+    })
+    .await
+    .map_err(|_| "set listing task failed".to_owned())?
 }
 
 /// Lower one order to the quantity the collection says is held.
@@ -2680,6 +2733,7 @@ pub fn run() {
             collect_report,
             collect_report_text,
             remove_order,
+            create_set_order,
             remove_all_orders,
             repair_all_orders,
             set_orders_visible,

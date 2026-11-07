@@ -24,8 +24,8 @@ use serde::Serialize;
 use thiserror::Error;
 use warframe_acquisition::{
     AcquisitionError, AcquisitionFailure, AcquisitionResult, AcquisitionStage, CatalogIndex,
-    CatalogLoadSource, DucatTable, Holdings, MarketPriceCache, MasteryEvidence, MasteryFacts,
-    MasteryLedger, PriceTable, RelicRewardIndex, StageState,
+    CatalogLoadSource, ComponentKind, DucatTable, Holdings, MarketPriceCache, MasteryEvidence,
+    MasteryFacts, MasteryLedger, PriceTable, RelicRewardIndex, StageState,
 };
 use warframe_domain::{
     CatalogItem, Category, Collection, DomainError, InventoryEntry, InventorySnapshot, ItemId,
@@ -276,6 +276,56 @@ impl AppCore {
 
     pub fn market_account(&self) -> &MarketAccountView {
         &self.market_account
+    }
+
+    /// Every Prime set the collection holds a part of, with how many whole sets it makes.
+    ///
+    /// A set is what warframe.market sells as one: the recipe's blueprint and tradable parts, each
+    /// as many times as one build takes (Guandao Prime: two blades). Whole items a build consumes
+    /// are not in it, checked against the live set endpoint. A part counts its blueprint, since
+    /// relics drop the blueprint and either fills the slot. Parts in the foundry are not counted:
+    /// they cannot be traded. Empty until the catalogue has loaded. The market fields stay unset
+    /// here; `MarketAccountView::with_sets` joins them.
+    pub fn held_sets(&self, collection: &Collection) -> Vec<HeldSet> {
+        let Some(catalog) = self.mastery_catalog.as_deref() else {
+            return Vec::new();
+        };
+        let holdings = Holdings::from_entries(collection.entries());
+        let prices = self.prices.as_deref();
+        catalog
+            .recipes()
+            .filter_map(|recipe| {
+                let parts = recipe
+                    .components
+                    .iter()
+                    .filter(|slot| slot.kind != ComponentKind::Ingredient)
+                    .map(|slot| SetPartHeld {
+                        name: slot.name.clone(),
+                        uses: slot.per_build.max(1),
+                        held: match slot.kind {
+                            ComponentKind::Part => holdings.slot_quantity(&slot.path),
+                            _ => holdings.quantity(&slot.path),
+                        },
+                    })
+                    .collect::<Vec<_>>();
+                if parts.iter().all(|part| part.held == 0) {
+                    return None;
+                }
+                let complete = parts.iter().map(|part| part.held / part.uses).min()?;
+                let name = format!("{} Set", recipe.parent_name);
+                Some(HeldSet {
+                    path: recipe.parent.clone(),
+                    platinum: prices.and_then(|prices| prices.price_for(&name)),
+                    monthly_trades: prices.and_then(|prices| prices.monthly_trades(&name)),
+                    name,
+                    item_id: String::new(),
+                    slug: String::new(),
+                    thumb_url: None,
+                    parts,
+                    complete,
+                })
+            })
+            .collect()
     }
 
     /// Replace the presence the screen shows. Set from the socket's committed value, never from
@@ -1576,6 +1626,32 @@ pub enum LinkState {
     NeedsRelink,
 }
 
+/// One slot of a set, as held: "Blade", two per set, three held.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SetPartHeld {
+    pub name: String,
+    pub uses: u32,
+    pub held: u32,
+}
+
+/// A Prime set the collection holds a part of, and the market listing it would be sold as.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct HeldSet {
+    /// The built item's path, which is the path warframe.market publishes the set under.
+    pub path: String,
+    /// The market's name: "Braton Prime Set".
+    pub name: String,
+    /// The set's warframe.market id and URL name; what a listing and the live book name.
+    pub item_id: String,
+    pub slug: String,
+    pub thumb_url: Option<String>,
+    pub parts: Vec<SetPartHeld>,
+    /// Whole sets the held parts make: the slot that runs out first decides.
+    pub complete: u32,
+    pub platinum: Option<u32>,
+    pub monthly_trades: Option<u32>,
+}
+
 /// The account section's whole state.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct MarketAccountView {
@@ -1600,6 +1676,8 @@ pub struct MarketAccountView {
     /// warframe.market's own table. A second implementation in TypeScript would be a copy of a
     /// rule that exists to keep two vocabularies apart, and it would drift.
     pub listable: Vec<String>,
+    /// The Prime sets the collection holds a part of and the market lists, complete or not.
+    pub sets: Vec<HeldSet>,
     /// What warframe.market shows this account as, and how it is being chosen.
     ///
     /// Not part of what `linked` computes: presence comes from a socket with its own lifetime, and
@@ -1683,9 +1761,36 @@ impl MarketAccountView {
             listed_platinum,
             flagged,
             listable: Vec::new(),
+            sets: Vec::new(),
             presence: PresenceView::default(),
             synced: Vec::new(),
         }
+    }
+
+    /// The held sets warframe.market lists, with its id, URL name and picture joined on; a set
+    /// the market does not list cannot be sold from here and is left out. Most complete first,
+    /// then the dearest.
+    #[must_use]
+    pub fn with_sets(mut self, items: &MarketItems, sets: Vec<HeldSet>) -> Self {
+        self.sets = sets
+            .into_iter()
+            .filter_map(|mut set| {
+                let listed = items.set_for(&set.path)?;
+                set.item_id = listed.id;
+                set.slug = listed.slug;
+                set.thumb_url = listed.thumb_url;
+                set.name = listed.name;
+                Some(set)
+            })
+            .collect();
+        self.sets.sort_by(|left, right| {
+            (right.complete, right.platinum, &left.name).cmp(&(
+                left.complete,
+                left.platinum,
+                &right.name,
+            ))
+        });
+        self
     }
 
     /// Which of the collection's rows can be listed, computed once against the item table.

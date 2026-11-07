@@ -19,6 +19,7 @@ import {
   setOrdersVisible,
   type BulkOutcome,
   createOrder,
+  createSetOrder,
   updateOrder,
   setMarketPresence,
   setAccessMode,
@@ -353,6 +354,12 @@ function App() {
     return rankLabel(item, t) ? `${item.name}, ${rankLabel(item, t)}` : item.name
   }
 
+  const ordersSellSet = (setPath: string, platinum: number, quantity: number, visible: boolean) =>
+    ordersOperation(
+      () => createSetOrder(setPath, platinum, quantity, visible),
+      failures.publish,
+      next => t.market.listed(next.market_account.sets.find(set => set.path === setPath)?.name ?? t.market.theItem, platinum, quantity),
+    )
   const ordersSell = (collectionId: string, platinum: number, quantity: number, visible: boolean) =>
     ordersOperation(
       () => createOrder(collectionId, platinum, quantity, visible),
@@ -491,6 +498,7 @@ function App() {
           onLowerTo={ordersLowerTo}
           onClose={ordersClose}
           onSell={ordersSell}
+          onSellSet={ordersSellSet}
           onUpdate={ordersUpdate}
           syncOrders={syncOrders}
           onSyncOrders={ordersSync}

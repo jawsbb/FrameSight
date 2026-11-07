@@ -67,7 +67,7 @@ function view(overrides: Partial<AppView['market_account']> = {}): AppView {
     mastery: { available: false, items: [], totals: [] },
     reward: { cards: [], best_value_index: null, best_ducat_index: null },
     market_account: {
-      link: 'unlinked', orders: [], synced: [], listed_platinum: 0, flagged: 0, listable: [],
+      link: 'unlinked', orders: [], synced: [], listed_platinum: 0, flagged: 0, listable: [], sets: [],
       presence: { status: null, wanted: null, auto: false }, ...overrides,
     },
     health: { collection_prices: { state: 'ready', message: 'Priced', last_success: '2026-10-27' } } as AppView['health'],

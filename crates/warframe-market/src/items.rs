@@ -386,6 +386,20 @@ impl MarketItems {
             .collect()
     }
 
+    /// The set listing for a built item: warframe.market publishes `Braton Prime Set` under the
+    /// built `BratonPrime` path, which no part a seller holds carries. None when the market lists no
+    /// set for that path.
+    pub fn set_for(&self, built_path: &str) -> Option<ItemSummary> {
+        let (id, entry) = self.entries.iter().find(|(_, entry)| {
+            entry.catalog_path.as_deref() == Some(built_path)
+                && entry
+                    .name
+                    .as_deref()
+                    .is_some_and(|name| name.trim().ends_with(" Set"))
+        })?;
+        entry.summary(id)
+    }
+
     /// The item a URL name addresses, if the table publishes one.
     pub fn by_slug(&self, slug: &str) -> Option<ItemSummary> {
         let (id, entry) = self.entries.iter().find(|(_, entry)| entry.slug == slug)?;

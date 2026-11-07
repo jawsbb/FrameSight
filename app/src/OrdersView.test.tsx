@@ -1,13 +1,14 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { marketRowOrders, type CollectionItem, type LiveOrder, type MarketAccount, type ReconciledOrder } from './backend'
+import { marketItemOrders, marketRowOrders, type CollectionItem, type HeldSet, type LiveOrder, type MarketAccount, type ReconciledOrder } from './backend'
 import { OrdersView } from './pages/OrdersView'
 
 // The sell form reads the market beside the price; these tests are about the screen around it.
 vi.mock('./backend', async original => ({
   ...await original<typeof import('./backend')>(),
   marketRowOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }),
+  marketItemOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }),
 }))
 
 afterEach(() => {
@@ -49,6 +50,7 @@ function account(overrides: Partial<MarketAccount> = {}): MarketAccount {
     fetched_at: '1785492000',
     listed_platinum: 0,
     listable: [],
+    sets: [],
     presence: { status: null, wanted: null, auto: false },
     flagged: 0,
     synced: [],
@@ -59,6 +61,7 @@ function account(overrides: Partial<MarketAccount> = {}): MarketAccount {
 const handlers = {
   items: [],
   onSell: vi.fn(),
+  onSellSet: vi.fn(),
   onUpdate: vi.fn().mockResolvedValue(undefined),
   onSignIn: vi.fn().mockResolvedValue(undefined),
   onLinkToken: vi.fn().mockResolvedValue(undefined),
@@ -687,5 +690,61 @@ describe('acting on every listing at once', () => {
   it('offers nothing to act on when there are no listings', () => {
     render(<OrdersView account={account()} {...handlers} busy={false} error={null} />)
     expect(screen.queryByRole('group', { name: 'Every listing' })).toBeNull()
+  })
+})
+
+describe('selling sets', () => {
+  const braton: HeldSet = {
+    path: '/Lotus/Weapons/Tenno/Rifle/BratonPrime',
+    name: 'Braton Prime Set',
+    item_id: 'set-braton',
+    slug: 'braton_prime_set',
+    parts: [{ name: 'Blueprint', uses: 1, held: 2 }, { name: 'Receiver', uses: 1, held: 1 }],
+    complete: 1,
+    platinum: 30,
+    monthly_trades: 200,
+  }
+  const guandao: HeldSet = {
+    path: '/Lotus/Weapons/Tenno/Melee/Polearms/GuandaoPrime',
+    name: 'Guandao Prime Set',
+    item_id: 'set-guandao',
+    slug: 'guandao_prime_set',
+    parts: [{ name: 'Blade', uses: 2, held: 1 }],
+    complete: 0,
+    platinum: 50,
+  }
+
+  async function openSets(sets: HeldSet[], orders: ReconciledOrder[] = []) {
+    const user = userEvent.setup()
+    render(<OrdersView account={account({ sets, orders })} {...handlers} busy={false} error={null} />)
+    await user.click(screen.getByRole('button', { name: 'Sets' }))
+    return { user, section: screen.getByRole('region', { name: /sell from your inventory/i }) }
+  }
+
+  it('lists the sets held in part, with each part counted, and sells only a whole one', async () => {
+    const { section } = await openSets([braton, guandao])
+    const whole = within(section).getByRole('article', { name: 'Braton Prime Set' })
+    expect(whole).toHaveTextContent('1 complete · Blueprint 2/1 · Receiver 1/1')
+    expect(within(whole).getByRole('button', { name: 'Sell' })).toBeEnabled()
+    const partial = within(section).getByRole('article', { name: 'Guandao Prime Set' })
+    expect(partial).toHaveTextContent('incomplete · Blade 1/2')
+    expect(within(partial).getByRole('button', { name: 'Sell' })).toBeDisabled()
+  })
+
+  it('lists one set at the cheapest in-game price, reading the set\'s own book', async () => {
+    vi.mocked(marketItemOrders).mockResolvedValueOnce({ sell: [{ user: 'a', status: 'ingame', platinum: 28, quantity: 1, per_trade: 1, rank: null, subtype: null }], buy: [], fetched_at: 0 })
+    const { user, section } = await openSets([braton])
+    await user.click(within(section).getByRole('button', { name: 'Sell' }))
+    expect(marketItemOrders).toHaveBeenCalledWith('braton_prime_set')
+    expect(handlers.onSellSet).toHaveBeenCalledWith(braton.path, 28, 1, true)
+    expect(handlers.onSell).not.toHaveBeenCalled()
+  })
+
+  it('counts a set listed when an order names the set', async () => {
+    const order = { ...entry('o1', { state: 'unverifiable' }), order: { ...entry('o1', { state: 'unverifiable' }).order, item_id: 'set-braton' } }
+    const { user, section } = await openSets([braton], [order])
+    expect(within(section).queryByRole('article', { name: 'Braton Prime Set' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Listed' }))
+    expect(within(section).getByRole('article', { name: 'Braton Prime Set' })).toHaveTextContent('listed 1 @ 12p')
   })
 })
