@@ -1,16 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { CollectionItem, MarketAccount, MarketOrder, SyncedOrder } from '../backend'
 import { SellForm, type SellHandler, type UpdateHandler } from '../SellForm'
-import { backingLabel, fixLabel, isFlagged, isListable, listedOrderFor, orderValue, sortOrders, statusLabel, uncountedReason } from '../orders'
+import { backingLabel, fixLabel, isFlagged, orderValue, sortOrders, statusLabel, uncountedReason } from '../orders'
 import { stampReading } from '../freshness'
-import { rankLabel, stackValue } from '../collection'
 import { MetalMark } from '../MetalMark'
 import { Stat } from '../components/Stat'
 import { Thumb } from '../components/Thumb'
 import { Icon } from '../components/Icon'
-import { SearchField } from '../components/SearchField'
 import { useMessages } from '../i18n'
 import { EmptyState } from '../components/EmptyState'
+import { SellStock } from './SellStock'
 
 type OrdersViewProps = {
   account: MarketAccount
@@ -103,7 +102,7 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
       </ul>
       : <EmptyState icon="orders" title={t.orders.none} detail={t.orders.noneDetail}/>}
 
-    {!needsRelink && <ToSell items={items} account={account} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
+    {!needsRelink && <SellStock items={items} account={account} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
   </section>
 }
 
@@ -274,67 +273,6 @@ function ConfirmButton({ label, confirmLabel, skip = false, busy, onConfirm }: {
       setArmed(true)
     }}
   ><span>{armed ? confirmLabel : label}</span></button>
-}
-
-/**
- * Selling straight from the inventory: what the collection holds, can be listed from here, and
- * is not listed yet, richest first. The picker is over the same listable set the backend
- * authorises against, so nothing is offered that the backend would refuse.
- *
- * The field narrows the list rather than replacing it: with nothing typed, the most valuable
- * holdings are the useful answer, and a collection runs to a couple of thousand rows, so only the
- * first few are drawn and the count says how many more the field can reach.
- *
- * A row opens the sell form in place, with the market beside the price: one row at a time, so the
- * form being filled is always the one under the pointer.
- */
-function ToSell({ items, account, busy, onSell, onUpdate }: {
-  items: CollectionItem[]
-  account: MarketAccount
-  busy: boolean
-  onSell: SellHandler
-  onUpdate: UpdateHandler
-}) {
-  const t = useMessages()
-  const [query, setQuery] = useState('')
-  const [chosen, setChosen] = useState<string | null>(null)
-  // Built once per view rather than per keystroke. ponytail: `isListable` scans the listable ids
-  // per item; a Set if a collection of a few thousand rows ever makes a view change felt.
-  const sellable = useMemo(() => items
-    .filter(item => isListable(item, account.listable) && !listedOrderFor(account.orders, item.id))
-    .sort((left, right) => (stackValue(right) ?? 0) - (stackValue(left) ?? 0)), [items, account])
-  if (!sellable.length) return null
-  const needle = query.trim().toLowerCase()
-  const matches = needle ? sellable.filter(item => item.name.toLowerCase().includes(needle)) : sellable
-  const shown = matches.slice(0, 8)
-
-  return <section className="to-sell" aria-labelledby="to-sell-title">
-    <div className="to-sell-head">
-      <h2 id="to-sell-title" className="section-title">{t.orders.toSell}</h2>
-      <SearchField label={t.orders.item} value={query} onChange={setQuery}/>
-    </div>
-    {shown.length
-      ? <ul className="group docket">
-        {shown.map(item => <li key={item.id}>
-          <article className="docket-line stock-line" aria-label={item.name}>
-            <Thumb src={item.image_url} name={item.name}/>
-            <div className="line-main">
-              <h3 className="line-name" title={item.name}>{item.name}</h3>
-              <p className="line-sub">{[rankLabel(item, t), t.orders.held(item.quantity)].filter(Boolean).join(' · ')}</p>
-            </div>
-            <span className="line-figure">{item.platinum === undefined
-              ? <em>—</em>
-              : <>{item.platinum}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></>}</span>
-            <span className="line-fix">
-              {chosen !== item.id && <button type="button" className="stamp" disabled={busy} onClick={() => setChosen(item.id)}><span>{t.card.sell}</span></button>}
-            </span>
-            {chosen === item.id && <SellForm item={item} busy={busy} onSell={onSell} onUpdate={onUpdate} onDone={() => setChosen(null)}/>}
-          </article>
-        </li>)}
-      </ul>
-      : <p className="pick-empty">{t.orders.noneSellable}</p>}
-    {matches.length > shown.length && <p className="pick-more">{t.orders.moreMatch(matches.length - shown.length)}</p>}
-  </section>
 }
 
 function UnlinkedPanel({ onSignIn, onLinkToken, busy, error }: {

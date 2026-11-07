@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { marketRowOrders, type CollectionItem, type MarketItemOrders, type MarketOrder } from './backend'
 import { useMessages } from './i18n'
 import { MetalMark } from './MetalMark'
+import { competingSellers } from './orders'
 
 /**
  * Publishing or editing one sell listing, from wherever the player is standing.
@@ -106,12 +107,9 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
 
 /**
  * What the item is going for right now, beside the price being typed: the cheapest sellers a buyer
- * would see first, and one press to match the cheapest.
- *
- * Sellers in game are the ones buyers whisper, so their prices are the market; online-only sellers
- * stand in only when nobody is in game. The book is the backend's, already narrowed to this row's
- * rank and refinement, so a maxed copy is never priced against unranked ones. It can include the
- * player's own listing: warframe.market's top of book does not say whose order is whose.
+ * would see first (`competingSellers`), and one press to match the cheapest. The book is the
+ * backend's, already narrowed to this row's rank and refinement, so a maxed copy is never priced
+ * against unranked ones.
  */
 function MarketGlance({ itemId, onMatch, busy }: { itemId: string; onMatch: (platinum: number) => void; busy: boolean }) {
   const t = useMessages()
@@ -128,13 +126,12 @@ function MarketGlance({ itemId, onMatch, busy }: { itemId: string; onMatch: (pla
 
   if (book === 'loading') return <p className="glance">{t.sell.glanceLoading}</p>
   if (book === 'failed') return <p className="glance">{t.sell.glanceFailed}</p>
-  const ingame = book.sell.filter(order => order.status === 'ingame')
-  const shown = (ingame.length ? ingame : book.sell).slice(0, 5)
+  const { ingame, sellers } = competingSellers(book)
+  const shown = sellers.slice(0, 5)
   if (!shown.length) return <p className="glance">{t.sell.glanceNone}</p>
-  // The backend sorts each status cheapest per unit first, so the first is the one to match.
   const cheapest = shown[0].platinum
   return <p className="glance">
-    <span>{ingame.length ? t.sell.ingameNow : t.sell.onlineNow}</span>
+    <span>{ingame ? t.sell.ingameNow : t.sell.onlineNow}</span>
     <b className="glance-prices">{shown.map(order => order.platinum).join(' · ')}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></b>
     <button type="button" className="link-button" disabled={busy} onClick={() => onMatch(cheapest)}>{t.sell.match(cheapest)}</button>
   </p>

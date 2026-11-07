@@ -602,7 +602,12 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 
 .to-sell { display: grid; gap: var(--tight); }
 .to-sell-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--tight) var(--step); margin-top: var(--tight); }
-.stock-line { grid-template-columns: 40px minmax(0, 1fr) 4.5rem 14rem; }
+.to-sell-head .toolbar { justify-content: flex-end; }
+/* Ducats, sales and price read down their columns, like an order's figures. */
+.stock-line { grid-template-columns: 40px minmax(0, 1fr) 4.5rem 5rem 4.5rem 13rem; }
+.stock-line .line-count { text-align: right; }
+.stock-head { padding-block: 6px; color: var(--text-faint); font-size: .6875rem; }
+.stock-head > span:nth-child(n + 3) { text-align: right; }
 
 .glance { display: flex; flex: 1 0 100%; flex-wrap: wrap; align-items: baseline; gap: 2px var(--tight); margin: 0; color: var(--text-dim); font-size: .75rem; }
 .glance-prices { display: inline-flex; align-items: center; gap: 4px; color: var(--platinum); font-variant-numeric: tabular-nums; }
@@ -717,7 +722,7 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
   .content { padding-inline: 20px; }
   .clause-pair { grid-template-columns: 1fr; }
   .docket-line { grid-template-columns: 40px minmax(0, 1fr) auto auto; }
-  .docket-line .line-value { display: none; }
+  .docket-line .line-value, .stock-head { display: none; }
   .line-fix { grid-column: 2 / -1; justify-content: flex-start; }
   .line-name { overflow: visible; white-space: normal; text-overflow: clip; }
 }

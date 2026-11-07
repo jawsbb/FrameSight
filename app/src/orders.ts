@@ -7,7 +7,7 @@
  * machine that has never read the game would be an accusation nothing supports, sitting next to a
  * button that deletes a listing the player wanted.
  */
-import type { CollectionItem, CredentialBacking, MarketAccount, MarketOrder, OrderStatus, ReconciledOrder } from './backend'
+import type { CollectionItem, CredentialBacking, LiveOrder, MarketAccount, MarketItemOrders, MarketOrder, OrderStatus, ReconciledOrder } from './backend'
 import { en, type Messages } from './i18n/en'
 
 /** Whether the backend is making a claim about this order, as opposed to declining to. */
@@ -128,4 +128,15 @@ export function sellingFor(item: CollectionItem, account: MarketAccount, verifie
  */
 export function canSell(item: { quantity: number }, { sellable, listedOrder }: { sellable: boolean; listedOrder: MarketOrder | null }): boolean {
   return sellable && (!listedOrder || listedOrder.quantity < item.quantity)
+}
+
+/**
+ * The sellers a new listing competes with: the ones in game, since those are the ones buyers
+ * whisper, and the online ones only when nobody is in game. The backend sorts each status cheapest
+ * per unit first, so the first is the price to match. The book can include the player's own
+ * listing: warframe.market's top of book does not say whose order is whose.
+ */
+export function competingSellers(book: MarketItemOrders): { ingame: boolean; sellers: LiveOrder[] } {
+  const ingame = book.sell.filter(order => order.status === 'ingame')
+  return { ingame: ingame.length > 0, sellers: ingame.length ? ingame : book.sell }
 }
