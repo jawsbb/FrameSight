@@ -14,6 +14,12 @@ see the difference.
 
 ## [Unreleased]
 
+### Fixed
+
+- An in-game trade now refreshes the inventory, and with order sync on, the warframe.market
+  listings, as soon as the trade screen closes. Only a return to the ship used to, so a sale
+  left the item in stock and its listing up until the next mission.
+
 ## [0.15.0] - 2026-11-07
 
 ### Added

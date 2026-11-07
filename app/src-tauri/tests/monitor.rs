@@ -126,6 +126,43 @@ fn tail_retains_boundaries_requires_newline_and_handles_rotation_and_large_growt
     assert_eq!(monitor.log_offset(), 1024 * 1024 + 54);
 }
 
+/// A trade changes the inventory without the game ever writing "Inventory sync done": the only
+/// line it leaves is the trade screen closing, the same in every game language. Lines as written
+/// by a French client after a sale and after a cancelled trade.
+#[test]
+fn a_closed_trade_screen_triggers_a_refresh_whatever_the_language() {
+    let mut monitor = MonitorMachine::new(0);
+    monitor.tick(MonitorInput::running(
+        0,
+        7,
+        Some(LogObservation::new("a", 10, Vec::new())),
+    ));
+    let opened = b"11959.056 Script [Info]: Trade.lua: DBG: HudVis 1\n\
+        11977.148 Script [Info]: Dialog.lua: Dialog::CreateOk(description=L'\xc3\xa9change a r\xc3\xa9ussi!, title= leftItem=/Menu/Confirm_Item_Ok)\n";
+    assert!(
+        !monitor
+            .tick(MonitorInput::running(
+                1,
+                7,
+                Some(LogObservation::new("a", 200, opened.to_vec()))
+            ))
+            .refresh
+    );
+    assert!(
+        monitor
+            .tick(MonitorInput::running(
+                2,
+                7,
+                Some(LogObservation::new(
+                    "a",
+                    260,
+                    b"11977.868 Script [Info]: Trade.lua: DBG: HudVis 0\n".to_vec()
+                ))
+            ))
+            .refresh
+    );
+}
+
 #[test]
 fn log_read_errors_are_published() {
     let mut monitor = MonitorMachine::new(0);
