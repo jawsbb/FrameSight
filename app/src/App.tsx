@@ -14,6 +14,10 @@ import {
   refreshOrders,
   refreshPrices,
   removeOrder,
+  removeAllOrders,
+  repairAllOrders,
+  setOrdersVisible,
+  type BulkOutcome,
   createOrder,
   updateOrder,
   setMarketPresence,
@@ -322,6 +326,13 @@ function App() {
     ordersOperation(refreshOrders, failures.refresh)
   const ordersRemove = (orderId: string) =>
     ordersOperation(() => removeOrder(orderId), failures.remove)
+  /** A run over every order: the account it left is shown either way, and a refusal is owned up to. */
+  const ordersBulk = (operation: () => Promise<BulkOutcome>) =>
+    ordersRun(operation, failures.bulk, ({ view: next, failed }) => {
+      setView(next)
+      setOrdersNote(null)
+      if (failed > 0) setOrdersError(failures.partial(failed))
+    })
   const ordersLowerTo = (orderId: string, _quantity: number) =>
     ordersOperation(() => setOrderQuantity(orderId), failures.lower)
   const ordersClose = (orderId: string, quantity: number) => {
@@ -474,6 +485,9 @@ function App() {
           onSignOut={ordersSignOut}
           onRefresh={ordersRefresh}
           onRemove={ordersRemove}
+          onShowAll={visible => ordersBulk(() => setOrdersVisible(visible))}
+          onRepairAll={() => ordersBulk(repairAllOrders)}
+          onRemoveAll={() => ordersBulk(removeAllOrders)}
           onLowerTo={ordersLowerTo}
           onClose={ordersClose}
           onSell={ordersSell}

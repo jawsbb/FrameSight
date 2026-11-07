@@ -600,6 +600,7 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .sync-report .thumb { width: 24px; height: 24px; }
 .sync-change { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 
+.orders-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--tight) var(--step); }
 .to-sell { display: grid; gap: var(--tight); }
 .to-sell-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--tight) var(--step); margin-top: var(--tight); }
 .to-sell-head .toolbar { justify-content: flex-end; }

@@ -18,6 +18,9 @@ type OrdersViewProps = {
   onSignOut: () => Promise<void>
   onRefresh: () => Promise<void>
   onRemove: (orderId: string) => Promise<void>
+  onShowAll: (visible: boolean) => Promise<void>
+  onRepairAll: () => Promise<void>
+  onRemoveAll: () => Promise<void>
   onLowerTo: (orderId: string, quantity: number) => Promise<void>
   onClose: (orderId: string, quantity: number) => Promise<void>
   onSell: SellHandler
@@ -29,7 +32,7 @@ type OrdersViewProps = {
   error: string | null
 }
 
-export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onLowerTo, onClose, onSell, onUpdate, syncOrders, onSyncOrders, items, busy, error }: OrdersViewProps) {
+export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onShowAll, onRepairAll, onRemoveAll, onLowerTo, onClose, onSell, onUpdate, syncOrders, onSyncOrders, items, busy, error }: OrdersViewProps) {
   const t = useMessages()
   if (account.link === 'unlinked') {
     return <UnlinkedPanel onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} error={error} />
@@ -93,7 +96,10 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
     {!needsRelink && <SyncSwitch enabled={syncOrders} busy={busy} onChange={onSyncOrders}/>}
     {account.synced.length > 0 && <SyncReport synced={account.synced}/>}
 
-    <h2 className="section-title">{t.orders.mine}</h2>
+    <div className="orders-head">
+      <h2 className="section-title">{t.orders.mine}</h2>
+      {account.orders.length > 0 && !needsRelink && <BulkActions account={account} busy={busy} onShowAll={onShowAll} onRepairAll={onRepairAll} onRemoveAll={onRemoveAll}/>}
+    </div>
     {account.orders.length
       ? <ul className="group docket" aria-label={t.orders.list}>
         {sortOrders(account.orders).map(entry => <li key={entry.order.id}>
@@ -104,6 +110,30 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
 
     {!needsRelink && <SellStock items={items} account={account} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
   </section>
+}
+
+/**
+ * What can be done to every listing at once. Each button shows only when it would change
+ * something: no "Show all" when nothing is hidden, no fix when nothing is flagged. Removing
+ * everything asks again, with the count, because it is the one press here that cannot be undone.
+ */
+function BulkActions({ account, busy, onShowAll, onRepairAll, onRemoveAll }: {
+  account: MarketAccount
+  busy: boolean
+  onShowAll: (visible: boolean) => Promise<void>
+  onRepairAll: () => Promise<void>
+  onRemoveAll: () => Promise<void>
+}) {
+  const t = useMessages()
+  const b = t.orders.bulk
+  const hidden = account.orders.some(entry => !entry.order.visible)
+  const shown = account.orders.some(entry => entry.order.visible)
+  return <div className="head-actions" role="group" aria-label={b.label}>
+    {hidden && <button type="button" className="stamp" disabled={busy} onClick={() => { void onShowAll(true) }}><span>{b.showAll}</span></button>}
+    {shown && <button type="button" className="stamp" disabled={busy} onClick={() => { void onShowAll(false) }}><span>{b.hideAll}</span></button>}
+    {account.flagged > 0 && <button type="button" className="stamp sold" disabled={busy} title={b.repairHint} onClick={() => { void onRepairAll() }}><span>{b.repairAll(account.flagged)}</span></button>}
+    <ConfirmButton label={b.removeAll} confirmLabel={b.confirmRemoveAll(account.orders.length)} busy={busy} onConfirm={onRemoveAll}/>
+  </div>
 }
 
 /**

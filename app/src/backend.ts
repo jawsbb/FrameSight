@@ -183,6 +183,11 @@ export const marketLinkToken = (token: string) => invoke<AppView>('market_link_t
 export const marketSignOut = () => invoke<AppView>('market_sign_out')
 export const refreshOrders = () => invoke<AppView>('refresh_orders')
 export const removeOrder = (orderId: string) => invoke<AppView>('remove_order', { orderId })
+/** A write over every order on the account: the account after it, and how many writes the market refused. */
+export interface BulkOutcome { view: AppView; failed: number }
+export const setOrdersVisible = (visible: boolean) => invoke<BulkOutcome>('set_orders_visible', { visible })
+export const repairAllOrders = () => invoke<BulkOutcome>('repair_all_orders')
+export const removeAllOrders = () => invoke<BulkOutcome>('remove_all_orders')
 export const setOrderQuantity = (orderId: string) => invoke<AppView>('set_order_quantity', { orderId })
 export const setMarketPresence = (status: Presence | null, auto: boolean) =>
   invoke<AppView>('set_market_presence', { status, auto })

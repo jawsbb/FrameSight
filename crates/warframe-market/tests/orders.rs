@@ -3,7 +3,7 @@ mod common;
 use common::{FakeTransport, ok, ok_with_token, status};
 use warframe_market::{
     MarketError, MarketToken, Method, NewSellOrder, OrderKind, close_order, create_order,
-    delete_order, list_mine, set_order_quantity, update_order,
+    delete_order, list_mine, set_order_quantity, set_order_visibility, update_order,
 };
 
 const FAKE_TOKEN: &str = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0.";
@@ -496,4 +496,41 @@ fn a_listing_outside_what_the_api_accepts_is_refused_without_asking() {
         );
         assert!(transport.seen().is_empty(), "nothing should be sent");
     }
+}
+
+/// Hiding a listing for a while must not reprice or resize it, so only the flag goes.
+#[test]
+fn changing_visibility_patches_only_the_flag() {
+    for visible in [false, true] {
+        let transport = FakeTransport::new(vec![ok(
+            r#"{"apiVersion":"0.25.0","data":{},"error":null}"#,
+        )]);
+
+        set_order_visibility(&transport, &token(), "order-one", visible).expect("patch succeeds");
+
+        let seen = transport.seen();
+        assert_eq!(seen[0].method, Method::Patch);
+        assert!(
+            seen[0].url.ends_with("/v2/order/order-one"),
+            "url: {}",
+            seen[0].url
+        );
+        assert_eq!(
+            seen[0].body.as_deref(),
+            Some(format!(r#"{{"visible":{visible}}}"#).as_str())
+        );
+    }
+}
+
+#[test]
+fn changing_visibility_with_a_slash_in_the_id_is_refused() {
+    let transport = FakeTransport::new(Vec::new());
+    assert_eq!(
+        set_order_visibility(&transport, &token(), "order/one", false).unwrap_err(),
+        MarketError::Rejected
+    );
+    assert!(
+        transport.seen().is_empty(),
+        "no request should have been sent"
+    );
 }
