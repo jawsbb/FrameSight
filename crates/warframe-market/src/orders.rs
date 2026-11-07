@@ -222,6 +222,27 @@ pub fn update_order(
     write_outcome(response, token)
 }
 
+/// Show an order to buyers, or hide it, and change nothing else about it.
+///
+/// Only the flag is sent, for the reason [`set_order_quantity`] sends only the count: hiding a
+/// listing for a while must not reprice or resize it on the way.
+pub fn set_order_visibility(
+    transport: &dyn MarketTransport,
+    token: &MarketToken,
+    order_id: &str,
+    visible: bool,
+) -> Result<MarketToken, MarketError> {
+    validate_order_id(order_id)?;
+    let response = transport.send(MarketRequest {
+        method: Method::Patch,
+        url: format!("{API_V2}/order/{order_id}"),
+        language: None,
+        token: Some(token.expose().to_owned()),
+        body: Some(format!("{{\"visible\":{visible}}}")),
+    })?;
+    write_outcome(response, token)
+}
+
 /// Record that `quantity` units of a sell listing were traded away, which is how warframe.market
 /// counts a sale.
 ///

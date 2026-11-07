@@ -585,6 +585,8 @@ export const en = {
       update: 'Could not update that listing.',
       close: 'Could not record that sale.',
       sync: 'Could not change the automatic sync.',
+      bulk: 'Could not change the listings.',
+      partial: (failed: number) => `warframe.market refused ${n(failed)} ${failed === 1 ? 'change' : 'changes'}. The list shows the account as it now stands.`,
     },
     /**
      * The fixed sentences the Rust market commands reject with, spelled exactly as
@@ -638,6 +640,15 @@ export const en = {
     editListing: 'Edit',
     removeListing: 'Remove',
     mine: 'My listings',
+    bulk: {
+      label: 'Every listing',
+      showAll: 'Show all',
+      hideAll: 'Hide all',
+      repairAll: (count: number) => `Fix ${n(count)}`,
+      repairHint: 'Lowers or removes every listing flagged against the inventory',
+      removeAll: 'Remove all',
+      confirmRemoveAll: (count: number) => `Remove ${n(count)}?`,
+    },
     sold: 'Sold',
     soldHint: (count: number) => `Records the sale of ${n(count)} on warframe.market and takes it off the listing`,
     quantityOf: (name: string) => `Listed quantity of ${name}`,

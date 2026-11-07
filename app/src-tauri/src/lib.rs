@@ -1908,14 +1908,8 @@ where
 ///
 /// Runs only under the conditions a press of either repair button would: the setting is on and
 /// Full access holds. An unlinked account needs no check of its own: `publish_account` asks
-/// nothing without a token and the unlinked view it publishes has no orders to act on. The
-/// account is fetched and reconciled against the snapshot just read, and the repairs are exactly
-/// `sync_actions` of that, so every refusal the reconciliation makes (a stale or incoherent
-/// snapshot, a set, a relic, a ranked copy) is a refusal here too.
-///
-/// No lock is held over the network, as in `publish_account` and `write_order`. A write that fails
-/// is logged and the rest carry on; nothing is retried, and the one republish at the end shows
-/// whatever the account now holds. Returns that view, or `None` when nothing ran.
+/// nothing without a token and the unlinked view it publishes has no orders to act on. Returns
+/// the view after the repairs, or `None` when nothing ran.
 fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
     {
         let runtime = shared.lock().ok()?;
@@ -1924,14 +1918,34 @@ fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
             return None;
         }
     }
-    let view = publish_account(shared)
+    repair_orders(shared)
         .inspect_err(|error| log::warn!("market: order sync could not read the account: {error}"))
-        .ok()?;
+        .ok()
+        .map(|outcome| outcome.view)
+}
+
+/// What a run of writes over the whole account came to: the account after it, and how many of
+/// the writes the market refused. The run carries on past a refusal, so the view is always the
+/// account as it now stands, and the count is what the screen has to own up to.
+#[derive(Serialize)]
+struct BulkOutcome {
+    view: AppView,
+    failed: usize,
+}
+
+/// Fetch the account, reconcile it against the snapshot in hand, and make exactly the repairs of
+/// `sync_actions`: every refusal the reconciliation makes (a stale or incoherent snapshot, a set,
+/// a relic, a ranked copy) is a refusal here too. What changed is recorded for the sync report.
+///
+/// No lock is held over the network, as in `publish_account` and `write_order`. Nothing is
+/// retried, and the one republish at the end shows whatever the account now holds.
+fn repair_orders(shared: &SharedRuntime) -> Result<BulkOutcome, String> {
+    let view = publish_account(shared)?;
     let actions = app_core::sync_actions(&view.market_account().orders);
     if actions.is_empty() {
-        return Some(view);
+        return Ok(BulkOutcome { view, failed: 0 });
     }
-    let (mut synced, at) = (Vec::new(), now_unix_seconds());
+    let (mut synced, mut failed, at) = (Vec::new(), 0, now_unix_seconds());
     for (entry, to) in actions {
         let name = entry.name.as_deref().unwrap_or(&entry.order.item_id);
         let kind = if to == 0 { "remove" } else { "quantity" };
@@ -1944,7 +1958,7 @@ fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
         });
         match written {
             Ok(()) => {
-                log::info!("market: sync {name}: {} -> {to}", entry.order.quantity);
+                log::info!("market: repair {name}: {} -> {to}", entry.order.quantity);
                 synced.push(app_core::SyncedOrder {
                     name: entry.name.clone(),
                     thumb_url: entry.thumb_url.clone(),
@@ -1953,13 +1967,114 @@ fn sync_orders_after_read(shared: &SharedRuntime) -> Option<AppView> {
                     at: at.clone(),
                 });
             }
-            Err(error) => log::warn!("market: sync {name} failed: {error}"),
+            Err(error) => {
+                failed += 1;
+                log::warn!("market: repair {name} failed: {error}");
+            }
         }
     }
     if !synced.is_empty() {
-        shared.lock().ok()?.core.set_synced(synced);
+        shared
+            .lock()
+            .map_err(|_| "application state is unavailable".to_owned())?
+            .core
+            .set_synced(synced);
     }
-    publish_account(shared).ok()
+    Ok(BulkOutcome {
+        view: publish_account(shared)?,
+        failed,
+    })
+}
+
+/// One write per order named, then one republish. A refusal is counted and the run carries on.
+fn write_each(
+    shared: &SharedRuntime,
+    kind: &'static str,
+    order_ids: Vec<String>,
+    write: impl Fn(
+        &dyn warframe_market::MarketTransport,
+        &warframe_market::MarketToken,
+        &str,
+    ) -> Result<warframe_market::MarketToken, warframe_market::MarketError>,
+) -> Result<BulkOutcome, String> {
+    let failed = order_ids
+        .iter()
+        .filter(|id| {
+            write_order(shared, kind, |transport, token| write(transport, token, id)).is_err()
+        })
+        .count();
+    Ok(BulkOutcome {
+        view: publish_account(shared)?,
+        failed,
+    })
+}
+
+/// The ids of the orders on the account view held now, narrowed by `keep`. Only those can be
+/// written: an id the frontend sent would be a value nothing checked.
+fn held_order_ids(
+    shared: &SharedRuntime,
+    keep: impl Fn(&warframe_market::MarketOrder) -> bool,
+) -> Result<Vec<String>, String> {
+    let runtime = shared
+        .lock()
+        .map_err(|_| "application state is unavailable".to_owned())?;
+    Ok(runtime
+        .core
+        .market_account()
+        .orders
+        .iter()
+        .filter(|entry| keep(&entry.order))
+        .map(|entry| entry.order.id.clone())
+        .collect())
+}
+
+/// Show every order on the account to buyers, or hide every one. Orders already in that state
+/// are left alone. Not gated on Full access: visibility says nothing about the inventory.
+#[tauri::command]
+async fn set_orders_visible(
+    visible: bool,
+    state: State<'_, SharedRuntime>,
+) -> Result<BulkOutcome, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let ids = held_order_ids(&shared, |order| order.visible != visible)?;
+        write_each(&shared, "visibility", ids, |transport, token, id| {
+            warframe_market::set_order_visibility(transport, token, id, visible)
+        })
+    })
+    .await
+    .map_err(|_| "order visibility task failed".to_owned())?
+}
+
+/// Take every order on the account down. Not gated on Full access, like `remove_order`.
+#[tauri::command]
+async fn remove_all_orders(state: State<'_, SharedRuntime>) -> Result<BulkOutcome, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        let ids = held_order_ids(&shared, |_| true)?;
+        write_each(&shared, "remove", ids, |transport, token, id| {
+            warframe_market::delete_order(transport, token, id)
+        })
+    })
+    .await
+    .map_err(|_| "order removal task failed".to_owned())?
+}
+
+/// Every repair the flagged orders call for, at once: the automatic sync's run, on a press.
+#[tauri::command]
+async fn repair_all_orders(state: State<'_, SharedRuntime>) -> Result<BulkOutcome, String> {
+    let shared = Arc::clone(state.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        {
+            let runtime = shared
+                .lock()
+                .map_err(|_| "application state is unavailable".to_owned())?;
+            market_inventory_writes_authorized(&runtime)?;
+        }
+        repair_orders(&shared)
+    })
+    .await
+    .map_err(|_| "order repair task failed".to_owned())?
 }
 
 async fn refresh_shared(shared: SharedRuntime) -> Result<AppView, String> {
@@ -2565,6 +2680,9 @@ pub fn run() {
             collect_report,
             collect_report_text,
             remove_order,
+            remove_all_orders,
+            repair_all_orders,
+            set_orders_visible,
             create_order,
             set_order_quantity,
             update_order,

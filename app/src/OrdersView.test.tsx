@@ -65,6 +65,9 @@ const handlers = {
   onSignOut: vi.fn().mockResolvedValue(undefined),
   onRefresh: vi.fn().mockResolvedValue(undefined),
   onRemove: vi.fn().mockResolvedValue(undefined),
+  onShowAll: vi.fn().mockResolvedValue(undefined),
+  onRepairAll: vi.fn().mockResolvedValue(undefined),
+  onRemoveAll: vi.fn().mockResolvedValue(undefined),
   onLowerTo: vi.fn().mockResolvedValue(undefined),
   onClose: vi.fn().mockResolvedValue(undefined),
   syncOrders: false,
@@ -641,5 +644,48 @@ describe('selling from the inventory', () => {
     expect(section.querySelectorAll('h3')).toHaveLength(20)
     await user.click(screen.getByRole('button', { name: /next page/i }))
     expect(Array.from(section.querySelectorAll('h3'), heading => heading.textContent)).toEqual(['Part 20', 'Part 21', 'Part 22', 'Part 23', 'Part 24'])
+  })
+})
+
+describe('acting on every listing at once', () => {
+  const hidden = (id: string): ReconciledOrder => ({ ...entry(id, { state: 'ok' }), order: { ...entry(id, { state: 'ok' }).order, visible: false } })
+
+  it('offers only the visibility change that would change something', () => {
+    render(<OrdersView account={account({ orders: [entry('o1', { state: 'ok' })] })} {...handlers} busy={false} error={null} />)
+    const group = screen.getByRole('group', { name: 'Every listing' })
+    expect(within(group).queryByRole('button', { name: 'Show all' })).toBeNull()
+    expect(within(group).getByRole('button', { name: 'Hide all' })).toBeInTheDocument()
+  })
+
+  it('shows or hides every listing on one press', async () => {
+    const user = userEvent.setup()
+    render(<OrdersView account={account({ orders: [entry('o1', { state: 'ok' }), hidden('o2')] })} {...handlers} busy={false} error={null} />)
+    await user.click(screen.getByRole('button', { name: 'Show all' }))
+    expect(handlers.onShowAll).toHaveBeenCalledWith(true)
+    await user.click(screen.getByRole('button', { name: 'Hide all' }))
+    expect(handlers.onShowAll).toHaveBeenCalledWith(false)
+  })
+
+  it('offers to fix the flagged listings only when some are flagged', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<OrdersView account={account({ orders: [entry('o1', { state: 'ok' })] })} {...handlers} busy={false} error={null} />)
+    expect(screen.queryByRole('button', { name: /^fix/i })).toBeNull()
+    rerender(<OrdersView account={account({ orders: [entry('o1', { state: 'missing' }), entry('o2', { state: 'overshoot', owned: 1 }, 3)], flagged: 2 })} {...handlers} busy={false} error={null} />)
+    await user.click(screen.getByRole('button', { name: 'Fix 2' }))
+    expect(handlers.onRepairAll).toHaveBeenCalledOnce()
+  })
+
+  it('asks again, with the count, before removing every listing', async () => {
+    const user = userEvent.setup()
+    render(<OrdersView account={account({ orders: [entry('o1', { state: 'ok' }), entry('o2', { state: 'ok' })] })} {...handlers} busy={false} error={null} />)
+    await user.click(screen.getByRole('button', { name: 'Remove all' }))
+    expect(handlers.onRemoveAll).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Remove 2?' }))
+    expect(handlers.onRemoveAll).toHaveBeenCalledOnce()
+  })
+
+  it('offers nothing to act on when there are no listings', () => {
+    render(<OrdersView account={account()} {...handlers} busy={false} error={null} />)
+    expect(screen.queryByRole('group', { name: 'Every listing' })).toBeNull()
   })
 })
