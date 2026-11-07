@@ -24,6 +24,7 @@ type OrdersViewProps = {
   onLowerTo: (orderId: string, quantity: number) => Promise<void>
   onClose: (orderId: string, quantity: number) => Promise<void>
   onSell: SellHandler
+  onSellSet: SellHandler
   onUpdate: UpdateHandler
   syncOrders: boolean
   onSyncOrders: (enabled: boolean) => Promise<void>
@@ -32,7 +33,7 @@ type OrdersViewProps = {
   error: string | null
 }
 
-export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onShowAll, onRepairAll, onRemoveAll, onLowerTo, onClose, onSell, onUpdate, syncOrders, onSyncOrders, items, busy, error }: OrdersViewProps) {
+export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefresh, onRemove, onShowAll, onRepairAll, onRemoveAll, onLowerTo, onClose, onSell, onSellSet, onUpdate, syncOrders, onSyncOrders, items, busy, error }: OrdersViewProps) {
   const t = useMessages()
   if (account.link === 'unlinked') {
     return <UnlinkedPanel onSignIn={onSignIn} onLinkToken={onLinkToken} busy={busy} error={error} />
@@ -108,7 +109,7 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
       </ul>
       : <EmptyState icon="orders" title={t.orders.none} detail={t.orders.noneDetail}/>}
 
-    {!needsRelink && <SellStock items={items} account={account} busy={busy} onSell={onSell} onUpdate={onUpdate}/>}
+    {!needsRelink && <SellStock items={items} account={account} busy={busy} onSell={onSell} onSellSet={onSellSet} onUpdate={onUpdate}/>}
   </section>
 }
 

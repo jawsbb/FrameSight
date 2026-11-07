@@ -29,8 +29,13 @@ import { competingSellers } from './orders'
 export type SellHandler = (collectionId: string, platinum: number, quantity: number, visible: boolean) => Promise<void>
 export type UpdateHandler = (orderId: string, platinum: number, quantity: number) => Promise<void>
 
-export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
-  item: CollectionItem
+/** What a listing is for: a collection row, or a set named by its built path. `quantity` bounds
+ * the count; `readBook` reads the live sellers beside the price, the row's own book by default. */
+export type Sellable = Pick<CollectionItem, 'id' | 'name' | 'quantity' | 'platinum'>
+
+export function SellForm({ item, listing, busy, onSell, onUpdate, onDone, readBook = marketRowOrders }: {
+  item: Sellable
+  readBook?: (id: string) => Promise<MarketItemOrders>
   listing?: MarketOrder
   busy: boolean
   onSell: SellHandler
@@ -88,7 +93,7 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
       <input type="number" min={1} max={Math.max(item.quantity, 1)} aria-label={t.sell.quantity} value={quantity} onChange={event => setQuantity(event.target.value)} disabled={busy} aria-invalid={countProblem !== null} aria-describedby={countProblem !== null ? countProblemId : undefined} />
       {countProblem !== null && <span className="band-note" id={countProblemId}>{countProblem}</span>}
     </label>
-    <MarketGlance itemId={item.id} onMatch={price => setPlatinum(String(price))} busy={busy}/>
+    <MarketGlance itemId={item.id} readBook={readBook} onMatch={price => setPlatinum(String(price))} busy={busy}/>
     {/* Hidden is offered rather than assumed either way: a hidden listing is a real way to hold a
         price ready without showing it, and warframe.market's own default of hidden is not what
         someone pressing "sell" means. Edit mode sends no visibility at all. */}
@@ -111,18 +116,18 @@ export function SellForm({ item, listing, busy, onSell, onUpdate, onDone }: {
  * backend's, already narrowed to this row's rank and refinement, so a maxed copy is never priced
  * against unranked ones.
  */
-function MarketGlance({ itemId, onMatch, busy }: { itemId: string; onMatch: (platinum: number) => void; busy: boolean }) {
+function MarketGlance({ itemId, readBook, onMatch, busy }: { itemId: string; readBook: (id: string) => Promise<MarketItemOrders>; onMatch: (platinum: number) => void; busy: boolean }) {
   const t = useMessages()
   const [book, setBook] = useState<MarketItemOrders | 'loading' | 'failed'>('loading')
   useEffect(() => {
     let current = true
     setBook('loading')
-    marketRowOrders(itemId).then(
+    readBook(itemId).then(
       next => { if (current) setBook(next) },
       () => { if (current) setBook('failed') },
     )
     return () => { current = false }
-  }, [itemId])
+  }, [itemId, readBook])
 
   if (book === 'loading') return <p className="glance">{t.sell.glanceLoading}</p>
   if (book === 'failed') return <p className="glance">{t.sell.glanceFailed}</p>

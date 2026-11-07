@@ -98,6 +98,7 @@ const view: AppView = {
   market_account: {
     link: 'unlinked',
     orders: [],
+    sets: [],
     synced: [],
     listed_platinum: 0,
     listable: [],

@@ -461,3 +461,27 @@ fn localized_names_ask_for_the_language_and_key_it_by_the_english_name() {
     assert_eq!(seen[0].language, Some("fr"));
     assert_eq!(seen[0].token, None);
 }
+
+/// A set is published under the built item's path, so it is found by that path and nothing else.
+#[test]
+fn a_set_is_found_by_the_path_of_the_item_it_builds() {
+    let items = MarketItems::from_response(ITEMS.as_bytes()).expect("items parse");
+
+    let set = items
+        .set_for("/Lotus/Weapons/Tenno/Rifle/BratonPrime")
+        .expect("set listed");
+    assert_eq!(set.id, "54a73e65e779893a797ffef1");
+    assert_eq!(set.slug, "braton_prime_set");
+    assert_eq!(set.name, "Braton Prime Set");
+    // A part's path is not a set, and neither is a path the market does not list.
+    assert!(
+        items
+            .set_for("/Lotus/Types/Recipes/Weapons/BratonPrimeBlueprint")
+            .is_none()
+    );
+    assert!(
+        items
+            .set_for("/Lotus/Weapons/Tenno/Rifle/LatoPrime")
+            .is_none()
+    );
+}

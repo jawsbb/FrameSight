@@ -1,11 +1,11 @@
 use std::sync::Mutex;
 
-use app_core::{LinkState, MarketAccountView, OrderStatus, ReconciledOrder};
+use app_core::{HeldSet, LinkState, MarketAccountView, OrderStatus, ReconciledOrder};
 use app_lib::market_account::{
     ITEM_NOT_LISTABLE, ITEM_NOT_OWNED, MarketSession, ORDER_EXCEEDS_HOLDING, ORDER_NOT_A_SELL,
-    ORDER_NOT_HELD, ORDER_NOT_ON_A_ROW, SALE_NOT_WHOLE_TRADES, SALE_OUTSIDE_ORDER, account_view,
-    authorize_close, authorize_quantity_write, authorize_removal, authorize_sell, authorize_update,
-    failure_message,
+    ORDER_NOT_HELD, ORDER_NOT_ON_A_ROW, SALE_NOT_WHOLE_TRADES, SALE_OUTSIDE_ORDER,
+    SET_NOT_COMPLETE, account_view, authorize_close, authorize_quantity_write, authorize_removal,
+    authorize_sell, authorize_set_sell, authorize_update, failure_message,
 };
 use warframe_domain::{
     CatalogItem, Category, Collection, InventoryEntry, InventorySnapshot, ItemId,
@@ -636,5 +636,38 @@ fn a_sale_is_refused_for_a_buy_order_or_an_unknown_id() {
     assert_eq!(
         authorize_close(&view, "order-missing", 1),
         Err(ORDER_NOT_HELD)
+    );
+}
+
+/// A set is listed under the market id the backend joined, and only up to the whole sets the held
+/// parts make; the caller names the set by path and supplies nothing else it could get wrong.
+#[test]
+fn a_set_sells_only_as_many_whole_sets_as_the_parts_make() {
+    let mut view = MarketAccountView::linked(CredentialBacking::Keyring, Vec::new(), "0".into());
+    view.sets = vec![HeldSet {
+        path: "/Lotus/Weapons/Tenno/Rifle/BratonPrime".into(),
+        name: "Braton Prime Set".into(),
+        item_id: "56783f24cbfa8f0432dd8993".into(),
+        slug: "braton_prime_set".into(),
+        thumb_url: None,
+        parts: Vec::new(),
+        complete: 2,
+        platinum: Some(30),
+        monthly_trades: None,
+    }];
+
+    assert_eq!(
+        authorize_set_sell(&view, "/Lotus/Weapons/Tenno/Rifle/BratonPrime", 2).as_deref(),
+        Ok("56783f24cbfa8f0432dd8993")
+    );
+    for quantity in [0, 3] {
+        assert_eq!(
+            authorize_set_sell(&view, "/Lotus/Weapons/Tenno/Rifle/BratonPrime", quantity),
+            Err(SET_NOT_COMPLETE)
+        );
+    }
+    assert_eq!(
+        authorize_set_sell(&view, "/Lotus/Weapons/Tenno/Rifle/LatoPrime", 1),
+        Err(SET_NOT_COMPLETE)
     );
 }

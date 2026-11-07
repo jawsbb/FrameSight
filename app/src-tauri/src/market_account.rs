@@ -260,6 +260,26 @@ pub fn authorize_sell<'a>(
         .ok_or(ITEM_NOT_LISTABLE)
 }
 
+/// A set sale was asked for on a set the held view does not list, or for more whole sets than the
+/// held parts make.
+pub const SET_NOT_COMPLETE: &str = "The collection does not hold that many complete sets";
+
+/// The market id a set listing may be published under, when the held view lists that set with at
+/// least `quantity` complete. The set and its count come from the view the backend built from
+/// the collection, never from the caller: a set listed past its parts is a promise to a buyer
+/// nobody can keep.
+pub fn authorize_set_sell(
+    view: &MarketAccountView,
+    set_path: &str,
+    quantity: u32,
+) -> Result<String, &'static str> {
+    view.sets
+        .iter()
+        .find(|set| set.path == set_path && (1..=set.complete).contains(&quantity))
+        .map(|set| set.item_id.clone())
+        .ok_or(SET_NOT_COMPLETE)
+}
+
 /// Whether a delete may proceed: only for an id the held view actually lists. Checked before any
 /// transport is built, since a stale or fabricated id must never reach a delete call.
 pub fn authorize_removal(view: &MarketAccountView, order_id: &str) -> Result<(), &'static str> {
