@@ -14,6 +14,27 @@ see the difference.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-07
+
+### Added
+
+- **Sell from the whole inventory, in one press.** Orders listed only the eight most valuable
+  holdings, and each sale went through a form. Every holding the linked account can list now
+  shows in one table, with ducats, sales per month and price, filters for listed state and
+  minimum price, and four sorts. **Sell** lists one copy at the cheapest in-game seller's price;
+  when nobody is selling or the market cannot be read, it opens the form instead of guessing a
+  price. **Price…** opens the form directly.
+- **Sell Prime sets.** A set could not be listed from FrameSight at all. The table's **Sets**
+  view lists every Prime set you hold a part of, counts each part against what one set takes
+  (`Blade 3/2`), and sells a set only once the parts make a whole one.
+- **Act on every listing at once.** **Show all**, **Hide all**, **Fix N** (the automatic sync's
+  repairs, on a press) and **Remove all**, which asks again with the count. When warframe.market
+  refuses some of the changes, the list shows the account as it now stands and says how many.
+
+### Known limits
+
+- Set part names stay in English with the interface in French.
+
 ## [0.14.1] - 2026-10-30
 
 ### Fixed
@@ -940,7 +961,8 @@ First release.
 - Raw inventory responses are validated in memory and are not persisted.
 - No telemetry, no analytics, no remote account, no secret persistence.
 
-[Unreleased]: https://github.com/jawsbb/FrameSight/compare/v0.14.1...HEAD
+[Unreleased]: https://github.com/jawsbb/FrameSight/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/jawsbb/FrameSight/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/jawsbb/FrameSight/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/jawsbb/FrameSight/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/Deftera186/tennoscope/compare/v0.13.0...v0.13.1
