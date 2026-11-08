@@ -471,7 +471,7 @@ describe('selling from the inventory', () => {
     id: '/Lotus/Upgrades/Mods/RifleSerrationMod#10',
     name: 'Serration',
     category: 'mod',
-    quantity: 1,
+    quantity: 2,
     mastered: false,
     platinum: 48,
     live: false,
@@ -498,6 +498,24 @@ describe('selling from the inventory', () => {
     const section = screen.getByRole('region', { name: /sell from your inventory/i })
     const names = Array.from(section.querySelectorAll('h3'), heading => heading.textContent)
     expect(names).toEqual(['Serration', 'Braton Prime Blueprint'])
+  })
+
+  it('proposes what is held more than once, dearest first, and the rest on request', async () => {
+    const user = userEvent.setup()
+    // The single copy is the dearest, and the stack of three the cheapest per copy.
+    const single = { ...braton, id: '/Lotus/Single', name: 'Single Thing', quantity: 1, platinum: 200 }
+    render(<OrdersView account={account({ listable: [braton.id, serration.id, single.id] })} {...handlers} items={[braton, serration, single]} busy={false} error={null} />)
+    const section = screen.getByRole('region', { name: /sell from your inventory/i })
+    const names = () => Array.from(section.querySelectorAll('h3'), heading => heading.textContent)
+    expect(names()).toEqual(['Serration', 'Braton Prime Blueprint'])
+    await user.click(screen.getByRole('button', { name: 'All counts' }))
+    expect(names()).toEqual(['Single Thing', 'Serration', 'Braton Prime Blueprint'])
+  })
+
+  it('says so when nothing is held twice, rather than showing an empty list', () => {
+    const single = { ...braton, quantity: 1 }
+    render(<OrdersView account={account({ listable: [single.id] })} {...handlers} items={[single]} busy={false} error={null} />)
+    expect(screen.getByText(/nothing is held twice/i)).toBeInTheDocument()
   })
 
   it('sends the price and quantity typed, for the item chosen', async () => {
