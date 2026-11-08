@@ -14,6 +14,12 @@ see the difference.
 
 ## [Unreleased]
 
+### Changed
+
+- **Sell** in Orders now proposes what you hold twice or more, dearest copy first. It used to
+  rank by the value of the whole stack, so a pile of cheap parts came before a duplicate worth
+  far more each. **All counts** shows the single copies too.
+
 ### Fixed
 
 - Selling your last unranked copy of a mod or arcane now takes its rank 0 listing down even when

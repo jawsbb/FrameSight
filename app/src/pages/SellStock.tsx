@@ -11,6 +11,7 @@ import { useMessages, type Messages } from '../i18n'
 
 type Kind = 'items' | 'sets'
 type Listed = 'unlisted' | 'listed' | 'all'
+type Copies = 'spare' | 'all'
 type Sort = 'value' | 'price' | 'sales' | 'ducats'
 
 const PAGE_SIZE = 20
@@ -90,7 +91,10 @@ function setRows(account: MarketAccount, onSellSet: SellHandler, t: Messages): S
  * The rows are the same listable set the backend authorises against, so nothing is offered that
  * the backend would refuse; a set offers its sale only once its parts make a whole one, and says
  * which parts it holds either way. Unlisted rows are the default view because they are what is
- * left to do; a listed row says its listing instead.
+ * left to do; a listed row says its listing instead. Of the items, only what is held twice or more
+ * shows by default, dearest copy first: a duplicate is what a player sells without a second
+ * thought, and the price of one copy is what one press of "Sell" earns. "All counts" adds the
+ * single copies back.
  *
  * "Sell" reads the row's live book and lists one copy at the cheapest in-game seller's price. With
  * no live price to match (nobody selling, or the market unreachable) it opens the form instead
@@ -111,8 +115,9 @@ export function SellStock({ items, account, busy, onSell, onSellSet, onUpdate }:
   const [kind, setKind] = useState<Kind>('items')
   const [query, setQuery] = useState('')
   const [listed, setListed] = useState<Listed>('unlisted')
+  const [copies, setCopies] = useState<Copies>('spare')
   const [floor, setFloor] = useState<number>(0)
-  const [sort, setSort] = useState<Sort>('value')
+  const [sort, setSort] = useState<Sort>('price')
   const [page, setPage] = useState(1)
   const [chosen, setChosen] = useState<string | null>(null)
   const [pricing, setPricing] = useState<string | null>(null)
@@ -123,14 +128,19 @@ export function SellStock({ items, account, busy, onSell, onSellSet, onUpdate }:
   if (!account.listable.length && !account.sets.length) return null
 
   const needle = query.trim().toLowerCase()
-  const matches = stock
-    .filter(row => {
-      if (listed === 'unlisted' && row.order) return false
-      if (listed === 'listed' && !row.order) return false
-      if (floor > 0 && (row.sellable.platinum ?? 0) < floor) return false
-      return !needle || row.sellable.name.toLowerCase().includes(needle)
-    })
+  // A set is rarely held whole twice over, so the count filter is the items' alone.
+  const spareOnly = kind === 'items' && copies === 'spare'
+  const kept = stock.filter(row => {
+    if (listed === 'unlisted' && row.order) return false
+    if (listed === 'listed' && !row.order) return false
+    if (floor > 0 && (row.sellable.platinum ?? 0) < floor) return false
+    return !needle || row.sellable.name.toLowerCase().includes(needle)
+  })
+  const matches = kept
+    .filter(row => !spareOnly || row.available >= 2)
     .sort((left, right) => sortKey[sort](right) - sortKey[sort](left))
+  // Said only when the count is all that hides the rest, not when a search or a floor does.
+  const onlySingles = matches.length === 0 && kept.length > 0
   const pages = Math.max(1, Math.ceil(matches.length / PAGE_SIZE))
   const current = Math.min(page, pages)
   const shown = matches.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
@@ -160,6 +170,9 @@ export function SellStock({ items, account, busy, onSell, onSellSet, onUpdate }:
           {(['items', 'sets'] as Kind[]).map(option => <button key={option} type="button" aria-pressed={kind === option} onClick={() => { narrow(setKind)(option); setChosen(null) }}>{s.kinds[option]}</button>)}
         </div>
         <SearchField label={t.orders.item} value={query} onChange={narrow(setQuery)}/>
+        {kind === 'items' && <div className="segmented" role="group" aria-label={s.copiesLabel}>
+          {(['spare', 'all'] as Copies[]).map(option => <button key={option} type="button" aria-pressed={copies === option} onClick={() => narrow(setCopies)(option)}>{s.copies[option]}</button>)}
+        </div>}
         <div className="segmented" role="group" aria-label={s.listedLabel}>
           {(['unlisted', 'listed', 'all'] as Listed[]).map(option => <button key={option} type="button" aria-pressed={listed === option} onClick={() => narrow(setListed)(option)}>{s.listed[option]}</button>)}
         </div>
@@ -213,7 +226,7 @@ export function SellStock({ items, account, busy, onSell, onSellSet, onUpdate }:
           </li>
         })}
       </ul>
-      : <p className="pick-empty">{kind === 'sets' ? s.noSets : t.orders.noneSellable}</p>}
+      : <p className="pick-empty">{kind === 'sets' ? s.noSets : onlySingles ? s.noSpare : t.orders.noneSellable}</p>}
     <Pagination current={current} total={pages} onChange={setPage}/>
   </section>
 }
