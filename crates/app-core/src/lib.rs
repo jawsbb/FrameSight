@@ -1516,12 +1516,13 @@ pub fn reconcile_orders(
     collection: &Collection,
     snapshot: Option<&SnapshotMeta>,
 ) -> Vec<ReconciledOrder> {
-    // Quantity per card, summed across ranks. A card at two ranks is two entries in the
-    // collection and one listing on the market, so comparing against either entry alone would
-    // call a legitimate order an overshoot.
-    let mut owned: std::collections::HashMap<&str, u32> = std::collections::HashMap::new();
+    let mut owned: std::collections::HashMap<&str, Held> = std::collections::HashMap::new();
     for entry in collection.entries() {
-        *owned.entry(entry.item.id.catalog_path()).or_default() += entry.quantity;
+        let held = owned.entry(entry.item.id.catalog_path()).or_default();
+        held.every_rank += entry.quantity;
+        if entry.rank.unwrap_or(0) == 0 {
+            held.unranked += entry.quantity;
+        }
     }
 
     orders
@@ -1536,10 +1537,20 @@ pub fn reconcile_orders(
         .collect()
 }
 
+/// What the collection holds of one card. A card at two ranks is two entries in the collection,
+/// so an order naming no rank is compared against every copy: against either entry alone, a
+/// legitimate order would read as an overshoot. An order at rank 0 sells the unranked stack, and
+/// only that: ranks only go up, so a ranked copy can never be handed over as an unranked one.
+#[derive(Clone, Copy, Default)]
+struct Held {
+    every_rank: u32,
+    unranked: u32,
+}
+
 fn status_for(
     order: &MarketOrder,
     items: &MarketItems,
-    owned: &std::collections::HashMap<&str, u32>,
+    owned: &std::collections::HashMap<&str, Held>,
     snapshot: Option<&SnapshotMeta>,
 ) -> OrderStatus {
     // Owning none of something is the ordinary state for something you are trying to buy.
@@ -1571,7 +1582,13 @@ fn status_for(
     if !items.comparable(&order.item_id) {
         return OrderStatus::Unverifiable;
     }
-    match owned.get(path).copied().unwrap_or(0) {
+    let held = owned.get(path).copied().unwrap_or_default();
+    let held = if order.rank == Some(0) {
+        held.unranked
+    } else {
+        held.every_rank
+    };
+    match held {
         0 => OrderStatus::Missing,
         held if held < order.quantity => OrderStatus::Overshoot { owned: held },
         _ => OrderStatus::Ok,

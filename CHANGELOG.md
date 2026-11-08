@@ -14,6 +14,11 @@ see the difference.
 
 ## [Unreleased]
 
+### Fixed
+
+- Selling your last unranked copy of a mod or arcane now takes its rank 0 listing down even when
+  you keep a ranked copy. The ranked copy used to count as stock for the unranked listing.
+
 ## [0.15.1] - 2026-11-08
 
 ### Fixed
