@@ -253,6 +253,33 @@ fn owned_quantity_sums_every_rank_of_one_card() {
     assert_eq!(reconciled[0].status, OrderStatus::Ok);
 }
 
+/// A listing at rank 0 sells the unranked stack, and a ranked copy cannot be sold as one: ranks
+/// only go up. Selling the last unranked Dreamer's Wrath while a rank 3 copy stays equipped left
+/// the rank 0 listing up, because the rank 3 copy was counted as backing it.
+#[test]
+fn an_unranked_listing_counts_only_unranked_copies() {
+    let mut sold_out = sell_order(MOD_ID, 1, 1_785_405_600);
+    sold_out.rank = Some(0);
+    let mut short = sell_order(MOD_ID, 3, 1_785_405_600);
+    short.rank = Some(0);
+
+    let reconciled = reconcile_orders(
+        &[sold_out],
+        &items(),
+        &collection_holding(vec![(MOD_PATH, 1, Some(3))]),
+        Some(&snapshot_at(1_785_492_000)),
+    );
+    assert_eq!(reconciled[0].status, OrderStatus::Missing);
+
+    let reconciled = reconcile_orders(
+        &[short],
+        &items(),
+        &collection_holding(vec![(MOD_PATH, 2, None), (MOD_PATH, 1, Some(5))]),
+        Some(&snapshot_at(1_785_492_000)),
+    );
+    assert_eq!(reconciled[0].status, OrderStatus::Overshoot { owned: 2 });
+}
+
 /// Production snapshot metadata records Unix seconds while orders carry RFC 3339. Compared as
 /// text, every digit sorts below every year, so every order would read as unverifiable forever
 /// and the feature would ship doing nothing.
