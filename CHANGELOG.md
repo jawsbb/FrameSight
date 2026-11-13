@@ -26,6 +26,9 @@ see the difference.
   note and **Sell** moved to the item sheet the tile opens.
 - **Orders** shows one action per line, **Sold**; **Edit** and **Remove** show when the pointer
   or keyboard reaches the line. A flagged line keeps them all.
+- **Sell from your inventory** fits on one line: the listed-state and minimum-price filters are
+  gone. A listed item is in **My listings** right above, and the price sort already puts cheap
+  items last. A listing's total shows only when it lists more than one copy.
 - Pages no longer open with a sentence describing themselves; a note stays only when it says a
   state.
 

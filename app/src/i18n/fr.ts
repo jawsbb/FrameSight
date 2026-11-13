@@ -675,11 +675,6 @@ export const fr: Messages = {
     item: 'Objet',
     noneSellable: 'Aucun objet vendable ne correspond. Les exemplaires partiellement montés et les sculptures Ayatan serties d’étoiles ne peuvent pas être mis en vente depuis FrameSight\u00a0; les ensembles sont sous Sets.',
     stock: {
-      listedLabel: 'Annonce',
-      listed: { unlisted: 'Pas en vente', listed: 'En vente', all: 'Tout' },
-      floorLabel: 'Prix minimum',
-      anyPrice: 'Tous les prix',
-      floor: (platinum: number) => `${n(platinum)}p et plus`,
       sortLabel: 'Trier les objets à vendre',
       sorts: { value: 'Valeur du stock', price: 'Prix', sales: 'Ventes par mois', ducats: 'Ducats' },
       columns: { item: 'Objet', ducats: 'Ducats', sales: 'Ventes/mois', price: 'Prix' },

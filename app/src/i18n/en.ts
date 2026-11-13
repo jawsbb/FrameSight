@@ -688,11 +688,6 @@ export const en = {
     item: 'Item',
     noneSellable: 'Nothing sellable here matches that. Part-ranked copies and star-set Ayatan sculptures cannot be listed from FrameSight; sets are under Sets.',
     stock: {
-      listedLabel: 'Listing',
-      listed: { unlisted: 'Not listed', listed: 'Listed', all: 'All' },
-      floorLabel: 'Minimum price',
-      anyPrice: 'Any price',
-      floor: (platinum: number) => `${n(platinum)}p and up`,
       sortLabel: 'Sort items to sell',
       sorts: { value: 'Stack value', price: 'Price', sales: 'Sales per month', ducats: 'Ducats' },
       columns: { item: 'Item', ducats: 'Ducats', sales: 'Sales/mo', price: 'Price' },
