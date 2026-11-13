@@ -37,7 +37,6 @@ export function DiagnosticsPage({ view, effectiveMode }: { view: AppView; effect
   return <div className="page">
     <div className="page-head">
       <h1 id="diagnostics-title" className="page-title">{t.diagnostics.title}</h1>
-      <p className="page-note">{t.diagnostics.note}</p>
     </div>
     <ReportBlock health={view.health}/>
     <section className="page-section" aria-label={t.diagnostics.title}>

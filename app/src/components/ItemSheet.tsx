@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { getItemBuilds, getItemDetail, type Build, type CollectionItem, type DropSource, type ItemDetail, type StatKey } from '../backend'
-import { figure, masteryOrder } from '../collection'
+import { figure, masteryOrder, stackValue } from '../collection'
 import { MetalMark } from '../MetalMark'
 import { SellForm } from '../SellForm'
 import { longDate, useMessages, type Messages } from '../i18n'
@@ -90,6 +90,11 @@ export function ItemSheet({ item, index, total, onStep, onClose, ...context }: E
     </> },
     item.monthly_trades !== undefined && { label: t.sheet.monthlySales, content: figure(item.monthly_trades, t) },
     item.ducats !== undefined && { label: t.sheet.ducats, content: <span className="value ducat"><MetalMark metal="ducat" alt={t.card.ducat}/><b>{figure(item.ducats, t)}</b></span> },
+    // What the whole holding comes to, which the grid's tile leaves to this sheet.
+    context.ownershipVerified && item.quantity > 1 && (item.platinum !== undefined || item.ducats !== undefined) && { label: t.sheet.stackValue(item.quantity), content: <>
+      {item.platinum !== undefined && <span className="value plat"><MetalMark metal="plat" alt={t.card.platinum}/><b>{figure(stackValue(item) ?? 0, t)}</b></span>}
+      {item.ducats !== undefined && <span className="value ducat"><MetalMark metal="ducat" alt={t.card.ducat}/><b>{figure(item.ducats * item.quantity, t)}</b></span>}
+    </> },
   ])
 
   return <aside ref={panel} className="sheet" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={keys}>

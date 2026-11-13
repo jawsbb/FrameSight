@@ -14,6 +14,21 @@ see the difference.
 
 ## [Unreleased]
 
+### Added
+
+- FrameSight has its own icon, the title bar's reticle, in the launcher, the taskbar and the
+  installers. It used to show Tauri's default logo.
+
+### Changed
+
+- **Collection** fits about 70% more items on screen. A tile now shows the art, the name, the
+  count, the tags that matter and the values; the category, the stack totals, the live-price
+  note and **Sell** moved to the item sheet the tile opens.
+- **Orders** shows one action per line, **Sold**; **Edit** and **Remove** show when the pointer
+  or keyboard reaches the line. A flagged line keeps them all.
+- Pages no longer open with a sentence describing themselves; a note stays only when it says a
+  state.
+
 ## [0.15.2] - 2026-11-08
 
 ### Changed

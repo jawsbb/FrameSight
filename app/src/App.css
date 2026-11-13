@@ -303,45 +303,50 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 /* cards */
 
 .card-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(14.5rem, 100%), 1fr)); gap: var(--tight);
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(13.5rem, 100%), 1fr)); gap: 6px;
   margin: 0; padding: 0; list-style: none;
 }
 .card-grid > li { display: grid; min-width: 0; }
+/* A tile: the art beside a two-line name, then one line of what is held and what it is worth. */
 .card {
-  display: grid; grid-template-columns: 56px minmax(0, 1fr); grid-template-rows: auto 1fr;
-  gap: 6px 10px; min-width: 0; padding: 10px;
+  display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center;
+  gap: 6px 10px; min-width: 0; padding: 8px 10px;
   border: 1px solid transparent; border-radius: var(--radius); background: var(--bg-2);
   transition: border-color .12s ease;
 }
 .card:hover { border-color: var(--line-strong); }
 .card-art {
-  grid-row: 1 / 3; display: grid; place-items: center; width: 56px; height: 56px; overflow: hidden;
+  display: grid; place-items: center; width: 40px; height: 40px; overflow: hidden;
   border-radius: var(--radius-sm); background: var(--well);
   color: var(--text-faint); font-size: .75rem; font-weight: 600;
 }
-.card-art img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
-.card-body { display: grid; align-content: start; gap: 1px; min-width: 0; }
+.card-art img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
 /* Two lines at most: a prime part's name only differs from its siblings at the end. */
 .card-name {
   display: -webkit-box; margin: 0; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
   font-size: .8125rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
 }
+/* The Foundry's cards keep the name, category and tags stacked beside larger art. */
+.card-body { display: grid; align-content: start; gap: 1px; min-width: 0; }
+.card-body .tags { margin-top: 4px; }
 .card-meta { color: var(--text-faint); font-size: .75rem; }
+.card-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; min-width: 0; }
 /* A card the account does not hold is drawn dimmed; its badge still says so in words. */
 .card[data-held="false"] .card-art img { filter: grayscale(1); opacity: .55; }
 .card[data-held="false"] .card-name { color: var(--text-dim); }
 
-.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
 .tag {
   padding: 0 6px; border: 1px solid transparent; border-radius: var(--radius-xs); background: var(--fill);
   color: var(--text-dim); font-size: .75rem; line-height: 18px; white-space: nowrap;
 }
+.tag.count { font-variant-numeric: tabular-nums; }
 .tag.absent { border: 1px dashed var(--line-strong); background: none; color: var(--text-faint); }
 .tag.mastered { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 .tag.rank.maxed, .tag.listed { background: var(--fill-strong); color: var(--text); }
 .tag.gained { background: var(--accent-soft); color: var(--accent-text); }
 
-.card-values { display: flex; flex-wrap: wrap; align-items: center; align-self: end; gap: 2px 12px; min-width: 0; }
+.card-values { display: flex; align-items: center; gap: 10px; margin-left: auto; min-width: 0; }
 .value { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .value b { font-size: .9375rem; font-weight: 600; }
 .value.plat b { color: var(--platinum); }
@@ -351,8 +356,6 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .value-missing, .checked-live { color: var(--text-faint); font-size: .75rem; }
 .change.up { color: var(--ok); }
 .change.down { color: var(--danger); }
-.card > .sell-form { grid-column: 1 / -1; }
-.sell-open { min-height: 24px; margin-left: auto; padding: 0 10px; }
 
 /* Nothing to show: one tile, the page's icon over what is missing and what would fill it. */
 .empty-state {
@@ -580,6 +583,13 @@ progress::-moz-progress-bar { border-radius: 2px; background: var(--accent); }
 .line-value { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .line-fix { display: flex; justify-content: flex-end; gap: 4px; min-width: 0; }
 .line-fix .stamp { white-space: nowrap; }
+/* One action per line at rest: the sale ("Sold", "Sell"). The others wait for the pointer or the
+   keyboard to reach the line, and stay where they are so nothing moves when they show. A flagged
+   line keeps them out, since its removal is the repair it asks for. */
+@media (hover: hover) and (pointer: fine) {
+  .docket-line:not(.doubt) .line-fix .stamp:not(.sold) { opacity: 0; transition: opacity .12s ease; }
+  .docket-line:not(.doubt):is(:hover, :focus-within) .line-fix .stamp:not(.sold) { opacity: 1; }
+}
 /* The sale is the row's everyday action, so it is the one filled stamp. */
 .stamp.sold { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 

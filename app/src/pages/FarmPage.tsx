@@ -86,7 +86,6 @@ export function FarmPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }: 
     <div className="page-head">
       <h1 id="farm-title" className="page-title">{f.title}</h1>
       <p className="page-note">{figures}</p>
-      <p className="page-note">{f.note}</p>
       {!farm.prices_date && <p className="page-note farm-warn">{f.noPrices}</p>}
     </div>
 

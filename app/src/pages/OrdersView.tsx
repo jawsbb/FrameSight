@@ -78,7 +78,6 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
         </button>
         <ConfirmButton label={t.orders.unlink} confirmLabel={t.orders.confirmUnlink} busy={busy} onConfirm={onSignOut}/>
       </div>
-      <p className="page-note">{t.orders.note}</p>
     </div>
 
     {/* Suppressed while the relink block is up: that block already names the refusal and offers
