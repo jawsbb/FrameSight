@@ -10,7 +10,7 @@ export function RewardPage({ view, effectiveMode }: { view: AppView; effectiveMo
   return <div className="page">
     <div className="page-head">
       <h1 id="reward-title" className="page-title">{t.rewards.title}</h1>
-      <p className="page-note">{companion ? t.rewards.companionNote : t.rewards.note}</p>
+      {companion && <p className="page-note">{t.rewards.companionNote}</p>}
     </div>
     <section aria-label={t.rewards.title}>
       {view.reward.cards.length

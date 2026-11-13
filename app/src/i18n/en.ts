@@ -391,6 +391,7 @@ export const en = {
     platinum: 'Platinum',
     checkedLive: 'checked live',
     dailySummary: 'daily summary',
+    stackValue: (count: number) => `All ${n(count)}`,
     monthlySales: 'Sales per month',
     ducats: 'Ducats',
     components: 'Components',
@@ -437,7 +438,6 @@ export const en = {
   rewards: {
     title: 'Reward advisor',
     companionNote: 'Companion does not read the reward screen, so ownership shows as unverifiable.',
-    note: 'Reads the Void Fissure reward screen and shows each choice’s value here and over the game.',
     none: 'No reward choices detected',
     companionDetail: 'Overlay or Full access reads the reward screen.',
     waiting: 'Waiting for an English Void Fissure reward screen.',
@@ -491,7 +491,6 @@ export const en = {
   },
   diagnostics: {
     title: 'Diagnostics',
-    note: 'Each service FrameSight depends on, and when it last worked. Messages never show tokens or other secrets.',
     companion: 'Companion does not watch the game, so only local and reference services are listed.',
     services: 'Services',
     systems: {
@@ -517,7 +516,6 @@ export const en = {
   },
   settings: {
     title: 'Settings',
-    note: 'Saved on this device and applied as you set them.',
     access: 'Warframe access',
     accessNote: 'Nothing changes until you confirm.',
     language: 'Language',
@@ -631,7 +629,6 @@ export const en = {
     refresh: 'Refresh orders',
     unlink: 'Unlink account',
     confirmUnlink: 'Confirm unlink',
-    note: "Your warframe.market sell listings, checked against this device's inventory.",
     credentialRefused: 'Credential refused',
     refusedNote: 'warframe.market refused the stored credential. The listings below may be out of date until you sign in again or link a new token.',
     list: 'Market orders',
@@ -655,7 +652,7 @@ export const en = {
     fewer: 'One fewer',
     more: 'One more',
     sync: 'Follow the inventory automatically',
-    syncNote: 'Every inventory read takes down listings for items you no longer have and lowers those offering more than you hold. Sets and ranked items are never touched.',
+    syncNote: 'Takes down or lowers listings to match each inventory read. Sets and ranked items are left alone.',
     syncedTitle: 'Last sync',
     synced: (relative: string) => `Synced ${relative}`,
     syncRemoved: 'listing taken down',
@@ -691,11 +688,6 @@ export const en = {
     item: 'Item',
     noneSellable: 'Nothing sellable here matches that. Part-ranked copies and star-set Ayatan sculptures cannot be listed from FrameSight; sets are under Sets.',
     stock: {
-      listedLabel: 'Listing',
-      listed: { unlisted: 'Not listed', listed: 'Listed', all: 'All' },
-      floorLabel: 'Minimum price',
-      anyPrice: 'Any price',
-      floor: (platinum: number) => `${n(platinum)}p and up`,
       sortLabel: 'Sort items to sell',
       sorts: { value: 'Stack value', price: 'Price', sales: 'Sales per month', ducats: 'Ducats' },
       columns: { item: 'Item', ducats: 'Ducats', sales: 'Sales/mo', price: 'Price' },
@@ -818,7 +810,6 @@ export const en = {
   },
   farm: {
     title: 'Farm & sales',
-    note: 'What to sell, open and farm for platinum, ranked by what the market actually buys: a price counts in full from 30 sales a month, and less below.',
     prices: (date: string) => `Prices of ${date}`,
     compared: (date: string) => `7-day change against ${date}`,
     noEarlier: 'No 7-day comparison yet',
@@ -902,7 +893,6 @@ export const en = {
   },
   marketPage: {
     title: 'Market',
-    note: 'Any tradeable item: what it is worth, how fast it sells, and who is trading it right now.',
     search: 'Search warframe.market items',
     placeholder: 'Item name, e.g. Serration',
     suggestions: 'Matching items',

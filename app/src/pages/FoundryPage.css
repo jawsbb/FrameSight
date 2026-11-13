@@ -19,7 +19,7 @@
 .foundry-card:hover { border-color: var(--line-strong); }
 
 .foundry-head { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: start; gap: 10px; }
-.foundry-head .card-art { grid-row: auto; }
+.foundry-head .card-art { width: 56px; height: 56px; }
 .tag.gain { background: var(--fill-strong); color: var(--text); }
 
 .foundry-values { display: grid; justify-items: end; gap: 2px; text-align: right; }

@@ -89,7 +89,7 @@ describe('the item sheet', () => {
     const user = userEvent.setup()
     page()
 
-    await user.click(within(card('Rhino Prime')).getByText('Frame'))
+    await user.click(card('Rhino Prime').querySelector('.card-art')!)
 
     expect(screen.getByRole('dialog', { name: 'Rhino Prime' })).toBeInTheDocument()
     expect(backend.getItemDetail).toHaveBeenCalledWith('rhino-prime')

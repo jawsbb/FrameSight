@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- FrameSight's app icon: the title bar's reticle, drawn large on the app's warm-grey ground.
+       Regenerate every size with `pnpm tauri icon src-tauri/icons/source/icon.png` after
+       rendering this file to a 1024px PNG. -->
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34312e"/>
+      <stop offset="1" stop-color="#1b1a19"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#6b93dc" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#6b93dc" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#ground)"/>
+  <rect x="64.5" y="64.5" width="895" height="895" rx="199.5" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="3"/>
+  <circle cx="512" cy="512" r="250" fill="url(#glow)"/>
+  <g fill="none" stroke="#ecebe9" stroke-linecap="round">
+    <circle cx="512" cy="512" r="236" stroke-width="44"/>
+    <path d="M512 188v120M512 716v120M188 512h120M716 512h120" stroke-width="44"/>
+  </g>
+  <circle cx="512" cy="512" r="66" fill="#6b93dc"/>
+</svg>

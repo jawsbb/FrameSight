@@ -78,7 +78,6 @@ export function OrdersView({ account, onSignIn, onLinkToken, onSignOut, onRefres
         </button>
         <ConfirmButton label={t.orders.unlink} confirmLabel={t.orders.confirmUnlink} busy={busy} onConfirm={onSignOut}/>
       </div>
-      <p className="page-note">{t.orders.note}</p>
     </div>
 
     {/* Suppressed while the relink block is up: that block already names the refusal and offers
@@ -186,11 +185,11 @@ function OrderRow({ entry, items, busy, onRemove, onLowerTo, onClose, onSell, on
     </div>
     <span className="line-figure">{order.platinum}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></span>
     <Quantity order={order} name={name} held={held?.quantity ?? null} busy={busy} onSet={quantity => onUpdate(order.id, order.platinum, quantity)}/>
-    {/* Every row states its own share of the headline figure. The total is a sum of these and
-        nothing else, so it can be checked by reading down the column. */}
+    {/* A row's share of the headline figure, written out when it is not just the price beside it:
+        for more than one copy, or as a dash when the row counts for nothing (hidden, buying). */}
     <span className="line-value">{value === null
       ? <em>—</em>
-      : <>{value}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></>}</span>
+      : order.quantity > 1 && <>{value}<MetalMark metal="plat" alt={t.units.platinum} className="line-metal"/></>}</span>
     <span className="line-fix">
       {order.kind === 'sell' && <button
         type="button"

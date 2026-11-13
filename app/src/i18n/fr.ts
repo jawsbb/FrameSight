@@ -385,6 +385,7 @@ export const fr: Messages = {
     platinum: 'Platine',
     checkedLive: 'vérifié en direct',
     dailySummary: 'relevé quotidien',
+    stackValue: (count: number) => `Les ${n(count)}`,
     monthlySales: 'Ventes par mois',
     ducats: 'Ducats',
     components: 'Composants',
@@ -430,7 +431,6 @@ export const fr: Messages = {
   rewards: {
     title: 'Conseiller de récompenses',
     companionNote: 'Compagnon ne lit pas l’écran de récompenses\u00a0: la possession n’est donc pas vérifiable.',
-    note: 'Lit l’écran de récompenses des fissures du Néant et affiche la valeur de chaque choix ici et par-dessus le jeu.',
     none: 'Aucun choix de récompense détecté',
     companionDetail: 'L’accès Overlay ou Complet lit l’écran de récompenses.',
     waiting: 'En attente d’un écran de récompenses de fissure du Néant en anglais.',
@@ -484,7 +484,6 @@ export const fr: Messages = {
   },
   diagnostics: {
     title: 'Diagnostic',
-    note: 'Chaque service dont dépend FrameSight, et quand il a fonctionné pour la dernière fois. Les messages d’état restent en anglais et n’affichent jamais de jeton ni d’autre secret.',
     companion: 'Compagnon ne surveille pas le jeu\u00a0: seuls les services locaux et de référence sont listés.',
     services: 'Services',
     systems: {
@@ -510,7 +509,6 @@ export const fr: Messages = {
   },
   settings: {
     title: 'Paramètres',
-    note: 'Enregistrés sur cet appareil et appliqués immédiatement.',
     access: 'Accès à Warframe',
     accessNote: 'Rien ne change avant votre confirmation.',
     language: 'Langue',
@@ -619,7 +617,6 @@ export const fr: Messages = {
     refresh: 'Actualiser les ordres',
     unlink: 'Dissocier le compte',
     confirmUnlink: 'Confirmer la dissociation',
-    note: 'Vos annonces de vente warframe.market, comparées à l’inventaire de cet appareil.',
     credentialRefused: 'Identifiant refusé',
     refusedNote: 'warframe.market a refusé l’identifiant enregistré. Les annonces ci-dessous peuvent être obsolètes jusqu’à ce que vous vous reconnectiez ou associiez un nouveau jeton.',
     list: 'Ordres du marché',
@@ -643,7 +640,7 @@ export const fr: Messages = {
     fewer: 'Un de moins',
     more: 'Un de plus',
     sync: 'Suivre l’inventaire automatiquement',
-    syncNote: 'À chaque lecture de l’inventaire, retire les annonces des objets que vous n’avez plus et réduit celles qui en proposent plus que vous n’en avez. Les ensembles et les objets classés ne sont jamais touchés.',
+    syncNote: 'Retire ou réduit les annonces à chaque lecture de l’inventaire. Les sets et les objets classés ne sont pas touchés.',
     syncedTitle: 'Dernière synchronisation',
     synced: (relative: string) => `Synchronisé ${relative}`,
     syncRemoved: 'annonce retirée',
@@ -678,11 +675,6 @@ export const fr: Messages = {
     item: 'Objet',
     noneSellable: 'Aucun objet vendable ne correspond. Les exemplaires partiellement montés et les sculptures Ayatan serties d’étoiles ne peuvent pas être mis en vente depuis FrameSight\u00a0; les ensembles sont sous Sets.',
     stock: {
-      listedLabel: 'Annonce',
-      listed: { unlisted: 'Pas en vente', listed: 'En vente', all: 'Tout' },
-      floorLabel: 'Prix minimum',
-      anyPrice: 'Tous les prix',
-      floor: (platinum: number) => `${n(platinum)}p et plus`,
       sortLabel: 'Trier les objets à vendre',
       sorts: { value: 'Valeur du stock', price: 'Prix', sales: 'Ventes par mois', ducats: 'Ducats' },
       columns: { item: 'Objet', ducats: 'Ducats', sales: 'Ventes/mois', price: 'Prix' },
@@ -804,7 +796,6 @@ export const fr: Messages = {
   },
   farm: {
     title: 'Farm & ventes',
-    note: 'Quoi vendre, ouvrir et farmer pour du platine, classé selon ce que le marché achète vraiment\u00a0: un prix compte en entier à partir de 30 ventes par mois, et moins en dessous.',
     prices: (date: string) => `Prix du ${date}`,
     compared: (date: string) => `Variation sur 7 jours par rapport au ${date}`,
     noEarlier: 'Pas encore de comparaison sur 7 jours',
@@ -888,7 +879,6 @@ export const fr: Messages = {
   },
   marketPage: {
     title: 'Marché',
-    note: 'N’importe quel objet échangeable\u00a0: ce qu’il vaut, à quelle vitesse il se vend, et qui l’échange en ce moment.',
     search: 'Rechercher un objet sur warframe.market',
     placeholder: 'Nom de l’objet, par ex. Serration',
     suggestions: 'Objets correspondants',

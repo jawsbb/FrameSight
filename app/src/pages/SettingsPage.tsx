@@ -16,7 +16,6 @@ export function SettingsPage({ view, language, onLanguage, priceFloor, effective
   return <section className="page" aria-labelledby="settings-title">
     <div className="page-head">
       <h1 id="settings-title" className="page-title">{t.settings.title}</h1>
-      <p className="page-note">{t.settings.note}</p>
     </div>
     <section className="page-section" aria-labelledby="access-setting-title">
       <h2 id="access-setting-title" className="section-title">{t.settings.access}</h2>

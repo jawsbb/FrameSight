@@ -10,6 +10,7 @@ const backend = vi.hoisted(() => ({
   getVersionInfo: vi.fn(), updateCheck: vi.fn(), updateDownloadAndInstall: vi.fn(),
   getPreferences: vi.fn(), setMasteryMarks: vi.fn(), getWorldState: vi.fn(),
   closeOrder: vi.fn(), setSyncOrders: vi.fn(), marketRowOrders: vi.fn().mockResolvedValue({ sell: [], buy: [], fetched_at: 0 }),
+  getItemDetail: vi.fn().mockResolvedValue(null), getItemBuilds: vi.fn().mockResolvedValue([]),
 }))
 const overlay = vi.hoisted(() => ({ showRewardOverlay: vi.fn(), hideRewardOverlay: vi.fn() }))
 const windowApi = vi.hoisted(() => ({
@@ -130,6 +131,15 @@ const world: WorldView = { cycles: [], fissures: [], storms: [], sortie: null, a
 /** The app opens on the dashboard; most of what is tested here is the collection behind it. */
 async function openCollection(user: Pick<ReturnType<typeof userEvent.setup>, 'click'> = userEvent) {
   await user.click(await screen.findByRole('button', { name: 'Collection' }))
+}
+
+/** A sale from the collection starts in the item's sheet: the grid's tile carries no controls. */
+async function sellFromSheet(name: string, action: RegExp | string = 'Sell', user: Pick<ReturnType<typeof userEvent.setup>, 'click'> = userEvent) {
+  const card = await screen.findByRole('article', { name })
+  await user.click(within(card).getByRole('button', { name }))
+  const sheet = screen.getByRole('dialog', { name })
+  await user.click(await within(sheet).findByRole('button', { name: action }))
+  return sheet
 }
 
 describe('MVP desktop interface', () => {
@@ -549,7 +559,6 @@ describe('MVP desktop interface', () => {
     const unpriced = await screen.findByRole('article', { name: 'Braton' })
     expect(unpriced).toHaveTextContent('No market price')
     expect(unpriced).not.toHaveTextContent('Checked live')
-    expect(screen.getByRole('article', { name: 'Lith A1 Relic' })).toHaveTextContent('Checked live')
   })
 
   it('filters by search, category, and ownership without losing canonical names', async () => {
@@ -1301,7 +1310,8 @@ describe('MVP desktop interface', () => {
     await openCollection()
 
     expect(await screen.findByText(/Synced/)).toHaveTextContent('warframe-memory')
-    expect(screen.getByRole('img', { name: 'Item 00' })).toHaveAttribute('src', 'https://cdn.warframestat.us/img/Braton.png')
+    // The art is decoration beside the name it would repeat, so it carries no name of its own.
+    expect(screen.getByRole('article', { name: 'Item 00' }).querySelector('img')).toHaveAttribute('src', 'https://cdn.warframestat.us/img/Braton.png')
     expect(screen.getAllByRole('article').filter(node => node.closest('[aria-label="Collection items"]'))).toHaveLength(48)
     expect(screen.getByText('1–48 of 60')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Go to page 2' }))
@@ -1309,7 +1319,7 @@ describe('MVP desktop interface', () => {
     expect(screen.queryByRole('article', { name: 'Item 00' })).not.toBeInTheDocument()
   })
 
-  it('shows the unit price, and the stack total only when more than one is owned', async () => {
+  it('shows the unit price on the tile, and the stack total in the sheet when more than one is owned', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App/>)
     await openCollection()
@@ -1322,16 +1332,17 @@ describe('MVP desktop interface', () => {
 
     const stack = await screen.findByRole('article', { name: 'Lith A1 Relic' })
     expect(within(stack).getByText('20')).toBeInTheDocument()
-    expect(within(stack).getByText('140 total')).toBeInTheDocument()
-    // One mark leads the pair: the unit price and the stack total are the same currency.
-    expect(within(stack).getAllByAltText(/platinum/i)).toHaveLength(1)
+    expect(within(stack).queryByText(/total|140/)).not.toBeInTheDocument()
+    await userEvent.click(within(stack).getByRole('button', { name: 'Lith A1 Relic' }))
+    const sheet = screen.getByRole('dialog', { name: 'Lith A1 Relic' })
+    expect(within(sheet).getByText('All 7').closest('.sheet-row')).toHaveTextContent('140')
   })
 
   // Ducats are the other price a prime part carries: set by Baro rather than the market, and
   // useful in bulk, so they get the stack total platinum gets and a band figure over the whole
   // collection. They are a fact of the item rather than of a holding, so a missing part keeps its
   // reading where it keeps no platinum, and the whole display is the player's choice to hide.
-  it('shows ducats beside platinum, totals the stack, and banks a collection figure', async () => {
+  it('shows ducats beside platinum, and banks a collection figure', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     backend.getView.mockResolvedValue({
       ...view,
@@ -1351,17 +1362,14 @@ describe('MVP desktop interface', () => {
 
     const stack = await screen.findByRole('article', { name: 'Paris Prime String' })
     expect(within(stack).getByText('15')).toBeInTheDocument()
-    expect(within(stack).getByText('45 total')).toBeInTheDocument()
-    // One mark leads the pair: unit value and stack total are the same currency, so they share it.
     expect(within(stack).getAllByAltText(/ducat/i)).toHaveLength(1)
 
     const missing = screen.getByRole('article', { name: 'Ash Prime Systems' })
     expect(within(missing).getByText('100')).toBeInTheDocument()
-    expect(within(missing).queryByText(/total/), 'nothing is banked from a part that is not held').not.toBeInTheDocument()
 
+    // No ducat figure is drawn rather than a sentence saying so: the tile stays one line.
     const unavailable = screen.getByRole('article', { name: 'Caliban Prime Chassis Blueprint' })
-    expect(within(unavailable).getByText('Ducat value unavailable')).toBeInTheDocument()
-    expect(unavailable).toHaveTextContent('Prime Parts')
+    expect(within(unavailable).queryByAltText(/ducat/i)).not.toBeInTheDocument()
 
     const band = screen.getByTestId('stat-ducats')
     expect(within(band).getByText('45')).toBeInTheDocument()
@@ -1447,16 +1455,15 @@ describe('MVP desktop interface', () => {
     expect(await screen.findByText(/27 Jul/)).toBeInTheDocument()
   })
 
-  it('marks a card checked live with its freshness, not a badge', async () => {
+  it('says in the sheet, not on the tile, that a price was checked live', async () => {
     backend.getSetupStatus.mockResolvedValue({ setup_complete: true, access_mode: 'full', desktop_capture_action_available: false })
     render(<App/>)
     await openCollection()
     const live = await screen.findByRole('article', { name: 'Lith A1 Relic' })
-    const daily = await screen.findByRole('article', { name: 'Lex Prime Receiver' })
+    expect(within(live).queryByText(/checked/i)).not.toBeInTheDocument()
 
-    expect(within(live).getByText(/checked/i)).toBeInTheDocument()
-    expect(within(live).queryByText('Live')).not.toBeInTheDocument()
-    expect(within(daily).queryByText(/checked/i)).not.toBeInTheDocument()
+    await userEvent.click(within(live).getByRole('button', { name: 'Lith A1 Relic' }))
+    expect(within(screen.getByRole('dialog', { name: 'Lith A1 Relic' })).getByText(/checked/i)).toBeInTheDocument()
   })
 
   // Someone who clicks it should not have to guess whether it prices the page or the collection,
@@ -1731,7 +1738,7 @@ describe('MVP desktop interface', () => {
     const card = await screen.findByRole('article', { name: 'Lith A1 Relic' })
 
     expect(await within(card).findByText(/listed 3 of 7 @ 20p/i)).toBeInTheDocument()
-    await user.click(await within(card).findByRole('button', { name: /sell more/i }))
+    await sellFromSheet('Lith A1 Relic', /sell more/i, user)
     expect(screen.getByLabelText('Platinum')).toHaveValue(20)
     await user.clear(screen.getByLabelText('Quantity'))
     await user.type(screen.getByLabelText('Quantity'), '5')
@@ -1780,9 +1787,8 @@ describe('MVP desktop interface', () => {
     await openCollection()
     await screen.findByRole('heading', { name: 'Your collection' })
 
-    const card = await screen.findByRole('article', { name: 'Lex Prime Receiver' })
-    await userEvent.click(await within(card).findByRole('button', { name: 'Sell' }))
-    await userEvent.click(within(card).getByRole('button', { name: /list for sale/i }))
+    const sheet = await sellFromSheet('Lex Prime Receiver')
+    await userEvent.click(within(sheet).getByRole('button', { name: /list for sale/i }))
 
     expect(await screen.findByText(/listed Lex Prime Receiver at 19 platinum/i)).toBeInTheDocument()
   })
@@ -1803,9 +1809,8 @@ describe('MVP desktop interface', () => {
     await openCollection()
     await screen.findByRole('heading', { name: 'Your collection' })
 
-    const card = await screen.findByRole('article', { name: 'Lex Prime Receiver' })
-    await userEvent.click(await within(card).findByRole('button', { name: 'Sell' }))
-    await userEvent.click(within(card).getByRole('button', { name: /list for sale/i }))
+    const sheet = await sellFromSheet('Lex Prime Receiver')
+    await userEvent.click(within(sheet).getByRole('button', { name: /list for sale/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not publish that listing/i)
   })
@@ -1821,9 +1826,8 @@ describe('MVP desktop interface', () => {
     render(<App/>)
     await openCollection()
 
-    const card = await screen.findByRole('article', { name: 'Lex Prime Receiver' })
-    await userEvent.click(await within(card).findByRole('button', { name: 'Sell' }))
-    await userEvent.click(within(card).getByRole('button', { name: /list for sale/i }))
+    const sheet = await sellFromSheet('Lex Prime Receiver')
+    await userEvent.click(within(sheet).getByRole('button', { name: /list for sale/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not publish that listing. warframe.market is limiting requests; try again shortly.')
   })

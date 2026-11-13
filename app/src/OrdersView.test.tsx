@@ -619,8 +619,7 @@ describe('selling from the inventory', () => {
     expect(await screen.findByRole('form', { name: /list braton prime blueprint for sale/i })).toBeInTheDocument()
   })
 
-  it('shows listed holdings on request, with their listing and an edit instead of a sale', async () => {
-    const user = userEvent.setup()
+  it('leaves a listed holding to the listings above, rather than offering it again', () => {
     render(
       <OrdersView
         account={account({ listable: [braton.id], orders: [entry('o1', { state: 'ok' }, 2, braton.id)] })}
@@ -631,20 +630,8 @@ describe('selling from the inventory', () => {
       />,
     )
     const section = screen.getByRole('region', { name: /sell from your inventory/i })
-    expect(section.querySelector('h3')).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Listed' }))
-    const row = within(section).getByRole('article', { name: 'Braton Prime Blueprint' })
-    expect(row).toHaveTextContent('listed 2 of 3 @ 12p')
-    expect(within(row).queryByRole('button', { name: 'Sell' })).toBeNull()
-    expect(within(row).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
-  })
-
-  it('filters out what is worth less than the minimum price', async () => {
-    const user = userEvent.setup()
-    render(<OrdersView account={account({ listable: [braton.id, serration.id] })} {...handlers} items={[braton, serration]} busy={false} error={null} />)
-    await user.selectOptions(screen.getByLabelText('Minimum price'), '15')
-    const section = screen.getByRole('region', { name: /sell from your inventory/i })
-    expect(Array.from(section.querySelectorAll('h3'), heading => heading.textContent)).toEqual(['Serration'])
+    expect(within(section).queryByRole('article', { name: 'Braton Prime Blueprint' })).toBeNull()
+    expect(within(section).queryByRole('button', { name: 'Listed' })).toBeNull()
   })
 
   it('sorts by how fast an item sells', async () => {
@@ -758,11 +745,10 @@ describe('selling sets', () => {
     expect(handlers.onSell).not.toHaveBeenCalled()
   })
 
-  it('counts a set listed when an order names the set', async () => {
+  it('leaves a set out once an order names it', async () => {
     const order = { ...entry('o1', { state: 'unverifiable' }), order: { ...entry('o1', { state: 'unverifiable' }).order, item_id: 'set-braton' } }
-    const { user, section } = await openSets([braton], [order])
+    const { section } = await openSets([braton, guandao], [order])
     expect(within(section).queryByRole('article', { name: 'Braton Prime Set' })).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Listed' }))
-    expect(within(section).getByRole('article', { name: 'Braton Prime Set' })).toHaveTextContent('listed 1 @ 12p')
+    expect(within(section).getByRole('article', { name: 'Guandao Prime Set' })).toBeInTheDocument()
   })
 })

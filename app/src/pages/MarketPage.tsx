@@ -143,7 +143,6 @@ export function MarketPage({ view, effectiveMode, onSell, onUpdate, ordersBusy }
   return <section className="page market-page" aria-labelledby="market-title">
     <div className="page-head">
       <h1 id="market-title" className="page-title">{m.title}</h1>
-      <p className="page-note">{m.note}</p>
     </div>
 
     <div className="market-search">
